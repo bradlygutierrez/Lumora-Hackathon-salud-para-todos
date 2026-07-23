@@ -1,1 +1,1 @@
-#Frontend creado en Kotlin
+#Frontend creado en Kotlin destinado a android
