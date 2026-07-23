@@ -1,0 +1,1 @@
+#Backend del proyecto creado en FastAPI, integración con funciones de AI locales.
