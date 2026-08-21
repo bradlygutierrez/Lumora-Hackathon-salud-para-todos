@@ -23,6 +23,15 @@ from lumora_api.schemas.identity import (
     UserRead,
     UserUpdate,
 )
+from lumora_api.schemas.auth import (
+    AccessToken,
+    ForgotPasswordRequest,
+    MessageResponse,
+    PermissionAssignment,
+    ResetPasswordRequest,
+    RoleAssignment,
+    VerifyEmailRequest,
+)
 
 __all__ = [
     "CatalogCreate",
@@ -46,4 +55,11 @@ __all__ = [
     "UserCreate",
     "UserRead",
     "UserUpdate",
+    "AccessToken",
+    "ForgotPasswordRequest",
+    "MessageResponse",
+    "PermissionAssignment",
+    "ResetPasswordRequest",
+    "RoleAssignment",
+    "VerifyEmailRequest",
 ]

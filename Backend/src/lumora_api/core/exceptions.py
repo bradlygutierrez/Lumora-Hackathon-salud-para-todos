@@ -15,3 +15,18 @@ class ResourceNotFoundError(DomainError):
 class ResourceConflictError(DomainError):
     status_code = 409
     code = "conflict"
+
+
+class AuthenticationError(DomainError):
+    status_code = 401
+    code = "unauthorized"
+
+
+class PermissionDeniedError(DomainError):
+    status_code = 403
+    code = "forbidden"
+
+
+class InvalidTokenError(DomainError):
+    status_code = 400
+    code = "invalid_token"

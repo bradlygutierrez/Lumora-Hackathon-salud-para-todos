@@ -1,8 +1,9 @@
 from functools import lru_cache
+import secrets
 from typing import Literal
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -11,6 +12,21 @@ class Settings(BaseSettings):
     environment: Literal["development", "test", "production"] = "development"
     database_url: str = Field(description="URL async de PostgreSQL/Neon")
     api_v1_prefix: str = "/api/v1"
+    jwt_secret: str = ""
+    jwt_algorithm: str = "HS256"
+    access_token_minutes: int = 30
+    recovery_token_minutes: int = 30
+    email_verification_hours: int = 24
+
+    @model_validator(mode="after")
+    def validate_jwt_secret(self) -> "Settings":
+        if not self.jwt_secret:
+            if self.environment == "production":
+                raise ValueError("JWT_SECRET es obligatorio en producción")
+            self.jwt_secret = secrets.token_urlsafe(48)
+        if len(self.jwt_secret) < 32:
+            raise ValueError("JWT_SECRET debe tener al menos 32 caracteres")
+        return self
 
     @field_validator("database_url")
     @classmethod

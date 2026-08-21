@@ -74,8 +74,9 @@ class UserService(IdentityService):
         super().__init__(repository)
 
     async def create(self, data: UserCreate) -> Usuario:
-        if await self.repository.session.get(Rol, data.rol_id) is None:
-            raise ResourceNotFoundError(f"Rol con id {data.rol_id} no existe")
+        role = await self.repository.role_by_name("Paciente")
+        if role is None:
+            raise ResourceNotFoundError("El rol base Paciente no está configurado")
         person_values = data.persona.model_dump(exclude={"direcciones"})
         person = Persona(**person_values)
         person.direcciones = [
@@ -84,12 +85,12 @@ class UserService(IdentityService):
         user = await self.repository.create(
             {
                 "persona": person,
-                "rol_id": data.rol_id,
                 "email": str(data.email).lower(),
                 "username": data.username.lower(),
                 "password_hash": hash_password(data.password),
             }
         )
+        user.roles = [role]
         await _commit(self.repository, "El correo o nombre de usuario ya existe")
         return user
 

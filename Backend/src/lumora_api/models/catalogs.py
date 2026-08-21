@@ -31,6 +31,9 @@ class Rol(CatalogModel):
     permisos: Mapped[list["Permiso"]] = relationship(
         secondary=roles_permisos, back_populates="roles", lazy="selectin"
     )
+    usuarios: Mapped[list["Usuario"]] = relationship(
+        secondary="usuario_roles", back_populates="roles", lazy="selectin"
+    )
 
 
 class Permiso(CatalogModel):
@@ -61,3 +64,7 @@ class Sexo(CatalogModel):
 class TipoSangre(CatalogModel):
     __tablename__ = "tipos_sangre"
     resource_name = "Tipo de sangre"
+
+
+class RolPermiso(Base):
+    __table__ = roles_permisos
