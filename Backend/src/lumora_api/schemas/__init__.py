@@ -32,6 +32,15 @@ from lumora_api.schemas.auth import (
     RoleAssignment,
     VerifyEmailRequest,
 )
+from lumora_api.schemas.mfa import (
+    MfaChallengeRequest,
+    MfaChallengeResponse,
+    MfaMethodRead,
+    MfaRecoveryRequest,
+    MfaSetupRequest,
+    MfaSetupResponse,
+    MfaVerifyRequest,
+)
 
 __all__ = [
     "CatalogCreate",
@@ -62,4 +71,11 @@ __all__ = [
     "ResetPasswordRequest",
     "RoleAssignment",
     "VerifyEmailRequest",
+    "MfaChallengeRequest",
+    "MfaChallengeResponse",
+    "MfaMethodRead",
+    "MfaRecoveryRequest",
+    "MfaSetupRequest",
+    "MfaSetupResponse",
+    "MfaVerifyRequest",
 ]

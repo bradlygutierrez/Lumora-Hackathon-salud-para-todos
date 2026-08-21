@@ -9,6 +9,12 @@ from lumora_api.models.catalogs import (
     roles_permisos,
 )
 from lumora_api.models.auth import TokenRecuperacion, UsuarioRol, VerificacionCorreo
+from lumora_api.models.mfa import (
+    CodigoRecuperacionMfa,
+    DesafioAutenticacion,
+    MetodoMfa,
+    UsuarioMetodoMfa,
+)
 from lumora_api.models.identity import (
     ContactoEmergencia,
     Direccion,
@@ -36,4 +42,8 @@ __all__ = [
     "TokenRecuperacion",
     "UsuarioRol",
     "VerificacionCorreo",
+    "CodigoRecuperacionMfa",
+    "DesafioAutenticacion",
+    "MetodoMfa",
+    "UsuarioMetodoMfa",
 ]

@@ -9,6 +9,7 @@ from lumora_api.core.exceptions import (
     InvalidTokenError,
     ResourceConflictError,
     ResourceNotFoundError,
+    MfaRequiredError,
 )
 from lumora_api.core.security import (
     create_access_token,
@@ -38,10 +39,16 @@ class AuthService:
         self.repository = repository
 
     async def authenticate(self, login: str, password: str) -> str:
+        user = await self.authenticate_user(login, password)
+        if await self.repository.has_active_mfa(user.id):
+            raise MfaRequiredError("Se requiere un segundo factor de autenticación")
+        return create_access_token(user.id)
+
+    async def authenticate_user(self, login: str, password: str) -> Usuario:
         user = await self.repository.user_by_login(login)
         if user is None or not verify_password(password, user.password_hash):
             raise AuthenticationError("Credenciales incorrectas")
-        return create_access_token(user.id)
+        return user
 
     async def create_recovery(self, email: str) -> str | None:
         user = await self.repository.user_by_email(email)

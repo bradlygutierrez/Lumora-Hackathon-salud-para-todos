@@ -30,3 +30,13 @@ class PermissionDeniedError(DomainError):
 class InvalidTokenError(DomainError):
     status_code = 400
     code = "invalid_token"
+
+
+class MfaRequiredError(DomainError):
+    status_code = 403
+    code = "mfa_required"
+
+
+class InvalidMfaCodeError(DomainError):
+    status_code = 400
+    code = "invalid_mfa_code"
