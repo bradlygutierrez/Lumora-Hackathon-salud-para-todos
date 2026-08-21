@@ -1,6 +1,6 @@
 from typing import ClassVar
 
-from sqlalchemy import Column, ForeignKey, String, Table, Text
+from sqlalchemy import Column, ForeignKey, String, Table, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from lumora_api.db.base import Base
@@ -17,6 +17,7 @@ roles_permisos = Table(
 class CatalogModel(Base):
     __abstract__ = True
     resource_name: ClassVar[str]
+    __table_args__ = (UniqueConstraint("nombre"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
     nombre: Mapped[str] = mapped_column(String(100), unique=True, index=True)
