@@ -9,6 +9,20 @@ from lumora_api.schemas.catalogs import (
     RoleRead,
     RoleUpdate,
 )
+from lumora_api.schemas.identity import (
+    EmergencyContactCreate,
+    EmergencyContactRead,
+    EmergencyContactUpdate,
+    PatientCreate,
+    PatientRead,
+    PatientUpdate,
+    ProfessionalCreate,
+    ProfessionalRead,
+    ProfessionalUpdate,
+    UserCreate,
+    UserRead,
+    UserUpdate,
+)
 
 __all__ = [
     "CatalogCreate",
@@ -20,4 +34,16 @@ __all__ = [
     "RoleCreate",
     "RoleRead",
     "RoleUpdate",
+    "EmergencyContactCreate",
+    "EmergencyContactRead",
+    "EmergencyContactUpdate",
+    "PatientCreate",
+    "PatientRead",
+    "PatientUpdate",
+    "ProfessionalCreate",
+    "ProfessionalRead",
+    "ProfessionalUpdate",
+    "UserCreate",
+    "UserRead",
+    "UserUpdate",
 ]

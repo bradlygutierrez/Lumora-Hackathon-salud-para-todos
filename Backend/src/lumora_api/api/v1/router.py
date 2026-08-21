@@ -1,6 +1,17 @@
 from fastapi import APIRouter
 
-from lumora_api.api.v1 import estados_cita, permisos, roles, sexos, tipos_cita, tipos_sangre
+from lumora_api.api.v1 import (
+    emergency_contacts,
+    estados_cita,
+    patients,
+    permisos,
+    professionals,
+    roles,
+    sexos,
+    tipos_cita,
+    tipos_sangre,
+    users,
+)
 
 api_router = APIRouter()
 api_router.include_router(roles.router)
@@ -9,3 +20,7 @@ api_router.include_router(estados_cita.router)
 api_router.include_router(tipos_cita.router)
 api_router.include_router(sexos.router)
 api_router.include_router(tipos_sangre.router)
+api_router.include_router(users.router)
+api_router.include_router(patients.router)
+api_router.include_router(professionals.router)
+api_router.include_router(emergency_contacts.router)
