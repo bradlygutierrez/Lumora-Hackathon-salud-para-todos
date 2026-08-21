@@ -1,8 +1,10 @@
 from datetime import datetime, timedelta, timezone
 from hashlib import sha256
 import secrets
+from base64 import urlsafe_b64encode
 
 import jwt
+from cryptography.fernet import Fernet
 from jwt import InvalidTokenError
 from pwdlib import PasswordHash
 
@@ -51,3 +53,16 @@ def generate_token() -> str:
 
 def hash_token(token: str) -> str:
     return sha256(token.encode()).hexdigest()
+
+
+def _mfa_cipher() -> Fernet:
+    key = sha256(get_settings().jwt_secret.encode()).digest()
+    return Fernet(urlsafe_b64encode(key))
+
+
+def encrypt_mfa_secret(secret: str) -> str:
+    return _mfa_cipher().encrypt(secret.encode()).decode()
+
+
+def decrypt_mfa_secret(encrypted_secret: str) -> str:
+    return _mfa_cipher().decrypt(encrypted_secret.encode()).decode()

@@ -1,7 +1,12 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from lumora_api.models import TokenRecuperacion, Usuario, VerificacionCorreo
+from lumora_api.models import (
+    TokenRecuperacion,
+    Usuario,
+    UsuarioMetodoMfa,
+    VerificacionCorreo,
+)
 
 
 class AuthRepository:
@@ -45,4 +50,15 @@ class AuthRepository:
             select(VerificacionCorreo).where(
                 VerificacionCorreo.token_hash == token_hash
             )
+        )
+
+    async def has_active_mfa(self, user_id: int) -> bool:
+        return (
+            await self.session.scalar(
+                select(UsuarioMetodoMfa.id).where(
+                    UsuarioMetodoMfa.usuario_id == user_id,
+                    UsuarioMetodoMfa.activo.is_(True),
+                )
+            )
+            is not None
         )

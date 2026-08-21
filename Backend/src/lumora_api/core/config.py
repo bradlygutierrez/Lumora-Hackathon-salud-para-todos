@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     access_token_minutes: int = 30
     recovery_token_minutes: int = 30
     email_verification_hours: int = 24
+    mfa_challenge_minutes: int = 5
+    mfa_max_attempts: int = 5
+    mfa_recovery_codes: int = 10
 
     @model_validator(mode="after")
     def validate_jwt_secret(self) -> "Settings":

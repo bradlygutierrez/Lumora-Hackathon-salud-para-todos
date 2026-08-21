@@ -3,6 +3,7 @@ from fastapi import APIRouter
 from lumora_api.api.v1 import (
     emergency_contacts,
     auth,
+    mfa,
     estados_cita,
     patients,
     permisos,
@@ -30,3 +31,4 @@ api_router.include_router(emergency_contacts.router)
 api_router.include_router(auth.router)
 api_router.include_router(user_roles.router)
 api_router.include_router(role_permissions.router)
+api_router.include_router(mfa.router)
