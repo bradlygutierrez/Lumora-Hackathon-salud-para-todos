@@ -14,3 +14,13 @@ uv run fastapi dev
 ```
 
 La API versionada está en `/api/v1` y Swagger en `/docs`.
+
+## OAuth2 y autorización
+
+Configure `JWT_SECRET` con al menos 32 caracteres. Obtenga un bearer token con
+`POST /api/v1/auth/token` usando usuario/correo y contraseña. Los endpoints de
+administración de roles y permisos requieren el permiso `rbac:manage`.
+
+Los tokens de recuperación y verificación se generan para su entrega por el
+servicio de correo, se guardan únicamente como hash y expiran después del plazo
+configurado.

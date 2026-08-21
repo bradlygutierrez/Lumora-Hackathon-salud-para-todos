@@ -37,12 +37,17 @@ class Usuario(SoftDeleteMixin, Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     persona_id: Mapped[int] = mapped_column(ForeignKey("personas.id"), unique=True, index=True)
-    rol_id: Mapped[int] = mapped_column(ForeignKey("roles.id"), index=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     username: Mapped[str] = mapped_column(String(50), unique=True, index=True)
     password_hash: Mapped[str] = mapped_column(String(255))
     activo: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+    email_verificado: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default="false"
+    )
     persona: Mapped[Persona] = relationship(back_populates="usuario", lazy="selectin")
+    roles: Mapped[list["Rol"]] = relationship(
+        secondary="usuario_roles", back_populates="usuarios", lazy="selectin"
+    )
 
 
 class Paciente(SoftDeleteMixin, Base):

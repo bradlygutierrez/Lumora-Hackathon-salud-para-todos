@@ -5,8 +5,10 @@ from lumora_api.models.catalogs import (
     Sexo,
     TipoCita,
     TipoSangre,
+    RolPermiso,
     roles_permisos,
 )
+from lumora_api.models.auth import TokenRecuperacion, UsuarioRol, VerificacionCorreo
 from lumora_api.models.identity import (
     ContactoEmergencia,
     Direccion,
@@ -30,4 +32,8 @@ __all__ = [
     "Persona",
     "ProfesionalSalud",
     "Usuario",
+    "RolPermiso",
+    "TokenRecuperacion",
+    "UsuarioRol",
+    "VerificacionCorreo",
 ]

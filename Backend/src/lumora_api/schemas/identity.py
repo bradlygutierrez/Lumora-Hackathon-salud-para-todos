@@ -52,7 +52,6 @@ class UserCreate(BaseModel):
     email: EmailStr
     username: Annotated[str, Field(min_length=3, max_length=50, pattern=r"^[a-zA-Z0-9_.-]+$")]
     password: Annotated[str, Field(min_length=8, max_length=128)]
-    rol_id: int
     persona: PersonCreate
 
 
@@ -60,7 +59,6 @@ class UserUpdate(BaseModel):
     email: EmailStr | None = None
     username: Annotated[str, Field(min_length=3, max_length=50, pattern=r"^[a-zA-Z0-9_.-]+$")] | None = None
     password: Annotated[str, Field(min_length=8, max_length=128)] | None = None
-    rol_id: int | None = None
     activo: bool | None = None
     persona: PersonUpdate | None = None
 
@@ -69,9 +67,10 @@ class UserRead(BaseModel):
     id: int
     email: EmailStr
     username: str
-    rol_id: int
     activo: bool
+    email_verificado: bool
     persona: PersonRead
+    roles: list["RoleRead"] = Field(default_factory=list)
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -133,3 +132,8 @@ class EmergencyContactRead(EmergencyContactCreate):
     id: int
     paciente_id: int
     model_config = ConfigDict(from_attributes=True)
+
+
+from lumora_api.schemas.catalogs import RoleRead
+
+UserRead.model_rebuild()
