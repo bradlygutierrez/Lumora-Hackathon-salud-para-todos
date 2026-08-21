@@ -7,7 +7,9 @@ requires-python = ">=3.14"
 dependencies = [
     "alembic>=1.19.1",
     "asyncpg>=0.31.0",
+    "email-validator>=2.3.0",
     "fastapi[standard]>=0.141.1",
+    "pwdlib[argon2]>=0.3.1",
     "pydantic-settings>=2.15.0",
     "sqlalchemy>=2.0.52",
 ]
