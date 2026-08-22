@@ -23,6 +23,12 @@ class CatalogModel(Base):
     nombre: Mapped[str] = mapped_column(String(100), unique=True, index=True)
 
 
+class ActiveCatalogModel(CatalogModel):
+    __abstract__ = True
+
+    activo: Mapped[bool] = mapped_column(default=True, nullable=False)
+
+
 class Rol(CatalogModel):
     __tablename__ = "roles"
     resource_name = "Rol"
@@ -113,3 +119,33 @@ class TipoRecordatorio(CatalogModel):
 class TipoRelacion(CatalogModel):
     __tablename__ = "tipos_relacion"
     resource_name = "Tipo de relación"
+
+
+class CargoSalud(ActiveCatalogModel):
+    __tablename__ = "cargos_salud"
+    resource_name = "Cargo de salud"
+
+
+class Especialidad(ActiveCatalogModel):
+    __tablename__ = "especialidades"
+    resource_name = "Especialidad"
+
+
+class EstadoExpediente(ActiveCatalogModel):
+    __tablename__ = "estados_expediente"
+    resource_name = "Estado de expediente"
+
+
+class EstadoCondicion(ActiveCatalogModel):
+    __tablename__ = "estados_condicion"
+    resource_name = "Estado de condición"
+
+
+class TipoAntecedente(ActiveCatalogModel):
+    __tablename__ = "tipos_antecedente"
+    resource_name = "Tipo de antecedente"
+
+
+class TipoDiagnostico(ActiveCatalogModel):
+    __tablename__ = "tipos_diagnostico"
+    resource_name = "Tipo de diagnóstico"

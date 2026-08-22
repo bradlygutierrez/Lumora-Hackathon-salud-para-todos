@@ -7,8 +7,12 @@ from lumora_api.models.auth import (
     VerificacionCorreo,
 )
 from lumora_api.models.catalogs import (
+    CargoSalud,
+    Especialidad,
     EstadoCita,
+    EstadoCondicion,
     EstadoDosis,
+    EstadoExpediente,
     EstadoReceta,
     NivelSeveridad,
     OrigenRegistro,
@@ -17,7 +21,9 @@ from lumora_api.models.catalogs import (
     RolPermiso,
     Sexo,
     TipoAlerta,
+    TipoAntecedente,
     TipoCita,
+    TipoDiagnostico,
     TipoRecordatorio,
     TipoRelacion,
     TipoSangre,
@@ -41,8 +47,12 @@ from lumora_api.models.mfa import (
 )
 
 __all__ = [
+    "CargoSalud",
+    "Especialidad",
     "EstadoCita",
+    "EstadoCondicion",
     "EstadoDosis",
+    "EstadoExpediente",
     "EstadoReceta",
     "NivelSeveridad",
     "OrigenRegistro",
@@ -50,7 +60,9 @@ __all__ = [
     "Rol",
     "Sexo",
     "TipoAlerta",
+    "TipoAntecedente",
     "TipoCita",
+    "TipoDiagnostico",
     "TipoRecordatorio",
     "TipoRelacion",
     "TipoSangre",

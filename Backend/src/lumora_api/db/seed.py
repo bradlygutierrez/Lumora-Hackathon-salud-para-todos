@@ -4,8 +4,12 @@ from sqlalchemy import select
 
 from lumora_api.db.session import SessionLocal
 from lumora_api.models import (
+    CargoSalud,
+    Especialidad,
     EstadoCita,
+    EstadoCondicion,
     EstadoDosis,
+    EstadoExpediente,
     EstadoReceta,
     NivelSeveridad,
     OrigenRegistro,
@@ -13,7 +17,9 @@ from lumora_api.models import (
     Rol,
     Sexo,
     TipoAlerta,
+    TipoAntecedente,
     TipoCita,
+    TipoDiagnostico,
     TipoRecordatorio,
     TipoRelacion,
     TipoSangre,
@@ -27,6 +33,13 @@ CATALOGS = {
     TipoCita: ["Presencial", "Virtual"],
     Sexo: ["Femenino", "Masculino", "Otro", "Prefiero no indicar"],
     TipoSangre: ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"],
+    # Catálogos clínicos
+    CargoSalud: ["Médico general", "Especialista", "Enfermería", "Farmacéutico"],
+    Especialidad: ["Medicina general", "Cardiología", "Pediatría", "Ginecología"],
+    EstadoExpediente: ["Activo", "Inactivo", "Archivado"],
+    EstadoCondicion: ["Activa", "Resuelta", "En observación", "Crónica"],
+    TipoAntecedente: ["Personal", "Familiar", "Quirúrgico", "Alergológico"],
+    TipoDiagnostico: ["Presuntivo", "Confirmado", "Diferencial"],
     # Nuevos Catálogos A01
     EstadoDosis: ["Tomada", "Omitida", "Pospuesta", "Pendiente"],
     EstadoReceta: ["Activa", "Completada", "Suspendida", "Vencida"],
