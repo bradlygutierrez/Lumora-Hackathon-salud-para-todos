@@ -68,3 +68,48 @@ class TipoSangre(CatalogModel):
 
 class RolPermiso(Base):
     __table__ = roles_permisos
+
+
+class EstadoDosis(CatalogModel):
+    __tablename__ = "estados_dosis"
+    resource_name = "Estado de dosis"
+
+
+class EstadoReceta(CatalogModel):
+    __tablename__ = "estados_receta"
+    resource_name = "Estado de receta"
+
+
+class ViaAdministracion(CatalogModel):
+    __tablename__ = "vias_administracion"
+    resource_name = "Vía de administración"
+
+
+class UnidadMedida(CatalogModel):
+    __tablename__ = "unidades_medida"
+    resource_name = "Unidad de medida"
+
+
+class OrigenRegistro(CatalogModel):
+    __tablename__ = "origenes_registro"
+    resource_name = "Origen de registro"
+
+
+class NivelSeveridad(CatalogModel):
+    __tablename__ = "niveles_severidad"
+    resource_name = "Nivel de severidad"
+
+
+class TipoAlerta(CatalogModel):
+    __tablename__ = "tipos_alerta"
+    resource_name = "Tipo de alerta"
+
+
+class TipoRecordatorio(CatalogModel):
+    __tablename__ = "tipos_recordatorio"
+    resource_name = "Tipo de recordatorio"
+
+
+class TipoRelacion(CatalogModel):
+    __tablename__ = "tipos_relacion"
+    resource_name = "Tipo de relación"

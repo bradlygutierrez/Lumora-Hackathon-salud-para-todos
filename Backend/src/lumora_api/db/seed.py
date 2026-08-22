@@ -3,7 +3,23 @@ import asyncio
 from sqlalchemy import select
 
 from lumora_api.db.session import SessionLocal
-from lumora_api.models import EstadoCita, Permiso, Rol, Sexo, TipoCita, TipoSangre
+from lumora_api.models import (
+    EstadoCita,
+    EstadoDosis,
+    EstadoReceta,
+    NivelSeveridad,
+    OrigenRegistro,
+    Permiso,
+    Rol,
+    Sexo,
+    TipoAlerta,
+    TipoCita,
+    TipoRecordatorio,
+    TipoRelacion,
+    TipoSangre,
+    UnidadMedida,
+    ViaAdministracion,
+)
 
 CATALOGS = {
     Permiso: [("usuarios:leer", "Consultar usuarios"), ("usuarios:editar", "Modificar usuarios")],
@@ -11,6 +27,16 @@ CATALOGS = {
     TipoCita: ["Presencial", "Virtual"],
     Sexo: ["Femenino", "Masculino", "Otro", "Prefiero no indicar"],
     TipoSangre: ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"],
+    # Nuevos Catálogos A01
+    EstadoDosis: ["Tomada", "Omitida", "Pospuesta", "Pendiente"],
+    EstadoReceta: ["Activa", "Completada", "Suspendida", "Vencida"],
+    ViaAdministracion: ["Oral", "Intravenosa", "Intramuscular", "Tópica", "Subcutánea", "Inhalatoria", "Oftálmica", "Otorrinolaringológica"],
+    UnidadMedida: ["mg", "g", "ml", "UI", "mcg", "Tableta", "Cápsula", "Gota"],
+    OrigenRegistro: ["Manual", "Dispositivo", "Profesional"],
+    NivelSeveridad: ["Baja", "Media", "Alta", "Crítica"],
+    TipoAlerta: ["Interacción", "Dosis Olvidada", "Reabastecimiento", "Efecto Secundario"],
+    TipoRecordatorio: ["Medicación", "Cita", "Medición"],
+    TipoRelacion: ["Padre/Madre", "Hijo/a", "Cónyuge", "Tutor Legal", "Otro"],
 }
 
 
