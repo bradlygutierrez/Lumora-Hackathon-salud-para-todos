@@ -36,3 +36,16 @@ configurado.
 Los desafíos duran cinco minutos, permiten cinco intentos y se consumen al
 validarse. Los secretos TOTP se cifran con una clave derivada de `JWT_SECRET`;
 rotar esa clave requiere volver a configurar MFA.
+
+## Catálogos clínicos
+
+Los catálogos clínicos exponen CRUD con paginación (`limit`, `offset`) y filtro
+opcional por estado (`activo`). `DELETE` desactiva el registro sin borrado físico
+y `PATCH` permite reactivarlo enviando `{"activo": true}`.
+
+- `/api/v1/cargos-salud`
+- `/api/v1/especialidades`
+- `/api/v1/estados-expediente`
+- `/api/v1/estados-condicion`
+- `/api/v1/tipos-antecedente`
+- `/api/v1/tipos-diagnostico`

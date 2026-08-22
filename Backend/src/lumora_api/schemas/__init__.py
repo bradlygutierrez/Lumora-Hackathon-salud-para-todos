@@ -1,4 +1,7 @@
 from lumora_api.schemas.catalogs import (
+    ActiveCatalogCreate,
+    ActiveCatalogRead,
+    ActiveCatalogUpdate,
     CatalogCreate,
     CatalogRead,
     CatalogUpdate,
@@ -48,6 +51,9 @@ from lumora_api.schemas.mfa import (
 from lumora_api.schemas.appointments import AppointmentCreate, AppointmentRead, AppointmentUpdate
 
 __all__ = [
+    "ActiveCatalogCreate",
+    "ActiveCatalogRead",
+    "ActiveCatalogUpdate",
     "CatalogCreate",
     "CatalogRead",
     "CatalogUpdate",

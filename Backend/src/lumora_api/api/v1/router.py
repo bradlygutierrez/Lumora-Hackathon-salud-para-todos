@@ -3,10 +3,14 @@ from fastapi import APIRouter
 from lumora_api.api.v1 import (
     appointments,
     auth,
+    cargos_salud,
     emergency_contacts,
     estados_cita,
+    estados_condicion,
     estados_dosis,
+    estados_expediente,
     estados_receta,
+    especialidades,
     mfa,
     niveles_severidad,
     origenes_registro,
@@ -17,7 +21,9 @@ from lumora_api.api.v1 import (
     roles,
     sexos,
     tipos_alerta,
+    tipos_antecedente,
     tipos_cita,
+    tipos_diagnostico,
     tipos_recordatorio,
     tipos_relacion,
     tipos_sangre,
@@ -43,6 +49,14 @@ api_router.include_router(user_roles.router)
 api_router.include_router(role_permissions.router)
 api_router.include_router(mfa.router)
 api_router.include_router(appointments.router)
+
+# Catálogos clínicos
+api_router.include_router(cargos_salud.router)
+api_router.include_router(especialidades.router)
+api_router.include_router(estados_expediente.router)
+api_router.include_router(estados_condicion.router)
+api_router.include_router(tipos_antecedente.router)
+api_router.include_router(tipos_diagnostico.router)
 
 # Catálogos A01
 api_router.include_router(estados_dosis.router)

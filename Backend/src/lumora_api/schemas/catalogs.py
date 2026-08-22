@@ -21,6 +21,18 @@ class CatalogRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class ActiveCatalogCreate(CatalogCreate):
+    activo: bool = True
+
+
+class ActiveCatalogUpdate(CatalogUpdate):
+    activo: bool | None = None
+
+
+class ActiveCatalogRead(CatalogRead):
+    activo: bool
+
+
 class PermissionRead(CatalogRead):
     descripcion: str | None = None
 
