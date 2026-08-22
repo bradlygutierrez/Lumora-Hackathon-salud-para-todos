@@ -60,3 +60,18 @@ async def test_swagger_groups_catalogs(client):
     schema = (await client.get("/openapi.json")).json()
     tags = {operation["tags"][0] for path in schema["paths"].values() for operation in path.values()}
     assert {"Roles", "Permisos", "Estados de cita", "Tipos de cita", "Sexos", "Tipos de sangre"} <= tags
+    declared = [tag["name"] for tag in schema["tags"]]
+    assert declared[:4] == ["Health", "Autenticación", "Autenticación MFA", "Usuarios"]
+
+
+@pytest.mark.asyncio
+async def test_cors_allows_configured_react_native_origin(client):
+    response = await client.options(
+        "/api/v1/auth/login",
+        headers={
+            "Origin": "http://localhost:8081",
+            "Access-Control-Request-Method": "POST",
+        },
+    )
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "http://localhost:8081"

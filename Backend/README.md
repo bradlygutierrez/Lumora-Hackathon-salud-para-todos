@@ -1,38 +1,72 @@
 # Lumora API
 
-Backend FastAPI async para los flujos de salud de Lumora.
+Backend FastAPI asíncrono para usuarios, pacientes, profesionales, autenticación, MFA y citas de Lumora.
 
-## Desarrollo
+## Requisitos
+
+- Python 3.14
+- [uv](https://docs.astral.sh/uv/)
+- Una base PostgreSQL en Neon
+
+No se necesita PostgreSQL local.
+
+## Instalación desde cero
+
+Desde la carpeta `Backend`:
 
 ```powershell
 Copy-Item .env.example .env
-# Editar DATABASE_URL con la URL async de Neon
 uv sync
+```
+
+Edite `.env` y reemplace `DATABASE_URL`, `JWT_SECRET` y `CORS_ORIGINS`. Neon acepta una URL estándar:
+
+```env
+DATABASE_URL=postgresql://USER:PASSWORD@HOST/DATABASE?sslmode=require&channel_binding=require
+```
+
+La aplicación selecciona automáticamente el driver asíncrono. `JWT_SECRET` debe tener al menos 32 caracteres y nunca debe versionarse.
+
+## Migraciones y catálogos
+
+```powershell
 uv run alembic upgrade head
 uv run python -m lumora_api.db.seed
+uv run alembic current
+```
+
+La revisión esperada es `20260824_05 (head)`. El seed es idempotente y carga roles, permisos, estados, tipos de cita, sexos y tipos de sangre.
+
+## Ejecutar la API
+
+```powershell
 uv run fastapi dev
 ```
 
-La API versionada está en `/api/v1` y Swagger en `/docs`.
+- API: `http://127.0.0.1:8000`
+- Swagger: `http://127.0.0.1:8000/docs`
+- OpenAPI: `http://127.0.0.1:8000/openapi.json`
+- API versionada: `/api/v1`
 
-## OAuth2 y autorización
+## Autenticación
 
-Configure `JWT_SECRET` con al menos 32 caracteres. Obtenga un bearer token con
-`POST /api/v1/auth/token` usando usuario/correo y contraseña. Los endpoints de
-administración de roles y permisos requieren el permiso `rbac:manage`.
+Use `POST /api/v1/auth/login` con `login` (username o correo) y `password`. La respuesta contiene un access JWT corto y un refresh token rotativo. Los refresh tokens se almacenan únicamente como hash y se revocan con `logout` o `logout-all`.
 
-Los tokens de recuperación y verificación se generan para su entrega por el
-servicio de correo, se guardan únicamente como hash y expiran después del plazo
-configurado.
+Si el usuario tiene MFA activo, complete `/api/v1/auth/mfa/challenge` y luego `/api/v1/auth/mfa/verify` o `/api/v1/auth/mfa/recovery`. El endpoint OAuth2 de Swagger permanece disponible en `POST /api/v1/auth/token`. La administración de roles y permisos requiere `rbac:manage`.
 
-## MFA
+## Pruebas
 
-1. Autenticarse y configurar TOTP con `POST /api/v1/auth/mfa/setup`.
-2. Guardar los códigos de recuperación mostrados una sola vez.
-3. Cuando `/auth/token` responda `mfa_required`, crear un desafío con
-   `POST /api/v1/auth/mfa/challenge`.
-4. Completarlo con `/auth/mfa/verify` o `/auth/mfa/recovery`.
+La suite usa SQLite en memoria y no modifica Neon:
 
-Los desafíos duran cinco minutos, permiten cinco intentos y se consumen al
-validarse. Los secretos TOTP se cifran con una clave derivada de `JWT_SECRET`;
-rotar esa clave requiere volver a configurar MFA.
+```powershell
+uv run pytest -q
+```
+
+Antes del despliegue valide además una base Neon vacía con `alembic upgrade head`, ejecute el seed y revise `/docs`.
+
+## Docker
+
+```powershell
+docker build -t lumora-api .
+docker run --env-file .env -p 8000:8000 lumora-api
+```

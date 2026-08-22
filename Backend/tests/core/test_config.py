@@ -23,3 +23,11 @@ def test_production_requires_a_persistent_jwt_secret():
             environment="production",
             jwt_secret="",
         )
+
+
+def test_cors_origins_are_configurable():
+    settings = Settings(
+        database_url="sqlite+aiosqlite://",
+        cors_origins=["https://app.lumora.example"],
+    )
+    assert settings.cors_origins == ["https://app.lumora.example"]
