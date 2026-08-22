@@ -11,6 +11,7 @@ from lumora_api.models import (
     EstadoDosis,
     EstadoExpediente,
     EstadoReceta,
+    MotivoConsulta,
     NivelSeveridad,
     OrigenRegistro,
     Permiso,
@@ -44,6 +45,7 @@ CATALOGS = {
     EstadoCondicion: ["Activa", "Resuelta", "En observación", "Crónica"],
     TipoAntecedente: ["Personal", "Familiar", "Quirúrgico", "Alergológico"],
     TipoDiagnostico: ["Presuntivo", "Confirmado", "Diferencial"],
+    MotivoConsulta: ["Control", "Dolor", "Seguimiento", "Emergencia"],
     # Nuevos Catálogos A01
     EstadoDosis: ["Tomada", "Omitida", "Pospuesta", "Pendiente"],
     EstadoReceta: ["Activa", "Completada", "Suspendida", "Vencida"],

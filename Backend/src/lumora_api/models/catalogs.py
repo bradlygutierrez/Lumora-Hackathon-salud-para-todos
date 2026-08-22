@@ -149,3 +149,8 @@ class TipoAntecedente(ActiveCatalogModel):
 class TipoDiagnostico(ActiveCatalogModel):
     __tablename__ = "tipos_diagnostico"
     resource_name = "Tipo de diagnóstico"
+
+
+class MotivoConsulta(ActiveCatalogModel):
+    __tablename__ = "motivos_consulta"
+    resource_name = "Motivo de consulta"

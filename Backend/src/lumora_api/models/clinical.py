@@ -1,6 +1,6 @@
 from datetime import date, datetime
 
-from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Index, String, Text, func, text
+from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Index, String, Text, func, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from lumora_api.db.base import Base
@@ -36,6 +36,9 @@ class Expediente(SoftDeleteMixin, Base):
 
     paciente: Mapped["Paciente"] = relationship(lazy="selectin")
     antecedentes: Mapped[list["AntecedenteMedico"]] = relationship(
+        back_populates="expediente", lazy="selectin"
+    )
+    consultas: Mapped[list["ConsultaMedica"]] = relationship(
         back_populates="expediente", lazy="selectin"
     )
 
@@ -82,3 +85,79 @@ class Discapacidad(SoftDeleteMixin, Base):
     )
     observaciones: Mapped[str | None] = mapped_column(Text, nullable=True)
     activo: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+
+
+class ConsultaMedica(SoftDeleteMixin, Base):
+    __tablename__ = "consultas_medicas"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    expediente_id: Mapped[int] = mapped_column(ForeignKey("expedientes.id"), index=True)
+    paciente_id: Mapped[int] = mapped_column(ForeignKey("pacientes.id"), index=True)
+    profesional_id: Mapped[int] = mapped_column(
+        ForeignKey("profesionales_salud.id"), index=True
+    )
+    motivo_consulta_id: Mapped[int | None] = mapped_column(
+        ForeignKey("motivos_consulta.id"), nullable=True, index=True
+    )
+    fecha_consulta: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )
+    motivo: Mapped[str | None] = mapped_column(String(600), nullable=True)
+    sintomas: Mapped[str | None] = mapped_column(Text, nullable=True)
+    evaluacion: Mapped[str | None] = mapped_column(Text, nullable=True)
+    indicaciones: Mapped[str | None] = mapped_column(Text, nullable=True)
+    observaciones: Mapped[str | None] = mapped_column(Text, nullable=True)
+    activo: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    expediente: Mapped[Expediente] = relationship(back_populates="consultas")
+    signos_vitales: Mapped[list["SignoVital"]] = relationship(
+        back_populates="consulta", lazy="selectin"
+    )
+    notas: Mapped[list["NotaClinica"]] = relationship(
+        back_populates="consulta", lazy="selectin"
+    )
+
+
+class SignoVital(Base):
+    __tablename__ = "signos_vitales"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    consulta_id: Mapped[int] = mapped_column(ForeignKey("consultas_medicas.id"), index=True)
+    temperatura_c: Mapped[float | None] = mapped_column(Float, nullable=True)
+    frecuencia_cardiaca: Mapped[int | None] = mapped_column(nullable=True)
+    frecuencia_respiratoria: Mapped[int | None] = mapped_column(nullable=True)
+    presion_sistolica: Mapped[int | None] = mapped_column(nullable=True)
+    presion_diastolica: Mapped[int | None] = mapped_column(nullable=True)
+    saturacion_oxigeno: Mapped[int | None] = mapped_column(nullable=True)
+    peso_kg: Mapped[float | None] = mapped_column(Float, nullable=True)
+    talla_cm: Mapped[float | None] = mapped_column(Float, nullable=True)
+    glucosa_mg_dl: Mapped[int | None] = mapped_column(nullable=True)
+    registrado_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )
+
+    consulta: Mapped[ConsultaMedica] = relationship(back_populates="signos_vitales")
+
+
+class NotaClinica(SoftDeleteMixin, Base):
+    __tablename__ = "notas_clinicas"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    consulta_id: Mapped[int] = mapped_column(ForeignKey("consultas_medicas.id"), index=True)
+    autor_id: Mapped[int] = mapped_column(ForeignKey("usuarios.id"), index=True)
+    contenido: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    activo: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+
+    consulta: Mapped[ConsultaMedica] = relationship(back_populates="notas")
