@@ -8,7 +8,9 @@ from lumora_api.models.catalogs import (
     RolPermiso,
     roles_permisos,
 )
-from lumora_api.models.auth import TokenRecuperacion, UsuarioRol, VerificacionCorreo
+from lumora_api.models.auth import (IntentoInicioSesion, SesionUsuario,
+                                    TokenRecuperacion, UsuarioRol, VerificacionCorreo)
+from lumora_api.models.appointments import Cita, EventoAuditoria
 from lumora_api.models.mfa import (
     CodigoRecuperacionMfa,
     DesafioAutenticacion,
@@ -46,4 +48,8 @@ __all__ = [
     "DesafioAutenticacion",
     "MetodoMfa",
     "UsuarioMetodoMfa",
+    "SesionUsuario",
+    "IntentoInicioSesion",
+    "Cita",
+    "EventoAuditoria",
 ]

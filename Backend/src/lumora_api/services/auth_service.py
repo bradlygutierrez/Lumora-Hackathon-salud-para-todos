@@ -24,6 +24,8 @@ from lumora_api.models import (
     TokenRecuperacion,
     Usuario,
     VerificacionCorreo,
+    IntentoInicioSesion,
+    SesionUsuario,
 )
 from lumora_api.repositories.auth_repository import AuthRepository
 
@@ -44,11 +46,65 @@ class AuthService:
             raise MfaRequiredError("Se requiere un segundo factor de autenticación")
         return create_access_token(user.id)
 
-    async def authenticate_user(self, login: str, password: str) -> Usuario:
+    async def authenticate_user(
+        self, login: str, password: str, ip: str | None = None, user_agent: str | None = None
+    ) -> Usuario:
         user = await self.repository.user_by_login(login)
         if user is None or not verify_password(password, user.password_hash):
+            self.repository.session.add(IntentoInicioSesion(
+                login=login.lower(), usuario_id=user.id if user else None, exitoso=False,
+                motivo="credenciales_incorrectas", ip=ip, user_agent=user_agent,
+            ))
+            await self.repository.session.commit()
             raise AuthenticationError("Credenciales incorrectas")
+        self.repository.session.add(IntentoInicioSesion(
+            login=login.lower(), usuario_id=user.id, exitoso=True, ip=ip, user_agent=user_agent,
+        ))
+        await self.repository.session.commit()
         return user
+
+    async def login(self, login: str, password: str, ip: str | None, user_agent: str | None) -> dict:
+        user = await self.authenticate_user(login, password, ip, user_agent)
+        if await self.repository.has_active_mfa(user.id):
+            raise MfaRequiredError("Se requiere un segundo factor de autenticación")
+        return await self.create_session(user.id, ip, user_agent)
+
+    async def create_session(self, user_id: int, ip: str | None, user_agent: str | None) -> dict:
+        raw = generate_token()
+        session = SesionUsuario(
+            usuario_id=user_id, refresh_token_hash=hash_token(raw), ip=ip,
+            user_agent=user_agent, expires_at=datetime.now(timezone.utc)
+            + timedelta(days=get_settings().refresh_token_days),
+        )
+        self.repository.session.add(session)
+        await self.repository.session.flush()
+        await self.repository.session.commit()
+        return {"access_token": create_access_token(user_id, session.id), "refresh_token": raw}
+
+    async def refresh(self, raw_token: str, ip: str | None, user_agent: str | None) -> dict:
+        session = await self.repository.session_by_hash(hash_token(raw_token))
+        if session is None or session.revoked_at is not None or _expired(session.expires_at):
+            raise InvalidTokenError("Refresh token inválido, expirado o revocado")
+        replacement = generate_token()
+        session.refresh_token_hash = hash_token(replacement)
+        session.last_used_at = datetime.now(timezone.utc)
+        session.ip, session.user_agent = ip, user_agent
+        await self.repository.session.commit()
+        return {"access_token": create_access_token(session.usuario_id, session.id), "refresh_token": replacement}
+
+    async def logout(self, user_id: int, session_id: int) -> None:
+        session = await self.repository.active_session(session_id, user_id)
+        if session is None:
+            raise InvalidTokenError("Sesión inválida o revocada")
+        session.revoked_at = datetime.now(timezone.utc)
+        await self.repository.session.commit()
+
+    async def logout_all(self, user_id: int) -> None:
+        await self.repository.revoke_all(user_id)
+        await self.repository.session.commit()
+
+    async def sessions(self, user_id: int) -> list[SesionUsuario]:
+        return await self.repository.active_sessions(user_id)
 
     async def create_recovery(self, email: str) -> str | None:
         user = await self.repository.user_by_email(email)

@@ -22,27 +22,34 @@ def verify_password(password: str, hashed_password: str) -> bool:
     return password_hash.verify(password, hashed_password)
 
 
-def create_access_token(user_id: int) -> str:
+def create_access_token(user_id: int, session_id: int | None = None) -> str:
     settings = get_settings()
     now = datetime.now(timezone.utc)
-    return jwt.encode(
-        {
+    payload = {
             "sub": str(user_id),
             "iat": now,
             "exp": now + timedelta(minutes=settings.access_token_minutes),
-        },
+        }
+    if session_id is not None:
+        payload["sid"] = session_id
+    return jwt.encode(
+        payload,
         settings.jwt_secret,
         algorithm=settings.jwt_algorithm,
     )
 
 
 def decode_access_token(token: str) -> int:
+    return decode_access_claims(token)[0]
+
+
+def decode_access_claims(token: str) -> tuple[int, int | None]:
     settings = get_settings()
     try:
         payload = jwt.decode(
             token, settings.jwt_secret, algorithms=[settings.jwt_algorithm]
         )
-        return int(payload["sub"])
+        return int(payload["sub"]), int(payload["sid"]) if "sid" in payload else None
     except (InvalidTokenError, KeyError, TypeError, ValueError) as error:
         raise AuthenticationError("Token de acceso inválido o expirado") from error
 

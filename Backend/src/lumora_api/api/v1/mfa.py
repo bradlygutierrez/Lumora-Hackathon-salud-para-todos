@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Response, status
+from fastapi import APIRouter, Request, Response, status
 
 from lumora_api.api.dependencies import CurrentUser, SessionDep
 from lumora_api.repositories.mfa_repository import MfaRepository
 from lumora_api.schemas import (
-    AccessToken,
+    TokenPair,
     MfaChallengeRequest,
     MfaChallengeResponse,
     MfaMethodRead,
@@ -38,20 +38,22 @@ async def challenge(data: MfaChallengeRequest, session: SessionDep):
     )
 
 
-@router.post("/verify", response_model=AccessToken)
-async def verify(data: MfaVerifyRequest, session: SessionDep) -> AccessToken:
-    token = await MfaService(MfaRepository(session)).verify(
-        data.challenge_token, data.code
+@router.post("/verify", response_model=TokenPair)
+async def verify(data: MfaVerifyRequest, request: Request, session: SessionDep) -> TokenPair:
+    tokens = await MfaService(MfaRepository(session)).verify(
+        data.challenge_token, data.code, request.client.host if request.client else None,
+        request.headers.get("user-agent"),
     )
-    return AccessToken(access_token=token)
+    return TokenPair(**tokens)
 
 
-@router.post("/recovery", response_model=AccessToken)
-async def recovery(data: MfaRecoveryRequest, session: SessionDep) -> AccessToken:
-    token = await MfaService(MfaRepository(session)).recover(
-        data.challenge_token, data.recovery_code
+@router.post("/recovery", response_model=TokenPair)
+async def recovery(data: MfaRecoveryRequest, request: Request, session: SessionDep) -> TokenPair:
+    tokens = await MfaService(MfaRepository(session)).recover(
+        data.challenge_token, data.recovery_code, request.client.host if request.client else None,
+        request.headers.get("user-agent"),
     )
-    return AccessToken(access_token=token)
+    return TokenPair(**tokens)
 
 
 @router.delete("/{method_id}", status_code=status.HTTP_204_NO_CONTENT)

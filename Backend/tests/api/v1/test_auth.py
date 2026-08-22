@@ -1,7 +1,7 @@
 import pytest
 from sqlalchemy import select
 
-from lumora_api.models import Permiso, Rol, Usuario
+from lumora_api.models import IntentoInicioSesion, Permiso, Rol, SesionUsuario, Usuario
 
 
 async def register(client, session_factory, username: str):
@@ -86,3 +86,29 @@ async def test_forgot_password_does_not_reveal_accounts(client):
     )
     assert missing.status_code == 200
     assert "token" not in missing.json()
+
+
+@pytest.mark.asyncio
+async def test_session_login_refresh_rotation_and_logout(client, session_factory):
+    await register(client, session_factory, "session-user")
+    failed = await client.post("/api/v1/auth/login", json={"login": "session-user", "password": "wrong"})
+    assert failed.status_code == 401
+
+    logged = await client.post("/api/v1/auth/login", json={"login": "session-user@example.com", "password": "safe-password"})
+    assert logged.status_code == 200
+    first = logged.json()
+    headers = {"Authorization": f"Bearer {first['access_token']}"}
+    assert (await client.get("/api/v1/auth/sessions", headers=headers)).status_code == 200
+
+    refreshed = await client.post("/api/v1/auth/refresh", json={"refresh_token": first["refresh_token"]})
+    assert refreshed.status_code == 200
+    assert (await client.post("/api/v1/auth/refresh", json={"refresh_token": first["refresh_token"]})).status_code == 400
+
+    new_headers = {"Authorization": f"Bearer {refreshed.json()['access_token']}"}
+    assert (await client.post("/api/v1/auth/logout", headers=new_headers)).status_code == 200
+    assert (await client.get("/api/v1/auth/sessions", headers=new_headers)).status_code == 401
+    async with session_factory() as session:
+        attempts = list(await session.scalars(select(IntentoInicioSesion)))
+        stored = list(await session.scalars(select(SesionUsuario)))
+        assert [attempt.exitoso for attempt in attempts[-2:]] == [False, True]
+        assert stored[0].refresh_token_hash != first["refresh_token"]
