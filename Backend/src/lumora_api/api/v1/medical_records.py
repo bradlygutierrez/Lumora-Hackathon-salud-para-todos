@@ -3,8 +3,10 @@ from fastapi import APIRouter, Depends, Query, Response, status
 from lumora_api.api.dependencies import SessionDep, require_permission
 from lumora_api.api.v1.catalog_router import ERRORS
 from lumora_api.models import AntecedenteMedico, Expediente
+from lumora_api.repositories.consultation_repository import ConsultationRepository
 from lumora_api.repositories.clinical_repository import ClinicalRepository
 from lumora_api.schemas import (
+    ConsultationRead,
     MedicalHistoryCreate,
     MedicalHistoryRead,
     MedicalHistoryUpdate,
@@ -14,6 +16,7 @@ from lumora_api.schemas import (
     Page,
 )
 from lumora_api.services.clinical_service import MedicalHistoryService, MedicalRecordService
+from lumora_api.services.consultation_service import ConsultationService
 
 router = APIRouter(
     prefix="/expedientes",
@@ -28,6 +31,10 @@ def record_service(session: SessionDep) -> MedicalRecordService:
 
 def history_service(session: SessionDep) -> MedicalHistoryService:
     return MedicalHistoryService(ClinicalRepository(session, AntecedenteMedico))
+
+
+def consultation_service(session: SessionDep) -> ConsultationService:
+    return ConsultationService(ConsultationRepository(session))
 
 
 @router.get("", response_model=Page[MedicalRecordRead])
@@ -60,6 +67,20 @@ async def update_record(record_id: int, data: MedicalRecordUpdate, session: Sess
 async def delete_record(record_id: int, session: SessionDep) -> Response:
     await record_service(session).delete(record_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get("/{record_id}/consultas", response_model=Page[ConsultationRead])
+async def list_record_consultations(
+    record_id: int,
+    session: SessionDep,
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    activo: bool | None = None,
+):
+    items, total = await consultation_service(session).list_for_record(
+        record_id, limit, offset, activo
+    )
+    return Page(items=items, total=total, limit=limit, offset=offset)
 
 
 @router.get("/{record_id}/antecedentes", response_model=Page[MedicalHistoryRead])

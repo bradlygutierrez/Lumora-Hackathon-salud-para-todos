@@ -63,3 +63,22 @@ usan borrado lógico y aceptan filtro opcional `activo` en listados.
 - `CRUD /api/v1/expedientes/{id}/antecedentes`
 - `CRUD /api/v1/pacientes/{id}/alergias`
 - `CRUD /api/v1/pacientes/{id}/discapacidades`
+
+## Consultas médicas
+
+Las consultas médicas requieren `clinica:manage`, pertenecen a un expediente,
+paciente y profesional, y permiten filtrar listados por expediente, paciente,
+profesional, estado activo y rango de fecha.
+
+- `POST /api/v1/consultas`
+- `GET /api/v1/consultas`
+- `GET /api/v1/consultas/{id}`
+- `PATCH /api/v1/consultas/{id}`
+- `DELETE /api/v1/consultas/{id}`
+- `POST /api/v1/consultas/{id}/signos-vitales`
+- `GET /api/v1/consultas/{id}/signos-vitales`
+- `POST /api/v1/consultas/{id}/notas`
+- `GET /api/v1/consultas/{id}/notas`
+- `GET /api/v1/consultas/{id}/notas/{nota_id}`
+- `PATCH /api/v1/consultas/{id}/notas/{nota_id}`
+- `GET /api/v1/expedientes/{id}/consultas`

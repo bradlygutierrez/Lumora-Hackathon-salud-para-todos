@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -103,5 +103,95 @@ class DisabilityRead(BaseModel):
     nombre: str
     estado_condicion_id: int | None
     observaciones: str | None
+    activo: bool
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ConsultationCreate(ClinicalStatusMixin):
+    expediente_id: int
+    paciente_id: int
+    profesional_id: int
+    motivo_consulta_id: int | None = None
+    fecha_consulta: datetime | None = None
+    motivo: str | None = Field(default=None, max_length=600)
+    sintomas: str | None = Field(default=None, max_length=4000)
+    evaluacion: str | None = Field(default=None, max_length=4000)
+    indicaciones: str | None = Field(default=None, max_length=4000)
+    observaciones: str | None = Field(default=None, max_length=4000)
+
+
+class ConsultationUpdate(BaseModel):
+    profesional_id: int | None = None
+    motivo_consulta_id: int | None = None
+    fecha_consulta: datetime | None = None
+    motivo: str | None = Field(default=None, max_length=600)
+    sintomas: str | None = Field(default=None, max_length=4000)
+    evaluacion: str | None = Field(default=None, max_length=4000)
+    indicaciones: str | None = Field(default=None, max_length=4000)
+    observaciones: str | None = Field(default=None, max_length=4000)
+    activo: bool | None = None
+
+
+class ConsultationRead(BaseModel):
+    id: int
+    expediente_id: int
+    paciente_id: int
+    profesional_id: int
+    motivo_consulta_id: int | None
+    fecha_consulta: datetime
+    motivo: str | None
+    sintomas: str | None
+    evaluacion: str | None
+    indicaciones: str | None
+    observaciones: str | None
+    activo: bool
+    model_config = ConfigDict(from_attributes=True)
+
+
+class VitalSignsCreate(BaseModel):
+    temperatura_c: float | None = Field(default=None, ge=30, le=45)
+    frecuencia_cardiaca: int | None = Field(default=None, ge=20, le=250)
+    frecuencia_respiratoria: int | None = Field(default=None, ge=5, le=80)
+    presion_sistolica: int | None = Field(default=None, ge=50, le=260)
+    presion_diastolica: int | None = Field(default=None, ge=30, le=160)
+    saturacion_oxigeno: int | None = Field(default=None, ge=50, le=100)
+    peso_kg: float | None = Field(default=None, ge=1, le=500)
+    talla_cm: float | None = Field(default=None, ge=30, le=250)
+    glucosa_mg_dl: int | None = Field(default=None, ge=20, le=800)
+    registrado_at: datetime | None = None
+
+
+class VitalSignsRead(BaseModel):
+    id: int
+    consulta_id: int
+    temperatura_c: float | None
+    frecuencia_cardiaca: int | None
+    frecuencia_respiratoria: int | None
+    presion_sistolica: int | None
+    presion_diastolica: int | None
+    saturacion_oxigeno: int | None
+    peso_kg: float | None
+    talla_cm: float | None
+    glucosa_mg_dl: int | None
+    registrado_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ClinicalNoteCreate(ClinicalStatusMixin):
+    contenido: Annotated[str, Field(min_length=1, max_length=5000)]
+
+
+class ClinicalNoteUpdate(BaseModel):
+    contenido: Annotated[str, Field(min_length=1, max_length=5000)] | None = None
+    activo: bool | None = None
+
+
+class ClinicalNoteRead(BaseModel):
+    id: int
+    consulta_id: int
+    autor_id: int
+    contenido: str
+    created_at: datetime
+    updated_at: datetime
     activo: bool
     model_config = ConfigDict(from_attributes=True)
