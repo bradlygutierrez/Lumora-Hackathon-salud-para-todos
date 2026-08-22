@@ -15,6 +15,7 @@ from lumora_api.api.v1 import (
     tipos_sangre,
     users,
     user_roles,
+    appointments,
 )
 
 api_router = APIRouter()
@@ -32,3 +33,4 @@ api_router.include_router(auth.router)
 api_router.include_router(user_roles.router)
 api_router.include_router(role_permissions.router)
 api_router.include_router(mfa.router)
+api_router.include_router(appointments.router)

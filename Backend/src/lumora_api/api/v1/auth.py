@@ -1,9 +1,9 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from fastapi.security import OAuth2PasswordRequestForm
 
-from lumora_api.api.dependencies import SessionDep
+from lumora_api.api.dependencies import CurrentSessionId, CurrentUser, SessionDep
 from lumora_api.repositories.auth_repository import AuthRepository
 from lumora_api.schemas import (
     AccessToken,
@@ -11,10 +11,45 @@ from lumora_api.schemas import (
     MessageResponse,
     ResetPasswordRequest,
     VerifyEmailRequest,
+    LoginRequest,
+    RefreshRequest,
+    SessionRead,
+    TokenPair,
 )
 from lumora_api.services.auth_service import AuthService
 
 router = APIRouter(prefix="/auth", tags=["Autenticación"])
+
+
+def client_data(request: Request) -> tuple[str | None, str | None]:
+    return (request.client.host if request.client else None, request.headers.get("user-agent"))
+
+
+@router.post("/login", response_model=TokenPair)
+async def session_login(data: LoginRequest, request: Request, session: SessionDep):
+    return await AuthService(AuthRepository(session)).login(data.login, data.password, *client_data(request))
+
+
+@router.post("/refresh", response_model=TokenPair)
+async def refresh(data: RefreshRequest, request: Request, session: SessionDep):
+    return await AuthService(AuthRepository(session)).refresh(data.refresh_token, *client_data(request))
+
+
+@router.post("/logout", response_model=MessageResponse)
+async def logout(current_user: CurrentUser, current_session_id: CurrentSessionId, session: SessionDep):
+    await AuthService(AuthRepository(session)).logout(current_user.id, current_session_id)
+    return MessageResponse(message="Sesión cerrada")
+
+
+@router.post("/logout-all", response_model=MessageResponse)
+async def logout_all(current_user: CurrentUser, session: SessionDep):
+    await AuthService(AuthRepository(session)).logout_all(current_user.id)
+    return MessageResponse(message="Todas las sesiones fueron cerradas")
+
+
+@router.get("/sessions", response_model=list[SessionRead])
+async def sessions(current_user: CurrentUser, session: SessionDep):
+    return await AuthService(AuthRepository(session)).sessions(current_user.id)
 
 
 @router.post("/token", response_model=AccessToken, summary="Obtener token OAuth2")

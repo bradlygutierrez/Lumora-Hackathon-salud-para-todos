@@ -10,7 +10,6 @@ from lumora_api.core.exceptions import (
     ResourceNotFoundError,
 )
 from lumora_api.core.security import (
-    create_access_token,
     decrypt_mfa_secret,
     encrypt_mfa_secret,
     generate_token,
@@ -133,16 +132,20 @@ class MfaService:
         await self.repository.session.commit()
         raise InvalidMfaCodeError("Código MFA incorrecto")
 
-    async def verify(self, raw_token: str, code: str) -> str:
+    async def verify(self, raw_token: str, code: str, ip: str | None = None,
+                     user_agent: str | None = None) -> dict:
         challenge = await self._open_challenge(raw_token)
         secret = decrypt_mfa_secret(challenge.usuario_metodo.secreto_cifrado)
         if not pyotp.TOTP(secret).verify(code, valid_window=1):
             await self._failed_attempt(challenge)
         challenge.consumed_at = datetime.now(timezone.utc)
         await self.repository.session.commit()
-        return create_access_token(challenge.usuario_id)
+        return await AuthService(AuthRepository(self.repository.session)).create_session(
+            challenge.usuario_id, ip, user_agent
+        )
 
-    async def recover(self, raw_token: str, recovery_code: str) -> str:
+    async def recover(self, raw_token: str, recovery_code: str, ip: str | None = None,
+                      user_agent: str | None = None) -> dict:
         challenge = await self._open_challenge(raw_token)
         code = await self.repository.recovery_code(
             challenge.usuario_metodo_id, hash_token(recovery_code)
@@ -153,7 +156,9 @@ class MfaService:
         code.used_at = now
         challenge.consumed_at = now
         await self.repository.session.commit()
-        return create_access_token(challenge.usuario_id)
+        return await AuthService(AuthRepository(self.repository.session)).create_session(
+            challenge.usuario_id, ip, user_agent
+        )
 
     async def disable(self, user_id: int, configured_id: int) -> None:
         configured = await self.repository.configured_method(user_id, configured_id)

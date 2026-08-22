@@ -1,4 +1,6 @@
-from sqlalchemy import select
+from datetime import datetime, timezone
+
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from lumora_api.models import (
@@ -6,6 +8,7 @@ from lumora_api.models import (
     Usuario,
     UsuarioMetodoMfa,
     VerificacionCorreo,
+    SesionUsuario,
 )
 
 
@@ -61,4 +64,36 @@ class AuthRepository:
                 )
             )
             is not None
+        )
+
+    async def session_by_hash(self, token_hash: str) -> SesionUsuario | None:
+        return await self.session.scalar(
+            select(SesionUsuario).where(SesionUsuario.refresh_token_hash == token_hash).with_for_update()
+        )
+
+    async def active_session(self, session_id: int, user_id: int) -> SesionUsuario | None:
+        return await self.session.scalar(
+            select(SesionUsuario).where(
+                SesionUsuario.id == session_id,
+                SesionUsuario.usuario_id == user_id,
+                SesionUsuario.revoked_at.is_(None),
+                SesionUsuario.expires_at > datetime.now(timezone.utc),
+            )
+        )
+
+    async def active_sessions(self, user_id: int) -> list[SesionUsuario]:
+        return list(await self.session.scalars(
+            select(SesionUsuario).where(
+                SesionUsuario.usuario_id == user_id,
+                SesionUsuario.revoked_at.is_(None),
+                SesionUsuario.expires_at > datetime.now(timezone.utc),
+            ).order_by(SesionUsuario.created_at.desc())
+        ))
+
+    async def revoke_all(self, user_id: int) -> None:
+        await self.session.execute(
+            update(SesionUsuario).where(
+                SesionUsuario.usuario_id == user_id,
+                SesionUsuario.revoked_at.is_(None),
+            ).values(revoked_at=datetime.now(timezone.utc))
         )

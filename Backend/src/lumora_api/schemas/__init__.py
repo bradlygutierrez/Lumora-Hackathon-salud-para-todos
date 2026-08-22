@@ -31,6 +31,10 @@ from lumora_api.schemas.auth import (
     ResetPasswordRequest,
     RoleAssignment,
     VerifyEmailRequest,
+    LoginRequest,
+    RefreshRequest,
+    SessionRead,
+    TokenPair,
 )
 from lumora_api.schemas.mfa import (
     MfaChallengeRequest,
@@ -41,6 +45,7 @@ from lumora_api.schemas.mfa import (
     MfaSetupResponse,
     MfaVerifyRequest,
 )
+from lumora_api.schemas.appointments import AppointmentCreate, AppointmentRead, AppointmentUpdate
 
 __all__ = [
     "CatalogCreate",
@@ -71,6 +76,10 @@ __all__ = [
     "ResetPasswordRequest",
     "RoleAssignment",
     "VerifyEmailRequest",
+    "LoginRequest",
+    "RefreshRequest",
+    "SessionRead",
+    "TokenPair",
     "MfaChallengeRequest",
     "MfaChallengeResponse",
     "MfaMethodRead",
@@ -78,4 +87,7 @@ __all__ = [
     "MfaSetupRequest",
     "MfaSetupResponse",
     "MfaVerifyRequest",
+    "AppointmentCreate",
+    "AppointmentRead",
+    "AppointmentUpdate",
 ]

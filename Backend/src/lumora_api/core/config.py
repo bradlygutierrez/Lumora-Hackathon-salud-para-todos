@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     jwt_secret: str = ""
     jwt_algorithm: str = "HS256"
     access_token_minutes: int = 30
+    refresh_token_days: int = 30
     recovery_token_minutes: int = 30
     email_verification_hours: int = 24
     mfa_challenge_minutes: int = 5

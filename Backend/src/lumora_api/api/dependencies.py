@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from lumora_api.db.session import get_session
 from lumora_api.core.exceptions import AuthenticationError, PermissionDeniedError
-from lumora_api.core.security import decode_access_token
+from lumora_api.core.security import decode_access_claims
 from lumora_api.models import Usuario
 from lumora_api.repositories.auth_repository import AuthRepository
 
@@ -18,13 +18,27 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token")
 async def get_current_user(
     session: SessionDep, token: Annotated[str, Depends(oauth2_scheme)]
 ) -> Usuario:
-    user = await AuthRepository(session).user_by_id(decode_access_token(token))
+    user_id, session_id = decode_access_claims(token)
+    repository = AuthRepository(session)
+    user = await repository.user_by_id(user_id)
     if user is None:
         raise AuthenticationError("Usuario no autenticado")
+    if session_id is not None and await repository.active_session(session_id, user_id) is None:
+        raise AuthenticationError("Sesión revocada o expirada")
     return user
 
 
 CurrentUser = Annotated[Usuario, Depends(get_current_user)]
+
+
+async def get_current_session_id(token: Annotated[str, Depends(oauth2_scheme)]) -> int:
+    _, session_id = decode_access_claims(token)
+    if session_id is None:
+        raise AuthenticationError("El token no pertenece a una sesión")
+    return session_id
+
+
+CurrentSessionId = Annotated[int, Depends(get_current_session_id)]
 
 
 def require_permission(permission_name: str):
