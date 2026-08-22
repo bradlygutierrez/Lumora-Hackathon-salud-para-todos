@@ -49,3 +49,17 @@ y `PATCH` permite reactivarlo enviando `{"activo": true}`.
 - `/api/v1/estados-condicion`
 - `/api/v1/tipos-antecedente`
 - `/api/v1/tipos-diagnostico`
+
+## Expediente clínico
+
+Los endpoints clínicos requieren el permiso `clinica:manage`. Todos los recursos
+usan borrado lógico y aceptan filtro opcional `activo` en listados.
+
+- `POST /api/v1/expedientes`
+- `GET /api/v1/expedientes`
+- `GET /api/v1/expedientes/{id}`
+- `PATCH /api/v1/expedientes/{id}`
+- `DELETE /api/v1/expedientes/{id}`
+- `CRUD /api/v1/expedientes/{id}/antecedentes`
+- `CRUD /api/v1/pacientes/{id}/alergias`
+- `CRUD /api/v1/pacientes/{id}/discapacidades`

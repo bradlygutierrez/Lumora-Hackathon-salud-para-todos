@@ -28,7 +28,11 @@ from lumora_api.models import (
 )
 
 CATALOGS = {
-    Permiso: [("usuarios:leer", "Consultar usuarios"), ("usuarios:editar", "Modificar usuarios")],
+    Permiso: [
+        ("usuarios:leer", "Consultar usuarios"),
+        ("usuarios:editar", "Modificar usuarios"),
+        ("clinica:manage", "Gestionar expedientes clínicos"),
+    ],
     EstadoCita: ["Pendiente", "Confirmada", "Cancelada", "Completada"],
     TipoCita: ["Presencial", "Virtual"],
     Sexo: ["Femenino", "Masculino", "Otro", "Prefiero no indicar"],

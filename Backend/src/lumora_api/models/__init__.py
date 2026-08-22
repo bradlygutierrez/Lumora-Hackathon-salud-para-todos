@@ -31,6 +31,12 @@ from lumora_api.models.catalogs import (
     ViaAdministracion,
     roles_permisos,
 )
+from lumora_api.models.clinical import (
+    Alergia,
+    AntecedenteMedico,
+    Discapacidad,
+    Expediente,
+)
 from lumora_api.models.identity import (
     ContactoEmergencia,
     Direccion,
@@ -69,6 +75,10 @@ __all__ = [
     "UnidadMedida",
     "ViaAdministracion",
     "roles_permisos",
+    "Alergia",
+    "AntecedenteMedico",
+    "Discapacidad",
+    "Expediente",
     "ContactoEmergencia",
     "Direccion",
     "Paciente",

@@ -11,9 +11,11 @@ from lumora_api.api.v1 import (
     estados_expediente,
     estados_receta,
     especialidades,
+    medical_records,
     mfa,
     niveles_severidad,
     origenes_registro,
+    patient_clinical,
     patients,
     permisos,
     professionals,
@@ -49,6 +51,8 @@ api_router.include_router(user_roles.router)
 api_router.include_router(role_permissions.router)
 api_router.include_router(mfa.router)
 api_router.include_router(appointments.router)
+api_router.include_router(medical_records.router)
+api_router.include_router(patient_clinical.router)
 
 # Catálogos clínicos
 api_router.include_router(cargos_salud.router)
