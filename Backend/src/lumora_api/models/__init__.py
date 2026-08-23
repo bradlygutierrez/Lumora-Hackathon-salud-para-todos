@@ -41,6 +41,12 @@ from lumora_api.models.clinical import (
     NotaClinica,
     SignoVital,
 )
+from lumora_api.models.health_indicators import (
+    AlertaClinica,
+    IndicadorMedico,
+    MedicionIndicador,
+    RangoIndicador,
+)
 from lumora_api.models.identity import (
     ContactoEmergencia,
     Direccion,
@@ -119,4 +125,8 @@ __all__ = [
     "DetalleReceta",
     "HorarioMedicamento",
     "DosisAdministrada",
+    "IndicadorMedico",
+    "RangoIndicador",
+    "MedicionIndicador",
+    "AlertaClinica",
 ]
