@@ -13,6 +13,16 @@ branch_labels = None
 depends_on = None
 
 
+def _appointment_duration_constraint() -> sa.CheckConstraint:
+    dialect = op.get_context().dialect.name
+    expression = (
+        "(julianday(fin) - julianday(inicio)) * 24 <= 12"
+        if dialect == "sqlite"
+        else "fin <= inicio + interval '12 hours'"
+    )
+    return sa.CheckConstraint(expression, name="ck_citas_duracion")
+
+
 def upgrade() -> None:
     op.create_table(
         "sesiones_usuario",
@@ -55,7 +65,7 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
         sa.CheckConstraint("inicio < fin", name="ck_citas_periodo"),
-        sa.CheckConstraint("fin <= inicio + interval '12 hours'", name="ck_citas_duracion"),
+        _appointment_duration_constraint(),
     )
     for column in ("paciente_id", "profesional_id", "inicio", "fin"):
         op.create_index(f"ix_citas_{column}", "citas", [column])
