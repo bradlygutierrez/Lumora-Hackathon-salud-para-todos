@@ -269,3 +269,40 @@ class ConditionHistoryRead(BaseModel):
     usuario_id: int
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
+
+
+class ConsultationClinicalSummary(BaseModel):
+    consulta: ConsultationRead
+    signos_vitales: list[VitalSignsRead]
+    notas: list[ClinicalNoteRead]
+    diagnosticos: list[DiagnosisRead]
+
+
+class PatientClinicalSummary(BaseModel):
+    paciente_id: int
+    expediente: MedicalRecordRead | None
+    antecedentes: list[MedicalHistoryRead]
+    alergias: list[AllergyRead]
+    discapacidades: list[DisabilityRead]
+    condiciones: list[ConditionRead]
+    consultas: list[ConsultationClinicalSummary]
+
+
+class ClinicalTimelineItem(BaseModel):
+    occurred_at: datetime
+    tipo: str
+    titulo: str
+    detalle: str | None = None
+    entidad: str
+    entidad_id: str
+
+
+class ClinicalSearchResult(BaseModel):
+    tipo: str
+    entidad: str
+    entidad_id: str
+    paciente_id: int
+    expediente_id: int | None = None
+    titulo: str
+    detalle: str | None = None
+    occurred_at: datetime | None = None
