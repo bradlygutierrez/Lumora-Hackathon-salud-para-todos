@@ -71,6 +71,15 @@ from lumora_api.schemas.mfa import (
     MfaVerifyRequest,
 )
 from lumora_api.schemas.appointments import AppointmentCreate, AppointmentRead, AppointmentUpdate
+from lumora_api.schemas.prescriptions import (
+    MedicamentoCreate,
+    MedicamentoUpdate,
+    MedicamentoResponse,
+    DetalleRecetaCreate,
+    DetalleRecetaResponse,
+    RecetaCreate,
+    RecetaResponse,
+)
 
 __all__ = [
     "ActiveCatalogCreate",
@@ -138,4 +147,11 @@ __all__ = [
     "AppointmentCreate",
     "AppointmentRead",
     "AppointmentUpdate",
+    "MedicamentoCreate",
+    "MedicamentoUpdate",
+    "MedicamentoResponse",
+    "DetalleRecetaCreate",
+    "DetalleRecetaResponse",
+    "RecetaCreate",
+    "RecetaResponse",
 ]
