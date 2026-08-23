@@ -20,6 +20,7 @@ from lumora_api.api.v1 import (
     patient_clinical,
     patients,
     permisos,
+    prescriptions,
     professionals,
     role_permissions,
     roles,
@@ -56,6 +57,7 @@ api_router.include_router(appointments.router)
 api_router.include_router(medical_records.router)
 api_router.include_router(patient_clinical.router)
 api_router.include_router(consultations.router)
+api_router.include_router(prescriptions.router)
 
 # Catálogos clínicos
 api_router.include_router(cargos_salud.router)

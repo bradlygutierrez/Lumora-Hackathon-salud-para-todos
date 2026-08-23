@@ -55,6 +55,11 @@ from lumora_api.models.mfa import (
     MetodoMfa,
     UsuarioMetodoMfa,
 )
+from lumora_api.models.prescriptions import (
+    DetalleReceta,
+    Medicamento,
+    Receta,
+)
 
 __all__ = [
     "CargoSalud",
@@ -105,4 +110,7 @@ __all__ = [
     "IntentoInicioSesion",
     "Cita",
     "EventoAuditoria",
+    "Medicamento",
+    "Receta",
+    "DetalleReceta",
 ]
