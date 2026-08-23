@@ -122,6 +122,9 @@ class ConsultaMedica(SoftDeleteMixin, Base):
     notas: Mapped[list["NotaClinica"]] = relationship(
         back_populates="consulta", lazy="selectin"
     )
+    diagnosticos: Mapped[list["Diagnostico"]] = relationship(
+        back_populates="consulta", lazy="selectin"
+    )
 
 
 class SignoVital(Base):
@@ -161,3 +164,70 @@ class NotaClinica(SoftDeleteMixin, Base):
     activo: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
 
     consulta: Mapped[ConsultaMedica] = relationship(back_populates="notas")
+
+
+class Diagnostico(SoftDeleteMixin, Base):
+    __tablename__ = "diagnosticos"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    consulta_id: Mapped[int] = mapped_column(ForeignKey("consultas_medicas.id"), index=True)
+    expediente_id: Mapped[int] = mapped_column(ForeignKey("expedientes.id"), index=True)
+    profesional_id: Mapped[int] = mapped_column(
+        ForeignKey("profesionales_salud.id"), index=True
+    )
+    tipo_diagnostico_id: Mapped[int] = mapped_column(
+        ForeignKey("tipos_diagnostico.id"), index=True
+    )
+    descripcion: Mapped[str] = mapped_column(String(700))
+    es_principal: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    fecha_diagnostico: Mapped[date] = mapped_column(Date, server_default=func.current_date())
+    activo: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    consulta: Mapped[ConsultaMedica] = relationship(back_populates="diagnosticos")
+
+
+class CondicionMedica(SoftDeleteMixin, Base):
+    __tablename__ = "condiciones_medicas"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    expediente_id: Mapped[int] = mapped_column(ForeignKey("expedientes.id"), index=True)
+    paciente_id: Mapped[int] = mapped_column(ForeignKey("pacientes.id"), index=True)
+    diagnostico_id: Mapped[int | None] = mapped_column(
+        ForeignKey("diagnosticos.id"), nullable=True, index=True
+    )
+    estado_condicion_id: Mapped[int] = mapped_column(
+        ForeignKey("estados_condicion.id"), index=True
+    )
+    nombre: Mapped[str] = mapped_column(String(180))
+    descripcion: Mapped[str | None] = mapped_column(Text, nullable=True)
+    fecha_inicio: Mapped[date | None] = mapped_column(Date, nullable=True)
+    fecha_fin: Mapped[date | None] = mapped_column(Date, nullable=True)
+    activo: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class HistorialCondicion(Base):
+    __tablename__ = "historial_condiciones"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    condicion_id: Mapped[int] = mapped_column(ForeignKey("condiciones_medicas.id"), index=True)
+    estado_anterior_id: Mapped[int | None] = mapped_column(
+        ForeignKey("estados_condicion.id"), nullable=True
+    )
+    estado_nuevo_id: Mapped[int | None] = mapped_column(
+        ForeignKey("estados_condicion.id"), nullable=True
+    )
+    accion: Mapped[str] = mapped_column(String(30))
+    motivo: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    usuario_id: Mapped[int] = mapped_column(ForeignKey("usuarios.id"), index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )

@@ -195,3 +195,77 @@ class ClinicalNoteRead(BaseModel):
     updated_at: datetime
     activo: bool
     model_config = ConfigDict(from_attributes=True)
+
+
+class DiagnosisCreate(ClinicalStatusMixin):
+    tipo_diagnostico_id: int
+    descripcion: Annotated[str, Field(min_length=1, max_length=700)]
+    es_principal: bool = False
+    fecha_diagnostico: date | None = None
+
+
+class DiagnosisUpdate(BaseModel):
+    tipo_diagnostico_id: int | None = None
+    descripcion: Annotated[str, Field(min_length=1, max_length=700)] | None = None
+    es_principal: bool | None = None
+    fecha_diagnostico: date | None = None
+    activo: bool | None = None
+
+
+class DiagnosisRead(BaseModel):
+    id: int
+    consulta_id: int
+    expediente_id: int
+    profesional_id: int
+    tipo_diagnostico_id: int
+    descripcion: str
+    es_principal: bool
+    fecha_diagnostico: date
+    activo: bool
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ConditionCreate(ClinicalStatusMixin):
+    estado_condicion_id: int
+    nombre: ShortText
+    descripcion: str | None = Field(default=None, max_length=2000)
+    diagnostico_id: int | None = None
+    fecha_inicio: date | None = None
+    motivo_historial: str | None = Field(default=None, max_length=300)
+
+
+class ConditionUpdate(BaseModel):
+    estado_condicion_id: int | None = None
+    nombre: ShortText | None = None
+    descripcion: str | None = Field(default=None, max_length=2000)
+    diagnostico_id: int | None = None
+    fecha_inicio: date | None = None
+    fecha_fin: date | None = None
+    activo: bool | None = None
+    motivo_historial: str | None = Field(default=None, max_length=300)
+
+
+class ConditionRead(BaseModel):
+    id: int
+    expediente_id: int
+    paciente_id: int
+    diagnostico_id: int | None
+    estado_condicion_id: int
+    nombre: str
+    descripcion: str | None
+    fecha_inicio: date | None
+    fecha_fin: date | None
+    activo: bool
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ConditionHistoryRead(BaseModel):
+    id: int
+    condicion_id: int
+    estado_anterior_id: int | None
+    estado_nuevo_id: int | None
+    accion: str
+    motivo: str | None
+    usuario_id: int
+    created_at: datetime
+    model_config = ConfigDict(from_attributes=True)
