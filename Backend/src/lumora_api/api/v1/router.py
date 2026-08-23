@@ -5,8 +5,8 @@ from lumora_api.api.v1 import (
     auth,
     cargos_salud,
     clinical_integration,
-    consultations,
     conditions,
+    consultations,
     diagnoses,
     emergency_contacts,
     especialidades,
@@ -26,6 +26,7 @@ from lumora_api.api.v1 import (
     permisos,
     prescriptions,
     professionals,
+    reminders,
     role_permissions,
     roles,
     schedules,
@@ -88,3 +89,6 @@ api_router.include_router(niveles_severidad.router)
 api_router.include_router(tipos_alerta.router)
 api_router.include_router(tipos_recordatorio.router)
 api_router.include_router(tipos_relacion.router)
+
+# Recordatorios y Notificaciones
+api_router.include_router(reminders.router, prefix="/reminders", tags=["Reminders"])

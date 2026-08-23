@@ -69,6 +69,12 @@ from lumora_api.models.prescriptions import (
     Medicamento,
     Receta,
 )
+from lumora_api.models.reminders import (
+    Notificacion,
+    PreferenciaNotificacion,
+    Recordatorio,
+    RelacionPaciente,
+)
 from lumora_api.models.schedules import (
     DosisAdministrada,
     HorarioMedicamento,
@@ -135,4 +141,8 @@ __all__ = [
     "RangoIndicador",
     "MedicionIndicador",
     "AlertaClinica",
+    "Recordatorio",
+    "Notificacion",
+    "PreferenciaNotificacion",
+    "RelacionPaciente",
 ]

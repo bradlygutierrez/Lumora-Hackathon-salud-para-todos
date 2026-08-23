@@ -1,9 +1,12 @@
-from typing import ClassVar
+from typing import ClassVar, TYPE_CHECKING
 
 from sqlalchemy import Column, ForeignKey, String, Table, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from lumora_api.db.base import Base
+
+if TYPE_CHECKING:
+    from lumora_api.models.identity import Usuario
 
 
 roles_permisos = Table(
