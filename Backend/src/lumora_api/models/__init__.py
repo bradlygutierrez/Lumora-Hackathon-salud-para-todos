@@ -60,6 +60,10 @@ from lumora_api.models.prescriptions import (
     Medicamento,
     Receta,
 )
+from lumora_api.models.schedules import (
+    DosisAdministrada,
+    HorarioMedicamento,
+)
 
 __all__ = [
     "CargoSalud",
@@ -113,4 +117,6 @@ __all__ = [
     "Medicamento",
     "Receta",
     "DetalleReceta",
+    "HorarioMedicamento",
+    "DosisAdministrada",
 ]

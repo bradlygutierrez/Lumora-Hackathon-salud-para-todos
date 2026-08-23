@@ -1,3 +1,21 @@
+from lumora_api.schemas.appointments import (
+    AppointmentCreate,
+    AppointmentRead,
+    AppointmentUpdate,
+)
+from lumora_api.schemas.auth import (
+    AccessToken,
+    ForgotPasswordRequest,
+    LoginRequest,
+    MessageResponse,
+    PermissionAssignment,
+    RefreshRequest,
+    ResetPasswordRequest,
+    RoleAssignment,
+    SessionRead,
+    TokenPair,
+    VerifyEmailRequest,
+)
 from lumora_api.schemas.catalogs import (
     ActiveCatalogCreate,
     ActiveCatalogRead,
@@ -11,33 +29,6 @@ from lumora_api.schemas.catalogs import (
     RoleCreate,
     RoleRead,
     RoleUpdate,
-)
-from lumora_api.schemas.identity import (
-    EmergencyContactCreate,
-    EmergencyContactRead,
-    EmergencyContactUpdate,
-    PatientCreate,
-    PatientRead,
-    PatientUpdate,
-    ProfessionalCreate,
-    ProfessionalRead,
-    ProfessionalUpdate,
-    UserCreate,
-    UserRead,
-    UserUpdate,
-)
-from lumora_api.schemas.auth import (
-    AccessToken,
-    ForgotPasswordRequest,
-    MessageResponse,
-    PermissionAssignment,
-    ResetPasswordRequest,
-    RoleAssignment,
-    VerifyEmailRequest,
-    LoginRequest,
-    RefreshRequest,
-    SessionRead,
-    TokenPair,
 )
 from lumora_api.schemas.clinical import (
     AllergyCreate,
@@ -61,6 +52,20 @@ from lumora_api.schemas.clinical import (
     VitalSignsCreate,
     VitalSignsRead,
 )
+from lumora_api.schemas.identity import (
+    EmergencyContactCreate,
+    EmergencyContactRead,
+    EmergencyContactUpdate,
+    PatientCreate,
+    PatientRead,
+    PatientUpdate,
+    ProfessionalCreate,
+    ProfessionalRead,
+    ProfessionalUpdate,
+    UserCreate,
+    UserRead,
+    UserUpdate,
+)
 from lumora_api.schemas.mfa import (
     MfaChallengeRequest,
     MfaChallengeResponse,
@@ -70,15 +75,21 @@ from lumora_api.schemas.mfa import (
     MfaSetupResponse,
     MfaVerifyRequest,
 )
-from lumora_api.schemas.appointments import AppointmentCreate, AppointmentRead, AppointmentUpdate
 from lumora_api.schemas.prescriptions import (
-    MedicamentoCreate,
-    MedicamentoUpdate,
-    MedicamentoResponse,
     DetalleRecetaCreate,
     DetalleRecetaResponse,
+    MedicamentoCreate,
+    MedicamentoResponse,
+    MedicamentoUpdate,
     RecetaCreate,
     RecetaResponse,
+)
+from lumora_api.schemas.schedules import (
+    DosisAdministradaCreate,
+    DosisAdministradaResponse,
+    HorarioMedicamentoCreate,
+    HorarioMedicamentoResponse,
+    HorarioMedicamentoUpdate,
 )
 
 __all__ = [
@@ -154,4 +165,9 @@ __all__ = [
     "DetalleRecetaResponse",
     "RecetaCreate",
     "RecetaResponse",
+    "HorarioMedicamentoCreate",
+    "HorarioMedicamentoResponse",
+    "HorarioMedicamentoUpdate",
+    "DosisAdministradaCreate",
+    "DosisAdministradaResponse",
 ]
