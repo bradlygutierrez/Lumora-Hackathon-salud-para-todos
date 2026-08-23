@@ -82,3 +82,20 @@ profesional, estado activo y rango de fecha.
 - `GET /api/v1/consultas/{id}/notas/{nota_id}`
 - `PATCH /api/v1/consultas/{id}/notas/{nota_id}`
 - `GET /api/v1/expedientes/{id}/consultas`
+
+## Diagnósticos y condiciones
+
+Los diagnósticos y condiciones médicas requieren `clinica:manage`. Las
+condiciones registran historial automático al crearse, cambiar de estado o
+borrarse lógicamente.
+
+- `POST /api/v1/consultas/{id}/diagnosticos`
+- `GET /api/v1/consultas/{id}/diagnosticos`
+- `GET /api/v1/diagnosticos/{id}`
+- `PATCH /api/v1/diagnosticos/{id}`
+- `DELETE /api/v1/diagnosticos/{id}`
+- `POST /api/v1/expedientes/{id}/condiciones`
+- `GET /api/v1/expedientes/{id}/condiciones`
+- `PATCH /api/v1/condiciones/{id}`
+- `DELETE /api/v1/condiciones/{id}`
+- `GET /api/v1/condiciones/{id}/historial`

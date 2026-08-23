@@ -5,6 +5,8 @@ from lumora_api.api.v1 import (
     auth,
     cargos_salud,
     consultations,
+    conditions,
+    diagnoses,
     emergency_contacts,
     especialidades,
     estados_cita,
@@ -62,6 +64,8 @@ api_router.include_router(consultations.router)
 api_router.include_router(prescriptions.router)
 api_router.include_router(schedules.router)
 api_router.include_router(health_indicators.router)
+api_router.include_router(diagnoses.router)
+api_router.include_router(conditions.router)
 
 # Catálogos clínicos
 api_router.include_router(cargos_salud.router)
