@@ -91,4 +91,8 @@ api_router.include_router(tipos_recordatorio.router)
 api_router.include_router(tipos_relacion.router)
 
 # Recordatorios y Notificaciones
-api_router.include_router(reminders.router, prefix="/reminders", tags=["Reminders"])
+api_router.include_router(
+    reminders.router,
+    prefix="/reminders",
+    tags=["Recordatorios y notificaciones"],
+)

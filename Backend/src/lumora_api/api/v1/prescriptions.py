@@ -15,7 +15,7 @@ from lumora_api.schemas.prescriptions import (
     DetalleRecetaUpdate,
 )
 
-router = APIRouter(prefix="/prescriptions", tags=["prescriptions"])
+router = APIRouter(prefix="/prescriptions", tags=["Recetas y medicamentos"])
 
 
 # --- ENDPOINTS MEDICAMENTOS ---

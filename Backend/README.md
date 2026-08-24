@@ -2,18 +2,87 @@
 
 Backend FastAPI async para los flujos de salud de Lumora.
 
-## Desarrollo
+## Requisitos
+
+- Python 3.14.
+- [uv](https://docs.astral.sh/uv/).
+- Una base PostgreSQL vacía en Neon.
+- Docker, opcional.
+
+## Inicio rápido
+
+1. Instale las dependencias y cree la configuración local:
 
 ```powershell
-Copy-Item .env.example .env
-# Editar DATABASE_URL con la URL async de Neon
 uv sync
+Copy-Item .env.example .env
+```
+
+2. Edite `.env`. Defina una `DATABASE_URL` de Neon con SSL y un `JWT_SECRET` aleatorio de al menos 32 caracteres:
+
+```dotenv
+DATABASE_URL=postgresql+asyncpg://USER:PASSWORD@HOST/DATABASE?ssl=require
+JWT_SECRET=replace-with-a-random-secret-of-at-least-32-characters
+```
+
+No confirme `.env`; Git solo versiona `.env.example`.
+
+3. Aplique todas las migraciones y verifique que exista un solo head:
+
+```powershell
+uv run alembic heads
 uv run alembic upgrade head
+uv run alembic current
+```
+
+`alembic current` debe mostrar `da9b16284bf3 (head)`.
+
+4. Cargue los catálogos y roles base. El comando es idempotente y puede repetirse:
+
+```powershell
 uv run python -m lumora_api.db.seed
+```
+
+El seed crea los roles `Paciente` y `Administrador`, carga los catálogos y asigna al Administrador los permisos disponibles.
+
+5. Inicie la API:
+
+```powershell
 uv run fastapi dev
 ```
 
-La API versionada está en `/api/v1` y Swagger en `/docs`.
+- API: `http://127.0.0.1:8000/api/v1`
+- Swagger: `http://127.0.0.1:8000/docs`
+- OpenAPI: `http://127.0.0.1:8000/openapi.json`
+
+## Pruebas
+
+La suite usa SQLite en memoria y no modifica Neon:
+
+```powershell
+uv run pytest
+```
+
+Para una entrega, registre también la evidencia de `alembic upgrade head` y del seed sobre una base Neon vacía.
+
+## CORS
+
+`CORS_ORIGINS` es una lista JSON de orígenes autorizados. Los valores predeterminados cubren React Native/Expo local:
+
+```dotenv
+CORS_ORIGINS=["http://localhost:8081","http://localhost:19006"]
+```
+
+Agregue los orígenes HTTPS de producción de forma explícita; no use `*` con credenciales.
+
+## Docker
+
+```powershell
+docker build -t lumora-api .
+docker run --rm --env-file .env lumora-api uv run alembic upgrade head
+docker run --rm --env-file .env lumora-api uv run python -m lumora_api.db.seed
+docker run --rm --env-file .env -p 8000:8000 lumora-api
+```
 
 ## OAuth2 y autorización
 

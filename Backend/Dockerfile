@@ -13,6 +13,8 @@ RUN uv sync --frozen --no-dev --no-install-project
 
 # Copiar aplicación
 COPY src ./src
+COPY migrations ./migrations
+COPY alembic.ini ./
 COPY README.md ./
 
 # Ahora sí instalar el proyecto

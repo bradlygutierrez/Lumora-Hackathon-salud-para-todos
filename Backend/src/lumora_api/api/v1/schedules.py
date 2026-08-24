@@ -12,7 +12,7 @@ from lumora_api.schemas.schedules import (
 )
 from lumora_api.services.schedules import ScheduleService
 
-router = APIRouter(tags=["Schedules & Dose Logs"])
+router = APIRouter(tags=["Horarios y dosis"])
 
 
 # --- HORARIOS ---

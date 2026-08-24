@@ -12,11 +12,16 @@ async def test_seed_loads_all_catalogs_and_is_idempotent(session_factory, monkey
     await seed_module.seed()
 
     async with session_factory() as session:
-        assert await session.scalar(select(func.count()).select_from(Rol)) == 1
-        assert await session.scalar(select(func.count()).select_from(Permiso)) == 3
+        assert await session.scalar(select(func.count()).select_from(Rol)) == 2
+        assert await session.scalar(select(func.count()).select_from(Permiso)) == 4
         assert await session.scalar(select(func.count()).select_from(EstadoCita)) == 4
         assert await session.scalar(select(func.count()).select_from(TipoCita)) == 2
         assert await session.scalar(select(func.count()).select_from(Sexo)) == 4
         assert await session.scalar(select(func.count()).select_from(TipoSangre)) == 8
         admin = await session.scalar(select(Rol).where(Rol.nombre == "Administrador"))
-        assert {permission.nombre for permission in admin.permisos} == set()
+        assert {permission.nombre for permission in admin.permisos} == {
+            "usuarios:leer",
+            "usuarios:editar",
+            "rbac:manage",
+            "clinica:manage",
+        }

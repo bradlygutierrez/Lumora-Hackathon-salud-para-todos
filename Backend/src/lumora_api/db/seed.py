@@ -32,6 +32,7 @@ CATALOGS = {
     Permiso: [
         ("usuarios:leer", "Consultar usuarios"),
         ("usuarios:editar", "Modificar usuarios"),
+        ("rbac:manage", "Administrar roles y permisos"),
         ("clinica:manage", "Gestionar expedientes clínicos"),
     ],
     EstadoCita: ["Pendiente", "Confirmada", "Cancelada", "Completada"],
@@ -59,6 +60,12 @@ CATALOGS = {
 }
 
 
+ROLES = {
+    "Paciente": "Acceso base de paciente",
+    "Administrador": "Acceso administrativo",
+}
+
+
 async def seed() -> None:
     async with SessionLocal() as session:
         for model, values in CATALOGS.items():
@@ -67,8 +74,15 @@ async def seed() -> None:
                 name, *description = value if isinstance(value, tuple) else (value,)
                 if name not in existing:
                     session.add(model(nombre=name, descripcion=description[0]) if description else model(nombre=name))
-        if not await session.scalar(select(Rol).where(Rol.nombre == "Administrador")):
-            session.add(Rol(nombre="Administrador", descripcion="Acceso administrativo"))
+        roles = {}
+        for name, description in ROLES.items():
+            role = await session.scalar(select(Rol).where(Rol.nombre == name))
+            if role is None:
+                role = Rol(nombre=name, descripcion=description, permisos=[])
+                session.add(role)
+            roles[name] = role
+        await session.flush()
+        roles["Administrador"].permisos = list(await session.scalars(select(Permiso)))
         await session.commit()
 
 

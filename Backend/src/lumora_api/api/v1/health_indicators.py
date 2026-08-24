@@ -16,7 +16,7 @@ from lumora_api.schemas.health_indicators import (
 )
 from lumora_api.services.health_indicators_service import HealthIndicatorsService
 
-router = APIRouter(prefix="/health-indicators", tags=["Health Indicators & Alerts"])
+router = APIRouter(prefix="/health-indicators", tags=["Indicadores y alertas"])
 
 
 # --- INDICADORES MÉDICOS ---
