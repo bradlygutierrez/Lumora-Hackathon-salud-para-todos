@@ -1,21 +1,47 @@
 from fastapi import APIRouter
 
 from lumora_api.api.v1 import (
-    emergency_contacts,
+    appointments,
     auth,
-    mfa,
+    cargos_salud,
+    clinical_integration,
+    conditions,
+    consultations,
+    diagnoses,
+    emergency_contacts,
+    especialidades,
     estados_cita,
+    estados_condicion,
+    estados_dosis,
+    estados_expediente,
+    estados_receta,
+    health_indicators,
+    medical_records,
+    mfa,
+    motivos_consulta,
+    niveles_severidad,
+    origenes_registro,
+    patient_clinical,
     patients,
     permisos,
+    prescriptions,
     professionals,
+    reminders,
     role_permissions,
     roles,
+    schedules,
     sexos,
+    tipos_alerta,
+    tipos_antecedente,
     tipos_cita,
+    tipos_diagnostico,
+    tipos_recordatorio,
+    tipos_relacion,
     tipos_sangre,
-    users,
+    unidades_medida,
     user_roles,
-    appointments,
+    users,
+    vias_administracion,
 )
 
 api_router = APIRouter()
@@ -34,3 +60,35 @@ api_router.include_router(user_roles.router)
 api_router.include_router(role_permissions.router)
 api_router.include_router(mfa.router)
 api_router.include_router(appointments.router)
+api_router.include_router(medical_records.router)
+api_router.include_router(patient_clinical.router)
+api_router.include_router(consultations.router)
+api_router.include_router(prescriptions.router)
+api_router.include_router(schedules.router)
+api_router.include_router(health_indicators.router)
+api_router.include_router(diagnoses.router)
+api_router.include_router(conditions.router)
+api_router.include_router(clinical_integration.router)
+
+# Catálogos clínicos
+api_router.include_router(cargos_salud.router)
+api_router.include_router(especialidades.router)
+api_router.include_router(estados_expediente.router)
+api_router.include_router(estados_condicion.router)
+api_router.include_router(tipos_antecedente.router)
+api_router.include_router(tipos_diagnostico.router)
+api_router.include_router(motivos_consulta.router)
+
+# Catálogos 
+api_router.include_router(estados_dosis.router)
+api_router.include_router(estados_receta.router)
+api_router.include_router(vias_administracion.router)
+api_router.include_router(unidades_medida.router)
+api_router.include_router(origenes_registro.router)
+api_router.include_router(niveles_severidad.router)
+api_router.include_router(tipos_alerta.router)
+api_router.include_router(tipos_recordatorio.router)
+api_router.include_router(tipos_relacion.router)
+
+# Recordatorios y Notificaciones
+api_router.include_router(reminders.router, prefix="/reminders", tags=["Reminders"])

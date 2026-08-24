@@ -14,8 +14,10 @@ class CatalogService(Generic[ModelT]):
     def __init__(self, repository: CatalogRepository[ModelT]) -> None:
         self.repository = repository
 
-    async def list(self, limit: int, offset: int) -> tuple[list[ModelT], int]:
-        return await self.repository.list(limit, offset)
+    async def list(
+        self, limit: int, offset: int, activo: bool | None = None
+    ) -> tuple[list[ModelT], int]:
+        return await self.repository.list(limit, offset, activo)
 
     async def get(self, item_id: int) -> ModelT:
         item = await self.repository.get(item_id)
@@ -52,5 +54,8 @@ class CatalogService(Generic[ModelT]):
 
     async def delete(self, item_id: int) -> None:
         item = await self.get(item_id)
-        await self.repository.delete(item)
+        if hasattr(item, "activo"):
+            await self.repository.deactivate(item)
+        else:
+            await self.repository.delete(item)
         await self.repository.session.commit()

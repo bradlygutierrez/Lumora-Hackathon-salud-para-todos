@@ -1,9 +1,13 @@
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from lumora_api.db.base import Base
+
+if TYPE_CHECKING:
+    from lumora_api.models.identity import Usuario
 
 
 class UsuarioRol(Base):

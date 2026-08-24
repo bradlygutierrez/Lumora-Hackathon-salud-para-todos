@@ -1,9 +1,12 @@
-from typing import ClassVar
+from typing import ClassVar, TYPE_CHECKING
 
 from sqlalchemy import Column, ForeignKey, String, Table, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from lumora_api.db.base import Base
+
+if TYPE_CHECKING:
+    from lumora_api.models.identity import Usuario
 
 
 roles_permisos = Table(
@@ -21,6 +24,12 @@ class CatalogModel(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     nombre: Mapped[str] = mapped_column(String(100), unique=True, index=True)
+
+
+class ActiveCatalogModel(CatalogModel):
+    __abstract__ = True
+
+    activo: Mapped[bool] = mapped_column(default=True, nullable=False)
 
 
 class Rol(CatalogModel):
@@ -68,3 +77,83 @@ class TipoSangre(CatalogModel):
 
 class RolPermiso(Base):
     __table__ = roles_permisos
+
+
+class EstadoDosis(CatalogModel):
+    __tablename__ = "estados_dosis"
+    resource_name = "Estado de dosis"
+
+
+class EstadoReceta(CatalogModel):
+    __tablename__ = "estados_receta"
+    resource_name = "Estado de receta"
+
+
+class ViaAdministracion(CatalogModel):
+    __tablename__ = "vias_administracion"
+    resource_name = "Vía de administración"
+
+
+class UnidadMedida(CatalogModel):
+    __tablename__ = "unidades_medida"
+    resource_name = "Unidad de medida"
+
+
+class OrigenRegistro(CatalogModel):
+    __tablename__ = "origenes_registro"
+    resource_name = "Origen de registro"
+
+
+class NivelSeveridad(CatalogModel):
+    __tablename__ = "niveles_severidad"
+    resource_name = "Nivel de severidad"
+
+
+class TipoAlerta(CatalogModel):
+    __tablename__ = "tipos_alerta"
+    resource_name = "Tipo de alerta"
+
+
+class TipoRecordatorio(CatalogModel):
+    __tablename__ = "tipos_recordatorio"
+    resource_name = "Tipo de recordatorio"
+
+
+class TipoRelacion(CatalogModel):
+    __tablename__ = "tipos_relacion"
+    resource_name = "Tipo de relación"
+
+
+class CargoSalud(ActiveCatalogModel):
+    __tablename__ = "cargos_salud"
+    resource_name = "Cargo de salud"
+
+
+class Especialidad(ActiveCatalogModel):
+    __tablename__ = "especialidades"
+    resource_name = "Especialidad"
+
+
+class EstadoExpediente(ActiveCatalogModel):
+    __tablename__ = "estados_expediente"
+    resource_name = "Estado de expediente"
+
+
+class EstadoCondicion(ActiveCatalogModel):
+    __tablename__ = "estados_condicion"
+    resource_name = "Estado de condición"
+
+
+class TipoAntecedente(ActiveCatalogModel):
+    __tablename__ = "tipos_antecedente"
+    resource_name = "Tipo de antecedente"
+
+
+class TipoDiagnostico(ActiveCatalogModel):
+    __tablename__ = "tipos_diagnostico"
+    resource_name = "Tipo de diagnóstico"
+
+
+class MotivoConsulta(ActiveCatalogModel):
+    __tablename__ = "motivos_consulta"
+    resource_name = "Motivo de consulta"
