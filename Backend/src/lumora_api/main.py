@@ -75,15 +75,14 @@ async def domain_error_handler(_: Request, error: DomainError) -> JSONResponse:
     )
 
 
-# Manejador global para ver cualquier error interno en Swagger
 @app.exception_handler(Exception)
 async def global_exception_handler(_: Request, error: Exception) -> JSONResponse:
     return JSONResponse(
-        status_code=400,
+        status_code=500,
         content={
             "error": {
                 "code": "internal_error",
-                "message": str(error)
+                "message": "Ocurrió un error interno"
             }
         },
     )

@@ -31,3 +31,12 @@ def test_cors_origins_are_configurable():
         cors_origins=["https://app.lumora.example"],
     )
     assert settings.cors_origins == ["https://app.lumora.example"]
+
+
+def test_email_delivery_settings_are_configurable():
+    settings = Settings(database_url="sqlite+aiosqlite://", smtp_username="sender@gmail.com", smtp_app_password="application-secret", email_from="Lumora <sender@gmail.com>")
+    assert settings.smtp_host == "smtp.gmail.com"
+    assert settings.smtp_port == 587
+    assert settings.smtp_app_password.get_secret_value() == "application-secret"
+    assert settings.verification_code_minutes == 15
+    assert settings.verification_resend_seconds == 60

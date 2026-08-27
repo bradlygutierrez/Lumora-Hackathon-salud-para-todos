@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 
 
 class MfaMethodRead(BaseModel):
-    id: int
+    id: int | None
     metodo_id: int
     nombre: str
     activo: bool

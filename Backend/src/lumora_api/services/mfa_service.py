@@ -37,15 +37,18 @@ class MfaService:
         self.repository = repository
 
     async def methods(self, user_id: int) -> list[dict]:
-        methods = await self.repository.configured_methods(user_id)
+        configured = {
+            method.metodo_id: method
+            for method in await self.repository.configured_methods(user_id)
+        }
         return [
             {
-                "id": method.id,
-                "metodo_id": method.metodo_id,
-                "nombre": method.metodo.nombre,
-                "activo": method.activo,
+                "id": configured[method.id].id if method.id in configured else None,
+                "metodo_id": method.id,
+                "nombre": method.nombre,
+                "activo": configured[method.id].activo if method.id in configured else False,
             }
-            for method in methods
+            for method in await self.repository.supported_methods()
         ]
 
     async def setup(self, user: Usuario, method_id: int) -> dict:
@@ -94,6 +97,9 @@ class MfaService:
     async def create_challenge(self, login: str, password: str) -> dict:
         auth_repository = AuthRepository(self.repository.session)
         user = await AuthService(auth_repository).authenticate_user(login, password)
+        return await self.create_challenge_for_user(user)
+
+    async def create_challenge_for_user(self, user: Usuario) -> dict:
         configured = await self.repository.active_method(user.id)
         if configured is None:
             raise ResourceNotFoundError("El usuario no tiene MFA activo")

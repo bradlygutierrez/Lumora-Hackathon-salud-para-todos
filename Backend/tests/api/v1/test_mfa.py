@@ -55,7 +55,17 @@ async def test_valid_totp_consumes_challenge_and_blocks_oauth_bypass(client, ses
     assert bypass.status_code == 403
     assert bypass.json()["error"]["code"] == "mfa_required"
 
-    pending = await challenge(client)
+    mobile_login = await client.post(
+        "/api/v1/auth/login",
+        json={"login": "ana", "password": "safe-password"},
+    )
+    assert mobile_login.status_code == 200
+    assert mobile_login.json()["mfa_required"] is True
+    assert "challenge_token" in mobile_login.json()
+    assert "access_token" not in mobile_login.json()
+    assert "refresh_token" not in mobile_login.json()
+
+    pending = mobile_login
     raw_challenge = pending.json()["challenge_token"]
     verified = await client.post(
         "/api/v1/auth/mfa/verify",
@@ -72,6 +82,37 @@ async def test_valid_totp_consumes_challenge_and_blocks_oauth_bypass(client, ses
             json={"challenge_token": raw_challenge, "code": "000000"},
         )
     ).status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_methods_lists_totp_for_user_without_mfa(client, session_factory):
+    async with session_factory() as session:
+        session.add_all([Rol(nombre="Paciente"), MetodoMfa(nombre="totp")])
+        await session.commit()
+
+    await client.post(
+        "/api/v1/usuarios",
+        json={
+            "email": "available@example.com",
+            "username": "available",
+            "password": "safe-password",
+            "persona": {"nombres": "Ana", "apellidos": "López"},
+        },
+    )
+    login = await client.post(
+        "/api/v1/auth/token",
+        data={"username": "available", "password": "safe-password"},
+    )
+
+    response = await client.get(
+        "/api/v1/auth/mfa/methods",
+        headers={"Authorization": f"Bearer {login.json()['access_token']}"},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == [
+        {"id": None, "metodo_id": 1, "nombre": "totp", "activo": False}
+    ]
 
 
 @pytest.mark.asyncio

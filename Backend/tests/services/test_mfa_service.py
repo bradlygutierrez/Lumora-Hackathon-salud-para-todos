@@ -26,6 +26,26 @@ async def configured_user(session):
 
 
 @pytest.mark.asyncio
+async def test_methods_exposes_only_supported_totp_when_not_configured(session_factory):
+    async with session_factory() as session:
+        user = Usuario(
+            persona=Persona(nombres="Ana", apellidos="López"),
+            email="methods@example.com",
+            username="methods",
+            password_hash=hash_password("safe-password"),
+            roles=[Rol(nombre="Paciente")],
+        )
+        session.add_all([MetodoMfa(nombre="totp"), MetodoMfa(nombre="sms"), user])
+        await session.commit()
+
+        methods = await MfaService(MfaRepository(session)).methods(user.id)
+
+        assert methods == [
+            {"id": None, "metodo_id": 1, "nombre": "totp", "activo": False}
+        ]
+
+
+@pytest.mark.asyncio
 async def test_expired_challenge_fails(session_factory):
     async with session_factory() as session:
         _, setup = await configured_user(session)

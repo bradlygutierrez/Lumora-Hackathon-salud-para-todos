@@ -168,3 +168,21 @@ borrarse lógicamente.
 - `PATCH /api/v1/condiciones/{id}`
 - `DELETE /api/v1/condiciones/{id}`
 - `GET /api/v1/condiciones/{id}/historial`
+
+## Contrato de autenticación B08
+
+El registro móvil atómico, la verificación por código, login MFA, contraseñas y
+Centro de sesiones se documentan en `docs/B08_AUTH_BACKEND_CONTRACT.md`.
+
+Para enviar correos con Gmail configure secretos de entorno (no los confirme):
+
+```dotenv
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USERNAME=sender@gmail.com
+SMTP_APP_PASSWORD=google-app-password
+EMAIL_FROM=Lumora <sender@gmail.com>
+```
+
+La cuenta Google debe tener verificación en dos pasos y usar una contraseña de
+aplicación; no use la contraseña normal de la cuenta.
