@@ -223,3 +223,23 @@ async def test_session_login_refresh_rotation_and_logout(client, session_factory
         stored = list(await session.scalars(select(SesionUsuario)))
         assert [attempt.exitoso for attempt in attempts[-2:]] == [False, True]
         assert stored[0].refresh_token_hash != first["refresh_token"]
+
+
+@pytest.mark.asyncio
+async def test_change_password_verifies_current_and_revokes_other_sessions(client, session_factory):
+    await register(client, session_factory, "password-user")
+    first = (await client.post("/api/v1/auth/login", json={"login": "password-user", "password": "safe-password"})).json()
+    second = (await client.post("/api/v1/auth/login", json={"login": "password-user", "password": "safe-password"})).json()
+    first_headers = {"Authorization": f"Bearer {first['access_token']}"}
+    second_headers = {"Authorization": f"Bearer {second['access_token']}"}
+
+    wrong = await client.post("/api/v1/auth/change-password", json={"current_password": "wrong", "new_password": "Stronger123!"}, headers=first_headers)
+    weak = await client.post("/api/v1/auth/change-password", json={"current_password": "safe-password", "new_password": "weak"}, headers=first_headers)
+    changed = await client.post("/api/v1/auth/change-password", json={"current_password": "safe-password", "new_password": "Stronger123!"}, headers=first_headers)
+    assert wrong.status_code == 401
+    assert weak.status_code == 422
+    assert changed.status_code == 200
+    assert (await client.get("/api/v1/auth/sessions", headers=first_headers)).status_code == 200
+    assert (await client.get("/api/v1/auth/sessions", headers=second_headers)).status_code == 401
+    assert (await client.post("/api/v1/auth/login", json={"login": "password-user", "password": "safe-password"})).status_code == 401
+    assert (await client.post("/api/v1/auth/login", json={"login": "password-user", "password": "Stronger123!"})).status_code == 200

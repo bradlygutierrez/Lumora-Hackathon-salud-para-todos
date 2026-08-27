@@ -142,3 +142,12 @@ class AuthRepository:
                 SesionUsuario.revoked_at.is_(None),
             ).values(revoked_at=datetime.now(timezone.utc))
         )
+
+    async def revoke_others(self, user_id: int, current_session_id: int) -> None:
+        await self.session.execute(
+            update(SesionUsuario).where(
+                SesionUsuario.usuario_id == user_id,
+                SesionUsuario.id != current_session_id,
+                SesionUsuario.revoked_at.is_(None),
+            ).values(revoked_at=datetime.now(timezone.utc))
+        )

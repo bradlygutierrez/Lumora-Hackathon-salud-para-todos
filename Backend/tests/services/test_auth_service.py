@@ -34,17 +34,17 @@ async def test_recovery_token_is_hashed_expires_and_cannot_be_reused(session_fac
         stored = await AuthRepository(session).recovery_by_hash(hash_token(raw_token))
         assert stored.token_hash != raw_token
 
-        await service.reset_password(raw_token, "new-password")
-        assert verify_password("new-password", user.password_hash)
+        await service.reset_password(raw_token, "StrongNew123!")
+        assert verify_password("StrongNew123!", user.password_hash)
         with pytest.raises(InvalidTokenError):
-            await service.reset_password(raw_token, "another-password")
+            await service.reset_password(raw_token, "AnotherStrong123!")
 
         expired_raw = await service.create_recovery(user.email)
         expired = await AuthRepository(session).recovery_by_hash(hash_token(expired_raw))
         expired.expires_at = datetime.now(timezone.utc) - timedelta(seconds=1)
         await session.commit()
         with pytest.raises(InvalidTokenError):
-            await service.reset_password(expired_raw, "another-password")
+            await service.reset_password(expired_raw, "AnotherStrong123!")
 
 
 @pytest.mark.asyncio

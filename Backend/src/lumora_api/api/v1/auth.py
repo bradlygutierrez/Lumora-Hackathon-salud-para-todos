@@ -7,6 +7,7 @@ from lumora_api.api.dependencies import CurrentSessionId, CurrentUser, SessionDe
 from lumora_api.repositories.auth_repository import AuthRepository
 from lumora_api.schemas import (
     AccessToken,
+    ChangePasswordRequest,
     ForgotPasswordRequest,
     LoginMfaResponse,
     LoginTokenResponse,
@@ -89,6 +90,22 @@ async def reset_password(
 ) -> MessageResponse:
     await AuthService(AuthRepository(session)).reset_password(
         data.token, data.new_password
+    )
+    return MessageResponse(message="Contraseña actualizada")
+
+
+@router.post("/change-password", response_model=MessageResponse)
+async def change_password(
+    data: ChangePasswordRequest,
+    current_user: CurrentUser,
+    current_session_id: CurrentSessionId,
+    session: SessionDep,
+):
+    await AuthService(AuthRepository(session)).change_password(
+        current_user,
+        current_session_id,
+        data.current_password,
+        data.new_password,
     )
     return MessageResponse(message="Contraseña actualizada")
 

@@ -18,6 +18,7 @@ from lumora_api.core.security import (
     generate_token,
     hash_password,
     hash_token,
+    validate_password_policy,
     verify_password,
 )
 from lumora_api.models import (
@@ -215,9 +216,15 @@ class AuthService:
             )
         )
         await self.repository.session.commit()
+        sender = self.email_service or EmailService()
+        try:
+            sender.send_password_reset(user.email, raw_token)
+        except RuntimeError:
+            pass
         return raw_token
 
     async def reset_password(self, raw_token: str, new_password: str) -> None:
+        validate_password_policy(new_password)
         token = await self.repository.recovery_by_hash(hash_token(raw_token))
         if token is None or token.consumed_at is not None or _expired(token.expires_at):
             raise InvalidTokenError("Token inválido, expirado o ya utilizado")
@@ -226,6 +233,23 @@ class AuthService:
             raise InvalidTokenError("Token inválido, expirado o ya utilizado")
         user.password_hash = hash_password(new_password)
         token.consumed_at = datetime.now(timezone.utc)
+        await self.repository.revoke_all(user.id)
+        await self.repository.session.commit()
+
+    async def change_password(
+        self,
+        user: Usuario,
+        current_session_id: int,
+        current_password: str,
+        new_password: str,
+    ) -> None:
+        if not verify_password(current_password, user.password_hash):
+            raise AuthenticationError("Credenciales incorrectas")
+        validate_password_policy(new_password)
+        if verify_password(new_password, user.password_hash):
+            raise ResourceConflictError("La nueva contraseña debe ser diferente")
+        user.password_hash = hash_password(new_password)
+        await self.repository.revoke_others(user.id, current_session_id)
         await self.repository.session.commit()
 
     async def create_email_verification(self, user: Usuario) -> str:
