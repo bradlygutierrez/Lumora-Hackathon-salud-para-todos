@@ -16,7 +16,7 @@ Gmail SMTP usa TLS (`smtp.gmail.com:587`) y los secretos `SMTP_USERNAME`, `SMTP_
 
 `POST /auth/login` recibe `login` y `password`. Sin MFA responde `mfa_required:false` con access/refresh tokens. Con TOTP responde `mfa_required:true`, `challenge_token` y `expires_in`, sin tokens finales. `POST /auth/mfa/verify` recibe challenge y código TOTP y devuelve el par de tokens al consumir el desafío. Los desafíos expiran, son de un uso y limitan intentos. B08 solo anuncia TOTP/Authenticator App; SMS no está implementado.
 
-Se conservan `/auth/token`, `/auth/mfa/challenge`, setup, recovery y disable para clientes existentes.
+Se conservan `/auth/token`, `/auth/mfa/challenge`, setup, recovery y disable para clientes existentes. `GET /auth/mfa/methods` anuncia `totp` incluso antes de configurarlo (`activo:false`); nunca anuncia SMS.
 
 ## Contraseñas
 

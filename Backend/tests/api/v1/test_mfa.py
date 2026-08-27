@@ -85,6 +85,37 @@ async def test_valid_totp_consumes_challenge_and_blocks_oauth_bypass(client, ses
 
 
 @pytest.mark.asyncio
+async def test_methods_lists_totp_for_user_without_mfa(client, session_factory):
+    async with session_factory() as session:
+        session.add_all([Rol(nombre="Paciente"), MetodoMfa(nombre="totp")])
+        await session.commit()
+
+    await client.post(
+        "/api/v1/usuarios",
+        json={
+            "email": "available@example.com",
+            "username": "available",
+            "password": "safe-password",
+            "persona": {"nombres": "Ana", "apellidos": "López"},
+        },
+    )
+    login = await client.post(
+        "/api/v1/auth/token",
+        data={"username": "available", "password": "safe-password"},
+    )
+
+    response = await client.get(
+        "/api/v1/auth/mfa/methods",
+        headers={"Authorization": f"Bearer {login.json()['access_token']}"},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == [
+        {"id": None, "metodo_id": 1, "nombre": "totp", "activo": False}
+    ]
+
+
+@pytest.mark.asyncio
 async def test_recovery_code_is_hashed_and_cannot_be_reused(client, session_factory):
     _, setup, _ = await register_and_setup(client, session_factory)
     recovery_code = setup["recovery_codes"][0]

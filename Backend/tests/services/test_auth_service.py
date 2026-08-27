@@ -6,7 +6,7 @@ from lumora_api.core.exceptions import InvalidTokenError
 from lumora_api.core.security import hash_password, hash_token, verify_password
 from sqlalchemy import func, select
 
-from lumora_api.models import Persona, Rol, Sexo, TipoSangre, TokenRecuperacion, Usuario, VerificacionCorreo
+from lumora_api.models import Persona, Rol, SesionUsuario, Sexo, TipoSangre, TokenRecuperacion, Usuario, VerificacionCorreo
 from lumora_api.repositories.auth_repository import AuthRepository
 from lumora_api.schemas.auth import PatientRegistrationRequest
 from lumora_api.services.auth_service import AuthService
@@ -45,6 +45,26 @@ async def test_recovery_token_is_hashed_expires_and_cannot_be_reused(session_fac
         await session.commit()
         with pytest.raises(InvalidTokenError):
             await service.reset_password(expired_raw, "AnotherStrong123!")
+
+
+@pytest.mark.asyncio
+async def test_reset_password_revokes_all_sessions(session_factory):
+    async with session_factory() as session:
+        user = await make_user(session)
+        service = AuthService(AuthRepository(session))
+        await service.create_session(user.id, None, None)
+        await service.create_session(user.id, None, None)
+        raw_token = await service.create_recovery(user.email)
+
+        await service.reset_password(raw_token, "StrongNew123!")
+
+        stored = list(
+            await session.scalars(
+                select(SesionUsuario).where(SesionUsuario.usuario_id == user.id)
+            )
+        )
+        assert len(stored) == 2
+        assert all(item.revoked_at is not None for item in stored)
 
 
 @pytest.mark.asyncio

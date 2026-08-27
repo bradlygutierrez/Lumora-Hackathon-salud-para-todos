@@ -22,6 +22,15 @@ class MfaRepository:
             )
         )
 
+    async def supported_methods(self) -> list[MetodoMfa]:
+        return list(
+            await self.session.scalars(
+                select(MetodoMfa)
+                .where(MetodoMfa.nombre == "totp")
+                .order_by(MetodoMfa.id)
+            )
+        )
+
     async def configured_method(
         self, user_id: int, configured_id: int
     ) -> UsuarioMetodoMfa | None:
