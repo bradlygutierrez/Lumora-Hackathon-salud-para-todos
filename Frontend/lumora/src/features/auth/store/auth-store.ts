@@ -10,46 +10,59 @@ export type AuthStatus =
   | 'authenticated'
   | 'unauthenticated';
 
+/**
+ * Challenge MFA temporal.
+ *
+ * NO se persiste en SecureStore: si la app se reinicia, el usuario debe
+ * iniciar sesión de nuevo. Así evitamos tratar un challenge corto como sesión.
+ */
+export type PendingMfa = {
+  challengeToken: string;
+  expiresIn: number;
+};
+
 type AuthState = {
   status: AuthStatus;
   session: StoredSession | null;
+  pendingMfa: PendingMfa | null;
 
   bootstrap: () => Promise<void>;
   setSession: (session: StoredSession) => Promise<void>;
   clearSession: () => Promise<void>;
+  setPendingMfa: (value: PendingMfa | null) => void;
 };
 
 /**
- * Servicio que encapsula la persistencia/restauración de la sesión.
- * Zustand sigue siendo el store; esta clase solo contiene operaciones
- * de sesión reutilizables, siguiendo la convención de clases del proyecto.
+ * Encapsula el acceso al almacenamiento seguro.
+ * Zustand se ocupa del estado reactivo; esta clase se ocupa de persistencia.
  */
 class AuthSessionManager {
-  public async restore(): Promise<StoredSession | null> {
+  public restore(): Promise<StoredSession | null> {
     return secureSession.get();
   }
 
-  public async persist(session: StoredSession): Promise<void> {
-    await secureSession.set(session);
+  public persist(session: StoredSession): Promise<void> {
+    return secureSession.set(session);
   }
 
-  public async clear(): Promise<void> {
-    await secureSession.clear();
+  public clear(): Promise<void> {
+    return secureSession.clear();
   }
 }
 
 const authSessionManager = new AuthSessionManager();
 
 /**
- * Store global pequeño de autenticación.
+ * Estado global pequeño de autenticación.
  *
- * React web equivalente aproximado: AuthContext + useReducer.
- * Los datos de servidor (citas, medicamentos, etc.) NO van aquí;
- * esos pertenecen a TanStack Query.
+ * React web equivalente aproximado: `AuthContext + useReducer`.
+ * Los datos provenientes de FastAPI NO deben guardarse aquí; esos pertenecen
+ * a TanStack Query. Aquí solo viven sesión y estado efímero de autenticación.
  */
 export const useAuthStore = create<AuthState>((set) => ({
   status: 'bootstrapping',
   session: null,
+  pendingMfa: null,
 
   bootstrap: async () => {
     try {
@@ -60,8 +73,10 @@ export const useAuthStore = create<AuthState>((set) => ({
         status: session ? 'authenticated' : 'unauthenticated',
       });
     } catch {
-      await authSessionManager.clear();
-
+      /**
+       * Durante bootstrap fallamos de forma segura a no autenticado.
+       * No intentamos escribir/borrar nuevamente si el storage nativo falló.
+       */
       set({
         session: null,
         status: 'unauthenticated',
@@ -75,15 +90,23 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({
       session,
       status: 'authenticated',
+      pendingMfa: null,
     });
   },
 
   clearSession: async () => {
-    await authSessionManager.clear();
+    try {
+      await authSessionManager.clear();
+    } finally {
+      set({
+        session: null,
+        status: 'unauthenticated',
+        pendingMfa: null,
+      });
+    }
+  },
 
-    set({
-      session: null,
-      status: 'unauthenticated',
-    });
+  setPendingMfa: (pendingMfa) => {
+    set({ pendingMfa });
   },
 }));
