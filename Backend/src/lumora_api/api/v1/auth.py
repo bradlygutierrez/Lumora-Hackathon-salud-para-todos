@@ -14,9 +14,11 @@ from lumora_api.schemas import (
     LoginRequest,
     PatientRegistrationRequest,
     RegistrationResponse,
+    ResendVerificationRequest,
     RefreshRequest,
     SessionRead,
     TokenPair,
+    VerifyEmailCodeRequest,
 )
 from lumora_api.services.auth_service import AuthService
 
@@ -91,7 +93,17 @@ async def reset_password(
 
 @router.post("/verify-email", response_model=MessageResponse)
 async def verify_email(
-    data: VerifyEmailRequest, session: SessionDep
+    data: VerifyEmailRequest | VerifyEmailCodeRequest, session: SessionDep
 ) -> MessageResponse:
-    await AuthService(AuthRepository(session)).verify_email(data.token)
+    service = AuthService(AuthRepository(session))
+    if isinstance(data, VerifyEmailCodeRequest):
+        await service.verify_email_code(str(data.email), data.code)
+    else:
+        await service.verify_email(data.token)
     return MessageResponse(message="Correo verificado")
+
+
+@router.post("/resend-verification", response_model=MessageResponse)
+async def resend_verification(data: ResendVerificationRequest, session: SessionDep):
+    await AuthService(AuthRepository(session)).resend_verification(str(data.email))
+    return MessageResponse(message="Si corresponde, se envió un nuevo código de verificación")

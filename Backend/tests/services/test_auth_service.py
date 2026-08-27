@@ -90,3 +90,58 @@ async def test_registration_rolls_back_when_downstream_flush_fails(session_facto
     async with session_factory() as verification_session:
         assert await verification_session.scalar(select(func.count()).select_from(Persona)) == 0
         assert await verification_session.scalar(select(func.count()).select_from(Usuario)) == 0
+
+
+@pytest.mark.asyncio
+async def test_email_verification_code_is_valid_single_use_and_rejects_wrong_code(session_factory):
+    async with session_factory() as session:
+        user = await make_user(session)
+        session.add(VerificacionCorreo(usuario_id=user.id, token_hash=hash_token("123456"), expires_at=datetime.now(timezone.utc) + timedelta(minutes=5)))
+        await session.commit()
+        service = AuthService(AuthRepository(session))
+        with pytest.raises(InvalidTokenError):
+            await service.verify_email_code(user.email, "000000")
+        await service.verify_email_code(user.email, "123456")
+        assert user.email_verificado is True
+        with pytest.raises(InvalidTokenError):
+            await service.verify_email_code(user.email, "123456")
+
+
+@pytest.mark.asyncio
+async def test_email_verification_code_expires(session_factory):
+    async with session_factory() as session:
+        user = await make_user(session)
+        session.add(VerificacionCorreo(usuario_id=user.id, token_hash=hash_token("123456"), expires_at=datetime.now(timezone.utc) - timedelta(seconds=1)))
+        await session.commit()
+        with pytest.raises(InvalidTokenError):
+            await AuthService(AuthRepository(session)).verify_email_code(user.email, "123456")
+
+
+class CapturingEmailService:
+    def __init__(self):
+        self.verifications = []
+    def send_verification_code(self, email, code):
+        self.verifications.append((email, code))
+
+
+@pytest.mark.asyncio
+async def test_resend_replaces_previous_code_and_hides_missing_or_verified_accounts(session_factory):
+    async with session_factory() as session:
+        user = await make_user(session)
+        old = VerificacionCorreo(usuario_id=user.id, token_hash=hash_token("111111"), expires_at=datetime.now(timezone.utc) + timedelta(minutes=5))
+        session.add(old)
+        await session.commit()
+        sender = CapturingEmailService()
+        service = AuthService(AuthRepository(session), sender)
+        await service.resend_verification(user.email, enforce_cooldown=False)
+        assert old.consumed_at is not None
+        assert len(sender.verifications) == 1
+        email, code = sender.verifications[0]
+        assert email == user.email and code.isdigit() and len(code) == 6
+        assert (await AuthRepository(session).verification_by_hash(hash_token(code))).token_hash != code
+
+        await service.resend_verification("missing@example.com", enforce_cooldown=False)
+        user.email_verificado = True
+        await session.commit()
+        await service.resend_verification(user.email, enforce_cooldown=False)
+        assert len(sender.verifications) == 1

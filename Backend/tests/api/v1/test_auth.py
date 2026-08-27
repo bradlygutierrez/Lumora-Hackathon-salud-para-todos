@@ -1,5 +1,9 @@
+from datetime import datetime, timedelta, timezone
+
 import pytest
 from sqlalchemy import select
+
+from lumora_api.core.security import hash_token
 
 from lumora_api.models import (
     ContactoEmergencia,
@@ -13,6 +17,7 @@ from lumora_api.models import (
     Sexo,
     TipoSangre,
     Usuario,
+    VerificacionCorreo,
 )
 
 
@@ -92,6 +97,21 @@ async def test_patient_registration_validates_security_and_consents(client, sess
     await seed_registration_catalogs(session_factory)
     response = await client.post("/api/v1/auth/register", json=registration_body(**overrides))
     assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_verify_email_accepts_six_digit_code_and_resend_is_generic(client, session_factory):
+    await seed_registration_catalogs(session_factory)
+    await client.post("/api/v1/auth/register", json=registration_body())
+    async with session_factory() as session:
+        user = await session.scalar(select(Usuario).where(Usuario.email == "new-patient@example.com"))
+        session.add(VerificacionCorreo(usuario_id=user.id, token_hash=hash_token("123456"), expires_at=datetime.now(timezone.utc) + timedelta(minutes=5)))
+        await session.commit()
+    verified = await client.post("/api/v1/auth/verify-email", json={"email": "new-patient@example.com", "code": "123456"})
+    resent = await client.post("/api/v1/auth/resend-verification", json={"email": "missing@example.com"})
+    assert verified.status_code == 200
+    assert resent.status_code == 200
+    assert "existe" not in resent.json()["message"].lower()
 
 
 async def register(client, session_factory, username: str):

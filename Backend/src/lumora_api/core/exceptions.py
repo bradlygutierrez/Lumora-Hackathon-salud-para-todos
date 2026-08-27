@@ -40,3 +40,8 @@ class MfaRequiredError(DomainError):
 class InvalidMfaCodeError(DomainError):
     status_code = 400
     code = "invalid_mfa_code"
+
+
+class RateLimitError(DomainError):
+    status_code = 429
+    code = "rate_limited"

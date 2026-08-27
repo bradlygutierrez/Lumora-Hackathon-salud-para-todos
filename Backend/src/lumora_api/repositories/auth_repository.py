@@ -72,6 +72,34 @@ class AuthRepository:
             )
         )
 
+    async def verification_by_user_hash(
+        self, user_id: int, token_hash: str
+    ) -> VerificacionCorreo | None:
+        return await self.session.scalar(
+            select(VerificacionCorreo).where(
+                VerificacionCorreo.usuario_id == user_id,
+                VerificacionCorreo.token_hash == token_hash,
+            ).with_for_update()
+        )
+
+    async def latest_verification(self, user_id: int) -> VerificacionCorreo | None:
+        return await self.session.scalar(
+            select(VerificacionCorreo)
+            .where(VerificacionCorreo.usuario_id == user_id)
+            .order_by(VerificacionCorreo.created_at.desc())
+            .limit(1)
+        )
+
+    async def consume_verifications(self, user_id: int) -> None:
+        await self.session.execute(
+            update(VerificacionCorreo)
+            .where(
+                VerificacionCorreo.usuario_id == user_id,
+                VerificacionCorreo.consumed_at.is_(None),
+            )
+            .values(consumed_at=datetime.now(timezone.utc))
+        )
+
     async def has_active_mfa(self, user_id: int) -> bool:
         return (
             await self.session.scalar(

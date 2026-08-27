@@ -11,6 +11,7 @@ from lumora_api.core.exceptions import (
     ResourceConflictError,
     ResourceNotFoundError,
     MfaRequiredError,
+    RateLimitError,
 )
 from lumora_api.core.security import (
     create_access_token,
@@ -241,6 +242,43 @@ class AuthService:
         user.email_verificado = True
         token.consumed_at = datetime.now(timezone.utc)
         await self.repository.session.commit()
+
+    async def verify_email_code(self, email: str, code: str) -> None:
+        user = await self.repository.user_by_email(email)
+        if user is None:
+            raise InvalidTokenError("Código inválido, expirado o ya utilizado")
+        token = await self.repository.verification_by_user_hash(user.id, hash_token(code))
+        if token is None or token.consumed_at is not None or _expired(token.expires_at):
+            raise InvalidTokenError("Código inválido, expirado o ya utilizado")
+        user.email_verificado = True
+        await self.repository.consume_verifications(user.id)
+        await self.repository.session.commit()
+
+    async def resend_verification(self, email: str, enforce_cooldown: bool = True) -> None:
+        user = await self.repository.user_by_email(email)
+        if user is None or user.email_verificado:
+            return
+        latest = await self.repository.latest_verification(user.id)
+        if enforce_cooldown and latest is not None:
+            created_at = latest.created_at
+            if created_at.tzinfo is None:
+                created_at = created_at.replace(tzinfo=timezone.utc)
+            elapsed = (datetime.now(timezone.utc) - created_at).total_seconds()
+            if elapsed < get_settings().verification_resend_seconds:
+                raise RateLimitError("Espera antes de solicitar otro código")
+        code = f"{secrets.randbelow(1_000_000):06d}"
+        await self.repository.consume_verifications(user.id)
+        self.repository.session.add(
+            VerificacionCorreo(
+                usuario_id=user.id,
+                token_hash=hash_token(code),
+                expires_at=datetime.now(timezone.utc)
+                + timedelta(minutes=get_settings().verification_code_minutes),
+            )
+        )
+        await self.repository.session.commit()
+        sender = self.email_service or EmailService()
+        sender.send_verification_code(user.email, code)
 
 
 class RbacService:
