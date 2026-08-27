@@ -60,8 +60,19 @@ async def logout_all(current_user: CurrentUser, session: SessionDep):
 
 
 @router.get("/sessions", response_model=list[SessionRead])
-async def sessions(current_user: CurrentUser, session: SessionDep):
-    return await AuthService(AuthRepository(session)).sessions(current_user.id)
+async def sessions(current_user: CurrentUser, current_session_id: CurrentSessionId, session: SessionDep):
+    return await AuthService(AuthRepository(session)).sessions(current_user.id, current_session_id)
+
+
+@router.delete("/sessions/{session_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def revoke_session(session_id: int, current_user: CurrentUser, session: SessionDep):
+    await AuthService(AuthRepository(session)).revoke_session(current_user.id, session_id)
+
+
+@router.post("/logout-others", response_model=MessageResponse)
+async def logout_others(current_user: CurrentUser, current_session_id: CurrentSessionId, session: SessionDep):
+    await AuthService(AuthRepository(session)).logout_others(current_user.id, current_session_id)
+    return MessageResponse(message="Las demás sesiones fueron cerradas")
 
 
 @router.post("/token", response_model=AccessToken, summary="Obtener token OAuth2")

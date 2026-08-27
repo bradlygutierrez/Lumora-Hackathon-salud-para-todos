@@ -243,3 +243,34 @@ async def test_change_password_verifies_current_and_revokes_other_sessions(clien
     assert (await client.get("/api/v1/auth/sessions", headers=second_headers)).status_code == 401
     assert (await client.post("/api/v1/auth/login", json={"login": "password-user", "password": "safe-password"})).status_code == 401
     assert (await client.post("/api/v1/auth/login", json={"login": "password-user", "password": "Stronger123!"})).status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_session_center_lists_current_revokes_one_and_logs_out_others(client, session_factory):
+    await register(client, session_factory, "session-owner")
+    await register(client, session_factory, "other-owner")
+    first = (await client.post("/api/v1/auth/login", json={"login": "session-owner", "password": "safe-password"})).json()
+    second = (await client.post("/api/v1/auth/login", json={"login": "session-owner", "password": "safe-password"})).json()
+    foreign = (await client.post("/api/v1/auth/login", json={"login": "other-owner", "password": "safe-password"})).json()
+    first_headers = {"Authorization": f"Bearer {first['access_token']}"}
+    second_headers = {"Authorization": f"Bearer {second['access_token']}"}
+    foreign_headers = {"Authorization": f"Bearer {foreign['access_token']}"}
+
+    listed = await client.get("/api/v1/auth/sessions", headers=first_headers)
+    assert listed.status_code == 200
+    assert len(listed.json()) == 2
+    assert sum(item["is_current"] for item in listed.json()) == 1
+    assert all("refresh_token_hash" not in item for item in listed.json())
+    remote_id = next(item["id"] for item in listed.json() if not item["is_current"])
+    foreign_id = (await client.get("/api/v1/auth/sessions", headers=foreign_headers)).json()[0]["id"]
+
+    assert (await client.delete(f"/api/v1/auth/sessions/{foreign_id}", headers=first_headers)).status_code == 404
+    assert (await client.delete(f"/api/v1/auth/sessions/{remote_id}", headers=first_headers)).status_code == 204
+    assert (await client.delete(f"/api/v1/auth/sessions/{remote_id}", headers=first_headers)).status_code == 204
+    assert (await client.get("/api/v1/auth/sessions", headers=second_headers)).status_code == 401
+
+    third = (await client.post("/api/v1/auth/login", json={"login": "session-owner", "password": "safe-password"})).json()
+    third_headers = {"Authorization": f"Bearer {third['access_token']}"}
+    assert (await client.post("/api/v1/auth/logout-others", headers=first_headers)).status_code == 200
+    assert (await client.get("/api/v1/auth/sessions", headers=third_headers)).status_code == 401
+    assert (await client.get("/api/v1/auth/sessions", headers=first_headers)).status_code == 200

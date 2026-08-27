@@ -199,8 +199,48 @@ class AuthService:
         await self.repository.revoke_all(user_id)
         await self.repository.session.commit()
 
-    async def sessions(self, user_id: int) -> list[SesionUsuario]:
-        return await self.repository.active_sessions(user_id)
+    async def sessions(self, user_id: int, current_session_id: int) -> list[dict]:
+        sessions = await self.repository.active_sessions(user_id)
+        return [
+            {
+                "id": item.id,
+                "ip": item.ip,
+                "user_agent": item.user_agent,
+                "created_at": item.created_at,
+                "last_used_at": item.last_used_at,
+                "expires_at": item.expires_at,
+                "device_name": self._device_name(item.user_agent),
+                "platform": self._platform(item.user_agent),
+                "ip_address": item.ip,
+                "last_activity_at": item.last_used_at,
+                "is_current": item.id == current_session_id,
+            }
+            for item in sessions
+        ]
+
+    @staticmethod
+    def _platform(user_agent: str | None) -> str:
+        value = (user_agent or "").lower()
+        for marker, name in (("android", "Android"), ("iphone", "iOS"), ("windows", "Windows"), ("macintosh", "macOS"), ("linux", "Linux")):
+            if marker in value:
+                return name
+        return "Unknown"
+
+    @staticmethod
+    def _device_name(user_agent: str | None) -> str:
+        return (user_agent or "Unknown")[:120]
+
+    async def revoke_session(self, user_id: int, session_id: int) -> None:
+        owned = await self.repository.owned_session(session_id, user_id)
+        if owned is None:
+            raise ResourceNotFoundError("Sesión no encontrada")
+        if owned.revoked_at is None:
+            owned.revoked_at = datetime.now(timezone.utc)
+            await self.repository.session.commit()
+
+    async def logout_others(self, user_id: int, current_session_id: int) -> None:
+        await self.repository.revoke_others(user_id, current_session_id)
+        await self.repository.session.commit()
 
     async def create_recovery(self, email: str) -> str | None:
         user = await self.repository.user_by_email(email)

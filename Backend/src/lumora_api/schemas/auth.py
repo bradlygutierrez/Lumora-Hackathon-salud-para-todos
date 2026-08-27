@@ -41,6 +41,11 @@ class SessionRead(BaseModel):
     created_at: datetime
     last_used_at: datetime
     expires_at: datetime
+    device_name: str
+    platform: str
+    ip_address: str | None
+    last_activity_at: datetime
+    is_current: bool
     model_config = ConfigDict(from_attributes=True)
 
 
