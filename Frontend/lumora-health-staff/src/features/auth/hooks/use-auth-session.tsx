@@ -28,6 +28,7 @@ type AuthSessionContextValue = {
   permissions: Set<string>;
   signIn: (data: LoginRequest) => Promise<void>;
   completeTokenSignIn: (tokens: TokenPairResponse) => Promise<void>;
+  startPreviewSession: () => Promise<void>;
   signOut: () => Promise<void>;
   signOutAll: () => Promise<void>;
   reloadUser: () => Promise<void>;
@@ -111,22 +112,27 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
     let mounted = true;
 
     async function restoreSession() {
-      const storedSession = await secureSessionManager.getSession();
-      if (!mounted) {
-        return;
-      }
-      const sessionToRestore = storedSession ?? (env.enableUiPreview ? previewSession : null);
-      if (sessionToRestore) {
-        const enriched = await enrichSession(sessionToRestore);
+      try {
+        const storedSession = await secureSessionManager.getSession();
         if (!mounted) {
           return;
         }
-        await secureSessionManager.saveSession(enriched);
-        setSession(enriched);
-      } else {
+        const sessionToRestore = storedSession ?? (env.enableUiPreview ? previewSession : null);
+        if (sessionToRestore) {
+          const enriched = await enrichSession(sessionToRestore);
+          if (!mounted) {
+            return;
+          }
+          await secureSessionManager.saveSession(enriched);
+          setSession(enriched);
+        } else {
+          setSession(null);
+        }
+        setStatus(sessionToRestore ? 'authenticated' : 'anonymous');
+      } catch {
         setSession(null);
+        setStatus('anonymous');
       }
-      setStatus(sessionToRestore ? 'authenticated' : 'anonymous');
     }
 
     restoreSession();
@@ -147,6 +153,12 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
     const tokens = await loginStaff(data);
     await completeTokenSignIn(tokens);
   }, [completeTokenSignIn]);
+
+  const startPreviewSession = useCallback(async () => {
+    await secureSessionManager.saveSession(previewSession);
+    setSession(previewSession);
+    setStatus('authenticated');
+  }, []);
 
   const signOut = useCallback(async () => {
     try {
@@ -194,11 +206,21 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
       permissions: permissionSet(session),
       signIn,
       completeTokenSignIn,
+      startPreviewSession,
       signOut,
       signOutAll,
       reloadUser,
     }),
-    [completeTokenSignIn, reloadUser, session, signIn, signOut, signOutAll, status],
+    [
+      completeTokenSignIn,
+      reloadUser,
+      session,
+      signIn,
+      signOut,
+      signOutAll,
+      startPreviewSession,
+      status,
+    ],
   );
 
   return <AuthSessionContext.Provider value={value}>{children}</AuthSessionContext.Provider>;
