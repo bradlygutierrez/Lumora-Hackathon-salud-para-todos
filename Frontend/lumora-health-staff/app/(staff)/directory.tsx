@@ -1,14 +1,40 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { PermissionGate } from '@/src/features/auth/components/PermissionGate';
 import { useProfessionals } from '@/src/features/profile/hooks/use-professionals';
 import { EmptyState, ErrorState, LoadingState } from '@/src/shared/components/RemoteState';
 import { Screen } from '@/src/shared/components/Screen';
+import { TextField } from '@/src/shared/components/TextField';
 import { theme } from '@/src/shared/constants/theme';
 
 export default function MedicalDirectoryScreen() {
   const professionals = useProfessionals();
+  const [search, setSearch] = useState('');
+  const [specialty, setSpecialty] = useState('Todos');
+  const specialties = useMemo(() => {
+    const names = professionals.data?.items.map((item) => item.especialidad) ?? [];
+    return ['Todos', ...Array.from(new Set(names)).slice(0, 5)];
+  }, [professionals.data?.items]);
+  const filteredProfessionals = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    return (
+      professionals.data?.items.filter((professional) => {
+        const fullName =
+          `${professional.persona.nombres} ${professional.persona.apellidos}`.toLowerCase();
+        const matchesSearch =
+          !term ||
+          fullName.includes(term) ||
+          professional.especialidad.toLowerCase().includes(term) ||
+          professional.numero_licencia.toLowerCase().includes(term);
+        const matchesSpecialty =
+          specialty === 'Todos' || professional.especialidad === specialty;
+        return matchesSearch && matchesSpecialty;
+      }) ?? []
+    );
+  }, [professionals.data?.items, search, specialty]);
 
   return (
     <Screen>
@@ -22,28 +48,75 @@ export default function MedicalDirectoryScreen() {
         }
       >
         <ScrollView contentContainerStyle={styles.container}>
-          <View style={styles.header}>
-            <Text style={styles.title}>Directorio médico</Text>
-            <Text style={styles.subtitle}>Profesionales registrados en FastAPI.</Text>
+          <View style={styles.topBar}>
+            <Ionicons color={theme.color.text} name="menu-outline" size={28} />
+            <Text style={styles.logo}>Lumora</Text>
+            <Ionicons color={theme.color.danger} name="notifications" size={22} />
           </View>
+          <View style={styles.header}>
+            <Text style={styles.title}>Directorio de Personal Médico</Text>
+            <Text style={styles.subtitle}>Gestiona y busca personal del hospital.</Text>
+          </View>
+          <View style={styles.searchRow}>
+            <View style={styles.searchField}>
+              <TextField
+                icon="search-outline"
+                label="Buscar"
+                onChangeText={setSearch}
+                placeholder="Buscar por nombre, cargo, especialidad..."
+                value={search}
+              />
+            </View>
+            <View style={styles.filterButton}>
+              <Ionicons color={theme.color.text} name="options-outline" size={24} />
+            </View>
+          </View>
+
+          <Text style={styles.filterLabel}>Especialidad:</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View style={styles.chips}>
+              {specialties.map((item) => (
+                <Pressable
+                  key={item}
+                  onPress={() => setSpecialty(item)}
+                  style={[styles.chip, specialty === item ? styles.chipActive : null]}
+                >
+                  <Text
+                    style={[styles.chipText, specialty === item ? styles.chipTextActive : null]}
+                  >
+                    {item}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </ScrollView>
 
           {professionals.isLoading ? <LoadingState title="Cargando directorio" /> : null}
           {professionals.isError ? <ErrorState title="No se pudo cargar el directorio" /> : null}
-          {professionals.data?.items.length === 0 ? (
+          {professionals.data && filteredProfessionals.length === 0 ? (
             <EmptyState title="Sin profesionales registrados" />
           ) : null}
 
-          {professionals.data?.items.map((professional) => (
-            <Link
-              href={`/(staff)/staff/${professional.id}`}
-              key={professional.id}
-              style={styles.card}
-            >
-              <Text style={styles.name}>
-                {professional.persona.nombres} {professional.persona.apellidos}
-              </Text>
-              <Text style={styles.meta}>{professional.especialidad}</Text>
-              <Text style={styles.meta}>Licencia {professional.numero_licencia}</Text>
+          {filteredProfessionals.map((professional) => (
+            <Link href={`/(staff)/staff/${professional.id}`} key={professional.id} asChild>
+              <Pressable style={styles.card}>
+                <View style={styles.avatar}>
+                  <Text style={styles.avatarText}>
+                    {professional.persona.nombres.slice(0, 1)}
+                    {professional.persona.apellidos.slice(0, 1)}
+                  </Text>
+                </View>
+                <Text style={styles.name}>
+                  {professional.persona.nombres} {professional.persona.apellidos}
+                </Text>
+                <Text style={styles.meta}>Licencia {professional.numero_licencia}</Text>
+                <View style={styles.cardDivider} />
+                <View style={styles.specialtyRow}>
+                  <Ionicons color={theme.color.primaryPressed} name="heart-outline" size={18} />
+                  <Text style={styles.specialtyText}>{professional.especialidad}</Text>
+                  <Ionicons color={theme.color.primaryPressed} name="arrow-forward" size={22} />
+                </View>
+              </Pressable>
             </Link>
           ))}
         </ScrollView>
@@ -55,7 +128,18 @@ export default function MedicalDirectoryScreen() {
 const styles = StyleSheet.create({
   container: {
     gap: theme.spacing.md,
-    paddingBottom: theme.spacing.xl,
+    paddingBottom: theme.spacing.xxl,
+  },
+  topBar: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: theme.spacing.xl,
+  },
+  logo: {
+    color: theme.color.text,
+    fontSize: 34,
+    fontWeight: '900',
   },
   header: {
     gap: theme.spacing.xs,
@@ -63,28 +147,108 @@ const styles = StyleSheet.create({
   },
   title: {
     color: theme.color.text,
-    fontSize: theme.typography.title,
-    fontWeight: '800',
+    fontSize: 30,
+    fontWeight: '900',
   },
   subtitle: {
     color: theme.color.mutedText,
+    fontSize: 18,
+  },
+  searchRow: {
+    alignItems: 'flex-end',
+    flexDirection: 'row',
+    gap: theme.spacing.md,
+  },
+  searchField: {
+    flex: 1,
+  },
+  filterButton: {
+    alignItems: 'center',
+    backgroundColor: theme.color.surfaceMuted,
+    borderColor: theme.color.border,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    height: 56,
+    justifyContent: 'center',
+    width: 56,
+  },
+  filterLabel: {
+    color: theme.color.mutedText,
     fontSize: theme.typography.body,
+    fontWeight: '800',
+    marginTop: theme.spacing.xl,
+  },
+  chips: {
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
+  },
+  chip: {
+    backgroundColor: theme.color.surface,
+    borderColor: theme.color.border,
+    borderRadius: 24,
+    borderWidth: 1,
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.md,
+  },
+  chipActive: {
+    backgroundColor: theme.color.primary,
+    borderColor: theme.color.primary,
+  },
+  chipText: {
+    color: theme.color.text,
+    fontSize: theme.typography.body,
+    fontWeight: '800',
+  },
+  chipTextActive: {
+    color: '#FFFFFF',
   },
   card: {
     backgroundColor: theme.color.surface,
     borderColor: theme.color.border,
     borderRadius: theme.radius.md,
     borderWidth: 1,
-    padding: theme.spacing.lg,
+    borderLeftColor: '#12B886',
+    borderLeftWidth: 4,
+    padding: theme.spacing.xl,
+  },
+  avatar: {
+    alignItems: 'center',
+    backgroundColor: theme.color.primarySoft,
+    borderRadius: 24,
+    height: 48,
+    justifyContent: 'center',
+    marginBottom: theme.spacing.xl,
+    width: 48,
+  },
+  avatarText: {
+    color: theme.color.text,
+    fontSize: theme.typography.body,
+    fontWeight: '900',
   },
   name: {
     color: theme.color.text,
-    fontSize: theme.typography.body,
+    fontSize: 24,
     fontWeight: '800',
   },
   meta: {
     color: theme.color.mutedText,
-    fontSize: theme.typography.caption,
+    fontSize: theme.typography.body,
     marginTop: theme.spacing.xs,
+  },
+  cardDivider: {
+    backgroundColor: theme.color.border,
+    height: 1,
+    marginVertical: theme.spacing.lg,
+  },
+  specialtyRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
+  },
+  specialtyText: {
+    color: theme.color.primaryPressed,
+    flex: 1,
+    fontSize: theme.typography.body,
+    fontWeight: '800',
   },
 });
