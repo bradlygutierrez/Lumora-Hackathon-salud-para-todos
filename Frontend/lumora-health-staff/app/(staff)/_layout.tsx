@@ -43,12 +43,36 @@ export default function StaffLayout() {
         }}
       />
       <Tabs.Screen
+        name="directory"
+        options={{
+          title: 'Directorio',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons color={color} name="medical-outline" size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="security"
+        options={{
+          title: 'Seguridad',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons color={color} name="shield-checkmark-outline" size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: 'Perfil',
           tabBarIcon: ({ color, size }) => (
             <Ionicons color={color} name="person-circle-outline" size={size} />
           ),
+        }}
+      />
+      <Tabs.Screen
+        name="staff/[id]"
+        options={{
+          href: null,
         }}
       />
     </Tabs>

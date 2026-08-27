@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Link } from 'expo-router';
 import { Controller, useForm } from 'react-hook-form';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -86,6 +87,17 @@ export default function LoginScreen() {
           >
             Iniciar sesión
           </Button>
+          <View style={styles.links}>
+            <Link href="/(auth)/mfa-challenge" style={styles.link}>
+              Desafío MFA
+            </Link>
+            <Link href="/(auth)/forgot-password" style={styles.link}>
+              Recuperar acceso
+            </Link>
+            <Link href="/(auth)/verify-email" style={styles.link}>
+              Verificar cuenta
+            </Link>
+          </View>
         </View>
       </View>
     </Screen>
@@ -122,5 +134,14 @@ const styles = StyleSheet.create({
   error: {
     color: theme.color.danger,
     fontSize: theme.typography.caption,
+  },
+  links: {
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+  },
+  link: {
+    color: theme.color.text,
+    fontSize: theme.typography.caption,
+    fontWeight: '700',
   },
 });

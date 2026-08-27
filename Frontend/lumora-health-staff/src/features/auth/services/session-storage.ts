@@ -29,8 +29,12 @@ export class SecureSessionManager {
 
   async saveTokenPair(tokens: TokenPairResponse): Promise<StaffSession> {
     const session = toSession(tokens);
-    await SecureStore.setItemAsync(SESSION_KEY, JSON.stringify(session));
+    await this.saveSession(session);
     return session;
+  }
+
+  async saveSession(session: StaffSession): Promise<void> {
+    await SecureStore.setItemAsync(SESSION_KEY, JSON.stringify(session));
   }
 
   async clearSession(): Promise<void> {

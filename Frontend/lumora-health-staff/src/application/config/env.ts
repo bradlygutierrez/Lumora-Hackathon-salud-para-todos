@@ -9,11 +9,18 @@ type ExtraConfig = {
 
 const extra = (Constants.expoConfig?.extra ?? {}) as ExtraConfig;
 
+function normalizeApiBaseUrl(value: string) {
+  const trimmed = value.replace(/\/+$/, '');
+  return trimmed.endsWith('/api/v1') ? trimmed : `${trimmed}/api/v1`;
+}
+
+const configuredApiUrl =
+  process.env.EXPO_PUBLIC_API_URL ??
+  extra.EXPO_PUBLIC_API_URL ??
+  'http://localhost:8000/api/v1';
+
 export const env = {
-  apiBaseUrl:
-    process.env.EXPO_PUBLIC_API_URL ??
-    extra.EXPO_PUBLIC_API_URL ??
-    'http://localhost:8000/api/v1',
+  apiBaseUrl: normalizeApiBaseUrl(configuredApiUrl),
   appEnvironment:
     process.env.EXPO_PUBLIC_APP_ENV ??
     extra.EXPO_PUBLIC_APP_ENV ??
