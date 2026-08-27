@@ -5,25 +5,18 @@ import {
   type ReactNode,
 } from 'react';
 
-import {
-  FullScreenState,
-} from './FullScreenState';
+import { FullScreenState } from '@/shared/components/FullScreenState';
 
 type GlobalErrorBoundaryState = {
   hasError: boolean;
 };
 
 /**
- * Captura crashes inesperados durante
- * el renderizado de React.
+ * Captura errores inesperados de renderizado React.
  *
- * NO maneja errores HTTP.
- *
- * HTTP:
- * ApiError + TanStack Query
- *
- * Crash React:
- * GlobalErrorBoundary
+ * No maneja errores HTTP: esos pasan por ApiError + TanStack Query.
+ * Error Boundary sigue siendo una de las excepciones donde React usa
+ * class components de forma natural.
  */
 export class GlobalErrorBoundary extends Component<
   PropsWithChildren,
@@ -33,43 +26,18 @@ export class GlobalErrorBoundary extends Component<
     hasError: false,
   };
 
-  /**
-   * React ejecuta esto cuando un componente hijo
-   * lanza una excepción durante render.
-   */
   static getDerivedStateFromError(): GlobalErrorBoundaryState {
-    return {
-      hasError: true,
-    };
+    return { hasError: true };
   }
 
-  /**
-   * Más adelante podemos conectar aquí:
-   *
-   * Sentry
-   * Firebase Crashlytics
-   * otro sistema de logging
-   */
-  componentDidCatch(
-    error: Error,
-    info: ErrorInfo,
-  ): void {
+  componentDidCatch(error: Error, info: ErrorInfo): void {
     if (__DEV__) {
-      console.error(
-        'Global React error:',
-        error,
-        info,
-      );
+      console.error('Global React error:', error, info);
     }
   }
 
-  /**
-   * Permite intentar renderizar nuevamente.
-   */
   private reset = (): void => {
-    this.setState({
-      hasError: false,
-    });
+    this.setState({ hasError: false });
   };
 
   render(): ReactNode {

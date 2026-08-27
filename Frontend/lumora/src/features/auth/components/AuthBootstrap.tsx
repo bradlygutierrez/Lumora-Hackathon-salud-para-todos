@@ -1,63 +1,82 @@
-/**
- * CSS global procesado por NativeWind.
- *
- * Aunque sea React Native, este archivo
- * se convierte a estilos nativos mediante Metro.
- */
-import '../../global.css';
+import * as SplashScreen from 'expo-splash-screen';
 
 import {
-  Stack,
-} from 'expo-router';
-
-import {
-  StatusBar,
-} from 'expo-status-bar';
-
-import {
-  PropsWithChildren,
+  type PropsWithChildren,
+  useEffect,
 } from 'react';
 
 import {
-  AppProviders,
-} from '@/providers/AppProviders';
-
-import {
-  theme,
-} from '@/shared/theme/tokens';
-
-function AuthBootstrap({
-  children,
-}: PropsWithChildren) {
-  return children;
-}
+  useAuthStore,
+} from '@/features/auth/store/auth-store';
 
 /**
- * Equivalente al App.tsx raíz
- * de una aplicación React tradicional.
+ * Evitamos que Expo oculte el splash automáticamente.
+ *
+ * Primero queremos averiguar si existe una sesión
+ * guardada en SecureStore.
  */
-export default function RootLayout() {
-  return (
-    <AppProviders>
-      <AuthBootstrap>
-        <StatusBar
-          style="dark"
-          backgroundColor={
-            theme.colors.background
-          }
-        />
+void SplashScreen
+  .preventAutoHideAsync()
+  .catch(() => {
+    // El splash puede haberse ocultado ya en desarrollo.
+    // No necesitamos detener la aplicación por eso.
+  });
 
-        <Stack
-          screenOptions={{
-            headerShown: false,
-
-            contentStyle: {
-              backgroundColor:
-                theme.colors.background,
-            },
-          }}
-        />
-      </AuthBootstrap>
-    </AppProviders>
+/**
+ * Inicializa la sesión de Lumora.
+ *
+ * React web equivalente:
+ *
+ * <AuthInitializer>
+ *   <App />
+ * </AuthInitializer>
+ *
+ * Al montar:
+ * 1. Lee SecureStore.
+ * 2. Actualiza Zustand.
+ * 3. Cambia bootstrapping -> authenticated/unauthenticated.
+ * 4. Oculta el splash nativo.
+ */
+export function AuthBootstrap({
+  children,
+}: PropsWithChildren) {
+  const status = useAuthStore(
+    (state) => state.status,
   );
+
+  const bootstrap = useAuthStore(
+    (state) => state.bootstrap,
+  );
+
+  /**
+   * Se ejecuta una sola vez cuando monta
+   * el componente.
+   */
+  useEffect(() => {
+    void bootstrap();
+  }, [bootstrap]);
+
+  /**
+   * Cuando ya sabemos si existe sesión,
+   * podemos ocultar el splash.
+   */
+  useEffect(() => {
+    if (status !== 'bootstrapping') {
+      void SplashScreen
+        .hideAsync()
+        .catch(() => {
+          // En desarrollo puede haberse ocultado previamente.
+        });
+    }
+  }, [status]);
+
+  /**
+   * Mientras restauramos sesión dejamos
+   * visible el splash nativo.
+   */
+  if (status === 'bootstrapping') {
+    return null;
+  }
+
+  return children;
 }

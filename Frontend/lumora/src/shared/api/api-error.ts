@@ -1,10 +1,8 @@
 import axios, { type AxiosError } from 'axios';
 
-/**
- * Códigos de error estandarizados para la API.
- * Mapea errores HTTP a categorías significativas.
- */
+/** Categorías de error que entiende la UI de Lumora. */
 export type ApiErrorCode =
+  | 'BAD_REQUEST'
   | 'UNAUTHORIZED'
   | 'FORBIDDEN'
   | 'NOT_FOUND'
@@ -15,200 +13,129 @@ export type ApiErrorCode =
   | 'UNKNOWN';
 
 /**
- * Error personalizado para respuestas de API.
- * Extiende la clase Error nativa de JavaScript con propiedades específicas de API.
+ * Error normalizado del frontend.
  *
- * @example
- * ```typescript
- * throw new ApiError('VALIDATION', 422, 'Email inválido', { field: 'email' });
- * ```
+ * En lugar de hacer `if (status === 401)` en cada pantalla, toda la app
+ * recibe una estructura consistente con `code`, `status` y `message`.
  */
 export class ApiError extends Error {
   constructor(
-    /** Código de error estandarizado */
     public readonly code: ApiErrorCode,
-    /** Código de estado HTTP (ej: 401, 404, 500) */
     public readonly status: number | null,
-    /** Mensaje de error legible para el usuario */
     message: string,
-    /** Detalles adicionales del error (respuesta del servidor) */
     public readonly details?: unknown,
   ) {
     super(message);
     this.name = 'ApiError';
   }
+
+  /** Solo errores temporales de red/servidor se reintentan automáticamente. */
+  public isRetryable(): boolean {
+    return this.code === 'NETWORK_ERROR' || this.code === 'SERVER_ERROR';
+  }
 }
 
-/**
- * Convertidor de errores de Axios a ApiError.
- * Transforma cualquier tipo de error en un ApiError con información estandarizada.
- *
- * Responsabilidades:
- * - Validar si un error es de tipo Axios
- * - Distinguir entre errores de red y errores de API
- * - Mapear códigos HTTP a códigos de error
- * - Extraer mensajes de error de diferentes formatos
- *
- * @internal
- */
-class ApiErrorConverter {
-  /** Mapeo de códigos HTTP a códigos de error personalizados */
-  private readonly statusCodeMap: Record<number, ApiErrorCode> = {
-    401: 'UNAUTHORIZED',
-    403: 'FORBIDDEN',
-    404: 'NOT_FOUND',
-    409: 'CONFLICT',
-    422: 'VALIDATION',
-    500: 'SERVER_ERROR',
+type BackendDomainError = {
+  error?: {
+    code?: unknown;
+    message?: unknown;
   };
+  detail?: unknown;
+  message?: unknown;
+};
 
-  /**
-   * Convierte cualquier tipo de error en un ApiError estandarizado.
-   *
-   * Flujo:
-   * 1. Verifica si es un error de Axios
-   * 2. Si no es Axios, retorna error desconocido
-   * 3. Verifica si la respuesta está disponible
-   * 4. Si no hay respuesta, es un error de red
-   * 5. Si hay respuesta, extrae información del servidor
-   *
-   * @param error - Error desconocido a convertir
-   * @returns ApiError con información estandarizada
-   *
-   * @example
-   * ```typescript
-   * try {
-   *   await api.get('/users');
-   * } catch (error) {
-   *   const apiError = converter.convert(error);
-   *   console.error(apiError.code);    // 'NOT_FOUND'
-   *   console.error(apiError.status);  // 404
-   * }
-   * ```
-   */
-  convert(error: unknown): ApiError {
-    if (!this.isAxiosError(error)) {
-      return this.createUnknownError(error);
+/** Traduce Axios/FastAPI al formato interno de Lumora. */
+class ApiErrorMapper {
+  public map(error: unknown): ApiError {
+    // Evita convertir por segunda vez un error que ya normalizamos.
+    if (error instanceof ApiError) {
+      return error;
     }
 
-    if (!this.hasResponse(error)) {
-      return this.createNetworkError(error);
+    if (!axios.isAxiosError(error)) {
+      return new ApiError(
+        'UNKNOWN',
+        null,
+        'Ocurrió un error inesperado.',
+        error,
+      );
     }
 
-    return this.createApiError(error);
-  }
+    // Axios sin `response` significa que el servidor no respondió:
+    // sin Internet, DNS, timeout, conexión rechazada, etc.
+    if (!error.response) {
+      return new ApiError(
+        'NETWORK_ERROR',
+        null,
+        'No fue posible conectarse con el servidor.',
+        error,
+      );
+    }
 
-  /**
-   * Valida si un error es de tipo AxiosError.
-   * Funciona como un "type guard" para TypeScript.
-   *
-   * @param error - Error a validar
-   * @returns true si es un AxiosError
-   */
-  private isAxiosError(error: unknown): error is AxiosError {
-    return axios.isAxiosError(error);
-  }
-
-  /**
-   * Verifica si el AxiosError contiene respuesta del servidor.
-   *
-   * @param error - Error de Axios
-   * @returns true si hay respuesta (error del servidor)
-   */
-  private hasResponse(error: AxiosError): boolean {
-    return error.response !== undefined;
-  }
-
-  /**
-   * Crea ApiError para errores no identificados.
-   * Se usa cuando el error no es de Axios.
-   *
-   * @param error - Error desconocido
-   * @returns ApiError con código UNKNOWN
-   */
-  private createUnknownError(error: unknown): ApiError {
-    return new ApiError(
-      'UNKNOWN',
-      null,
-      'Ocurrió un error inesperado.',
-      error,
-    );
-  }
-
-  /**
-   * Crea ApiError para errores de red.
-   * Se usa cuando no hay respuesta del servidor (sin internet, timeout, etc).
-   *
-   * @param error - AxiosError sin respuesta
-   * @returns ApiError con código NETWORK_ERROR
-   */
-  private createNetworkError(error: AxiosError): ApiError {
-    return new ApiError(
-      'NETWORK_ERROR',
-      null,
-      'No fue posible conectarse con el servidor.',
-      error,
-    );
-  }
-
-  /**
-   * Crea ApiError desde respuesta del servidor.
-   * Extrae código HTTP, mensaje y detalles de la respuesta.
-   *
-   * @param error - AxiosError con respuesta del servidor
-   * @returns ApiError con información completa del servidor
-   */
-  private createApiError(error: AxiosError): ApiError {
-    const status = error.response!.status;
-    const data = error.response!.data as Record<string, unknown> | undefined;
+    const status = error.response.status;
+    const data = error.response.data as BackendDomainError | undefined;
 
     return new ApiError(
-      this.mapStatusToCode(status),
+      this.mapStatus(status),
       status,
-      this.extractErrorMessage(data),
+      this.extractMessage(data),
       data,
     );
   }
 
-  /**
-   * Mapea un código HTTP a un código de error personalizado.
-   * Si el código no está en el mapa, retorna SERVER_ERROR para 5xx, UNKNOWN para otros.
-   *
-   * @param status - Código de estado HTTP (401, 404, 500, etc)
-   * @returns Código de error estandarizado
-   *
-   * @example
-   * ```typescript
-   * mapStatusToCode(401) // 'UNAUTHORIZED'
-   * mapStatusToCode(500) // 'SERVER_ERROR'
-   * mapStatusToCode(999) // 'UNKNOWN'
-   * ```
-   */
-  private mapStatusToCode(status: number): ApiErrorCode {
-    return this.statusCodeMap[status] ??
-      (status >= 500 ? 'SERVER_ERROR' : 'UNKNOWN');
+  private mapStatus(status: number): ApiErrorCode {
+    switch (status) {
+      case 400:
+        return 'BAD_REQUEST';
+      case 401:
+        return 'UNAUTHORIZED';
+      case 403:
+        return 'FORBIDDEN';
+      case 404:
+        return 'NOT_FOUND';
+      case 409:
+        return 'CONFLICT';
+      case 422:
+        return 'VALIDATION';
+      default:
+        return status >= 500 ? 'SERVER_ERROR' : 'UNKNOWN';
+    }
   }
 
   /**
-   * Extrae el mensaje de error de la respuesta del servidor.
-   * Intenta buscar en: detail, message, o usa un mensaje por defecto.
+   * Soporta los dos formatos reales usados actualmente por FastAPI:
    *
-   * @param data - Datos de respuesta del servidor
-   * @returns Mensaje de error legible para el usuario
+   * Error de dominio:
+   * { "error": { "code": "...", "message": "..." } }
+   *
+   * Validación de Pydantic/FastAPI:
+   * { "detail": [...] }
    */
-  private extractErrorMessage(
-    data: Record<string, unknown> | undefined,
-  ): string {
-    return (
-      (data?.detail as string) ??
-      (data?.message as string) ??
-      'La solicitud no pudo completarse.'
-    );
+  private extractMessage(data: BackendDomainError | undefined): string {
+    const domainMessage = data?.error?.message;
+    if (typeof domainMessage === 'string' && domainMessage.trim()) {
+      return domainMessage;
+    }
+
+    if (typeof data?.detail === 'string' && data.detail.trim()) {
+      return data.detail;
+    }
+
+    if (Array.isArray(data?.detail)) {
+      return 'Hay datos inválidos en la solicitud.';
+    }
+
+    if (typeof data?.message === 'string' && data.message.trim()) {
+      return data.message;
+    }
+
+    return 'La solicitud no pudo completarse.';
   }
 }
 
-const converter = new ApiErrorConverter();
+export const apiErrorMapper = new ApiErrorMapper();
 
+/** Helper para código que solo necesita convertir un error. */
 export function toApiError(error: unknown): ApiError {
-  return converter.convert(error);
+  return apiErrorMapper.map(error);
 }
