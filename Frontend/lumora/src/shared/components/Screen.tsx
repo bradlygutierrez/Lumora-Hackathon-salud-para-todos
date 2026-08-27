@@ -1,58 +1,113 @@
 import type { PropsWithChildren } from 'react';
-import { ScrollView, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { theme } from '@/shared/theme/tokens';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  View,
+} from 'react-native';
+
+import {
+  SafeAreaView,
+} from 'react-native-safe-area-context';
 
 type ScreenProps = PropsWithChildren<{
-  /** Activa scroll para formularios o contenido largo. */
+  /**
+   * Permite hacer scroll en pantallas largas.
+   *
+   * Debe usarse en formularios como:
+   * - Login
+   * - Registro
+   * - Recuperar contraseña
+   * - Cambio de contraseña
+   */
   scrollable?: boolean;
 
-  /** Utilities extra aplicadas al contenedor interno. */
+  /**
+   * Clases adicionales para el contenido.
+   */
   contentClassName?: string;
+
+  /**
+   * Activa el comportamiento para evitar
+   * que el teclado cubra inputs.
+   */
+  keyboardAvoiding?: boolean;
 }>;
 
 /**
- * Contenedor base de pantallas Lumora.
+ * Contenedor base de las pantallas de Lumora.
  *
- * React web equivalente: un `<main>` reutilizable que centraliza fondo,
- * padding y comportamiento de scroll.
+ * Responsabilidades:
+ * - Safe Area
+ * - background
+ * - padding
+ * - scroll
+ * - evitar que el teclado cubra formularios
  *
- * `SafeAreaView` viene de una librería externa; usamos `style` en él para
- * evitar depender del soporte de `className` de componentes de terceros.
- * NativeWind se usa normalmente en los componentes core internos.
+ * React web equivalente aproximado:
+ *
+ * <main className="min-h-screen overflow-auto">
+ *   ...
+ * </main>
+ *
+ * pero React Native necesita KeyboardAvoidingView
+ * porque el teclado ocupa parte real de la pantalla.
  */
 export function Screen({
   children,
   scrollable = false,
+  keyboardAvoiding = false,
   contentClassName = '',
 }: ScreenProps) {
-  const safeAreaStyle = {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  } as const;
-
-  if (scrollable) {
-    return (
-      <SafeAreaView style={safeAreaStyle}>
-        <ScrollView
-          className="flex-1"
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ flexGrow: 1 }}
-        >
-          <View className={`flex-1 px-4 py-4 ${contentClassName}`}>
-            {children}
-          </View>
-        </ScrollView>
-      </SafeAreaView>
-    );
-  }
-
-  return (
-    <SafeAreaView style={safeAreaStyle}>
-      <View className={`flex-1 px-4 py-4 ${contentClassName}`}>
+  /**
+   * Contenido reutilizable.
+   */
+  const content = scrollable ? (
+    <ScrollView
+      className="flex-1"
+      contentContainerStyle={{
+        flexGrow: 1,
+      }}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode={
+        Platform.OS === 'ios'
+          ? 'interactive'
+          : 'on-drag'
+      }
+      showsVerticalScrollIndicator={false}
+    >
+      <View
+        className={`flex-1 px-4 py-4 ${contentClassName}`}
+      >
         {children}
       </View>
+    </ScrollView>
+  ) : (
+    <View
+      className={`flex-1 px-4 py-4 ${contentClassName}`}
+    >
+      {children}
+    </View>
+  );
+
+  return (
+    <SafeAreaView className="flex-1 bg-bone-100">
+      {keyboardAvoiding ? (
+        <KeyboardAvoidingView
+          className="flex-1"
+          behavior={
+            Platform.OS === 'ios'
+              ? 'padding'
+              : 'height'
+          }
+          keyboardVerticalOffset={0}
+        >
+          {content}
+        </KeyboardAvoidingView>
+      ) : (
+        content
+      )}
     </SafeAreaView>
   );
 }

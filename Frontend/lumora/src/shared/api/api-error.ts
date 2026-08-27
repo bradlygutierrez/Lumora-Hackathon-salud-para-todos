@@ -8,6 +8,7 @@ export type ApiErrorCode =
   | 'NOT_FOUND'
   | 'CONFLICT'
   | 'VALIDATION'
+  | 'RATE_LIMITED'
   | 'SERVER_ERROR'
   | 'NETWORK_ERROR'
   | 'UNKNOWN';
@@ -97,6 +98,8 @@ class ApiErrorMapper {
         return 'CONFLICT';
       case 422:
         return 'VALIDATION';
+      case 429:
+        return 'RATE_LIMITED';
       default:
         return status >= 500 ? 'SERVER_ERROR' : 'UNKNOWN';
     }
