@@ -1,8 +1,32 @@
 import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 
 import type { StaffSession, TokenPairResponse } from '../types/auth.types';
 
 const SESSION_KEY = 'lumora.healthStaff.session';
+
+class WebSessionStorage {
+  async getItem(key: string): Promise<string | null> {
+    if (typeof window === 'undefined') {
+      return null;
+    }
+    return window.localStorage.getItem(key);
+  }
+
+  async setItem(key: string, value: string): Promise<void> {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    window.localStorage.setItem(key, value);
+  }
+
+  async deleteItem(key: string): Promise<void> {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    window.localStorage.removeItem(key);
+  }
+}
 
 function toSession(tokens: TokenPairResponse): StaffSession {
   return {
@@ -13,8 +37,10 @@ function toSession(tokens: TokenPairResponse): StaffSession {
 }
 
 export class SecureSessionManager {
+  private readonly webStorage = new WebSessionStorage();
+
   async getSession(): Promise<StaffSession | null> {
-    const rawSession = await SecureStore.getItemAsync(SESSION_KEY);
+    const rawSession = await this.getItem(SESSION_KEY);
     if (!rawSession) {
       return null;
     }
@@ -34,11 +60,32 @@ export class SecureSessionManager {
   }
 
   async saveSession(session: StaffSession): Promise<void> {
-    await SecureStore.setItemAsync(SESSION_KEY, JSON.stringify(session));
+    await this.setItem(SESSION_KEY, JSON.stringify(session));
   }
 
   async clearSession(): Promise<void> {
-    await SecureStore.deleteItemAsync(SESSION_KEY);
+    await this.deleteItem(SESSION_KEY);
+  }
+
+  private async getItem(key: string) {
+    if (Platform.OS === 'web') {
+      return this.webStorage.getItem(key);
+    }
+    return SecureStore.getItemAsync(key);
+  }
+
+  private async setItem(key: string, value: string) {
+    if (Platform.OS === 'web') {
+      return this.webStorage.setItem(key, value);
+    }
+    return SecureStore.setItemAsync(key, value);
+  }
+
+  private async deleteItem(key: string) {
+    if (Platform.OS === 'web') {
+      return this.webStorage.deleteItem(key);
+    }
+    return SecureStore.deleteItemAsync(key);
   }
 }
 
