@@ -62,6 +62,7 @@ export type StaffSession = {
   accessToken: string;
   refreshToken: string;
   tokenType: 'bearer';
+  isPreview?: boolean;
   userId?: number;
   user?: StaffUser;
 };

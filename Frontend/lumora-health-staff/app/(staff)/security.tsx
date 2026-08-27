@@ -9,6 +9,7 @@ import {
   useSecurityActions,
 } from '@/src/features/auth/hooks/use-security';
 import { useAuthSession } from '@/src/features/auth/hooks/use-auth-session';
+import { env } from '@/src/application/config/env';
 import { toApiError } from '@/src/shared/api/api-error';
 import { queryKeys } from '@/src/shared/api/query-keys';
 import { Button } from '@/src/shared/components/Button';
@@ -43,6 +44,15 @@ export default function SecurityCenterScreen() {
     setIsSettingUp(true);
     setSetupError(null);
     try {
+      if (env.enableUiPreview) {
+        setSetupResult([
+          'Secreto: PREVIEW-MFA-SECRET',
+          'URI: otpauth://totp/Lumora:preview',
+          'Codigo: PREVIEW-001',
+          'Codigo: PREVIEW-002',
+        ]);
+        return;
+      }
       const response = await setupMfa({ metodo_id: parsedMethodId });
       setSetupResult([
         `Secreto: ${response.secret}`,

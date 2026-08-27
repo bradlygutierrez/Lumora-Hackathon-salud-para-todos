@@ -7,9 +7,18 @@ Aplicacion Expo/React Native para personal clinico autorizado de Lumora.
 ```env
 EXPO_PUBLIC_API_URL=https://backend-3d83d7df.fastapicloud.dev
 EXPO_PUBLIC_APP_ENV=development
+EXPO_PUBLIC_ENABLE_UI_PREVIEW=false
 ```
 
 `EXPO_PUBLIC_API_URL` puede definirse con o sin `/api/v1`; la app normaliza el prefijo internamente.
+
+Para revisar pantallas protegidas sin usuarios backend, usa solo en desarrollo:
+
+```env
+EXPO_PUBLIC_ENABLE_UI_PREVIEW=true
+```
+
+Este modo crea una sesion local de previsualizacion y evita llamadas de directorio/seguridad al backend.
 
 ## Scripts
 
