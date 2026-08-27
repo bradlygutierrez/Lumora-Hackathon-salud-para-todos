@@ -27,7 +27,7 @@ export default function StaffLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Inicio',
+          title: 'Panel',
           tabBarIcon: ({ color, size }) => (
             <Ionicons color={color} name="pulse-outline" size={size} />
           ),
@@ -43,12 +43,37 @@ export default function StaffLayout() {
         }}
       />
       <Tabs.Screen
+        name="directory"
+        options={{
+          title: 'Personal',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons color={color} name="medical-outline" size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="security"
+        options={{
+          href: null,
+          title: 'Seguridad',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons color={color} name="shield-checkmark-outline" size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
-          title: 'Perfil',
+          title: 'Ajustes',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons color={color} name="person-circle-outline" size={size} />
+            <Ionicons color={color} name="settings-outline" size={size} />
           ),
+        }}
+      />
+      <Tabs.Screen
+        name="staff/[id]"
+        options={{
+          href: null,
         }}
       />
     </Tabs>

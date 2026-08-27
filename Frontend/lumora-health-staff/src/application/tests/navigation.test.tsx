@@ -51,6 +51,8 @@ describe('staff navigation guard', () => {
 
     expect(screen.getByText('Tab:index')).toBeTruthy();
     expect(screen.getByText('Tab:patients')).toBeTruthy();
+    expect(screen.getByText('Tab:directory')).toBeTruthy();
+    expect(screen.getByText('Tab:security')).toBeTruthy();
     expect(screen.getByText('Tab:profile')).toBeTruthy();
   });
 });
