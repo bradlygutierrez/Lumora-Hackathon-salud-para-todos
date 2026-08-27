@@ -6,6 +6,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { loginSchema, type LoginFormValues } from '@/src/features/auth/schemas/login.schema';
 import { useAuthSession } from '@/src/features/auth/hooks/use-auth-session';
+import { env } from '@/src/application/config/env';
 import { toApiError } from '@/src/shared/api/api-error';
 import { Button } from '@/src/shared/components/Button';
 import { Screen } from '@/src/shared/components/Screen';
@@ -14,7 +15,7 @@ import { theme } from '@/src/shared/constants/theme';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { signIn } = useAuthSession();
+  const { signIn, startPreviewSession } = useAuthSession();
   const {
     control,
     formState: { errors, isSubmitting },
@@ -120,6 +121,16 @@ export default function LoginScreen() {
             >
               Acceder con MFA
             </Button>
+            {env.appEnvironment !== 'production' ? (
+              <Button
+                accessibilityLabel="Previsualizar pantallas clínicas"
+                icon="eye-outline"
+                onPress={startPreviewSession}
+                variant="ghost"
+              >
+                Previsualizar pantallas
+              </Button>
+            ) : null}
             <View style={styles.links}>
               <Link href="/(auth)/mfa-challenge" style={styles.link}>
                 Desafío MFA
