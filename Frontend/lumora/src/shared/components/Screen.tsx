@@ -1,64 +1,46 @@
 import type { PropsWithChildren } from 'react';
+import { ScrollView, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import {
-  ScrollView,
-  View,
-} from 'react-native';
-
-import {
-  SafeAreaView,
-} from 'react-native-safe-area-context';
+import { theme } from '@/shared/theme/tokens';
 
 type ScreenProps = PropsWithChildren<{
-  /**
-   * Cuando es true, la pantalla permite scroll.
-   *
-   * Ejemplo:
-   * Login largo, Perfil, formularios, etc.
-   */
+  /** Activa scroll para formularios o contenido largo. */
   scrollable?: boolean;
 
-  /**
-   * Permite agregar Tailwind adicional desde
-   * una pantalla específica.
-   *
-   * Ejemplo:
-   * contentClassName="items-center justify-center"
-   */
+  /** Utilities extra aplicadas al contenedor interno. */
   contentClassName?: string;
 }>;
 
 /**
- * Layout base de todas las pantallas de Lumora.
+ * Contenedor base de pantallas Lumora.
  *
- * Centraliza:
- * - Safe Area
- * - color de fondo
- * - padding
- * - flex
- * - comportamiento de scroll
+ * React web equivalente: un `<main>` reutilizable que centraliza fondo,
+ * padding y comportamiento de scroll.
  *
- * Así evitamos repetir esta estructura
- * en cada pantalla.
+ * `SafeAreaView` viene de una librería externa; usamos `style` en él para
+ * evitar depender del soporte de `className` de componentes de terceros.
+ * NativeWind se usa normalmente en los componentes core internos.
  */
 export function Screen({
   children,
   scrollable = false,
   contentClassName = '',
 }: ScreenProps) {
+  const safeAreaStyle = {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+  } as const;
+
   if (scrollable) {
     return (
-      <SafeAreaView className="flex-1 bg-bone-100">
+      <SafeAreaView style={safeAreaStyle}>
         <ScrollView
           className="flex-1"
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{
-            flexGrow: 1,
-          }}
+          contentContainerStyle={{ flexGrow: 1 }}
         >
-          <View
-            className={`flex-1 px-4 py-4 ${contentClassName}`}
-          >
+          <View className={`flex-1 px-4 py-4 ${contentClassName}`}>
             {children}
           </View>
         </ScrollView>
@@ -67,10 +49,8 @@ export function Screen({
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-bone-100">
-      <View
-        className={`flex-1 px-4 py-4 ${contentClassName}`}
-      >
+    <SafeAreaView style={safeAreaStyle}>
+      <View className={`flex-1 px-4 py-4 ${contentClassName}`}>
         {children}
       </View>
     </SafeAreaView>

@@ -2,12 +2,12 @@ import { Redirect, Stack } from 'expo-router';
 
 import { useAuthStore } from '@/features/auth/store/auth-store';
 
-/** Rutas públicas de autenticación. */
-export default function AuthLayout() {
+/** Guard de todas las rutas privadas. */
+export default function ProtectedAppLayout() {
   const status = useAuthStore((state) => state.status);
 
-  if (status === 'authenticated') {
-    return <Redirect href="/(app)/(tabs)" />;
+  if (status === 'unauthenticated') {
+    return <Redirect href="/(auth)/login" />;
   }
 
   return <Stack screenOptions={{ headerShown: false }} />;

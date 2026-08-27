@@ -41,3 +41,8 @@ app-example
 # generated native folders
 /ios
 /android
+
+# local environment
+.env
+.env.*
+!.env.example

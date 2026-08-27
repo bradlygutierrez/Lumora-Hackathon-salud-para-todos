@@ -7,39 +7,29 @@ import {
 } from '@/features/auth/store/auth-store';
 
 /**
- * Ruta raíz "/".
- *
- * Decide qué zona debe abrir.
- *
- * React Router equivalente:
- *
- * <Navigate to="/login" />
+ * Decide qué zona de Lumora mostrar
+ * después de restaurar la sesión.
  */
 export default function IndexRoute() {
-  const status =
-    useAuthStore(
-      (state) => state.status,
-    );
+  const status = useAuthStore(
+    (state) => state.status,
+  );
 
-  if (
-    status === 'bootstrapping'
-  ) {
+  if (status === 'bootstrapping') {
     return null;
   }
 
-  if (
-    status === 'authenticated'
-  ) {
+  if (status === 'authenticated') {
     return (
       <Redirect
-        href="/(tabs)"
+        href="/(app)/(tabs)"
       />
     );
   }
 
   return (
     <Redirect
-      href={{ pathname: '/login' } as any}
+      href="/(auth)/login"
     />
   );
 }
