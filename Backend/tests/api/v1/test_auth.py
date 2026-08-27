@@ -1,7 +1,97 @@
 import pytest
 from sqlalchemy import select
 
-from lumora_api.models import IntentoInicioSesion, Permiso, Rol, SesionUsuario, Usuario
+from lumora_api.models import (
+    ContactoEmergencia,
+    Direccion,
+    IntentoInicioSesion,
+    Paciente,
+    Permiso,
+    Persona,
+    Rol,
+    SesionUsuario,
+    Sexo,
+    TipoSangre,
+    Usuario,
+)
+
+
+def registration_body(**overrides):
+    body = {
+        "username": "new-patient",
+        "email": "new-patient@example.com",
+        "password": "Secure123!",
+        "phone": "+50588888888",
+        "first_names": "Ana María",
+        "last_names": "López Pérez",
+        "birth_date": "2000-01-01",
+        "sex_id": 1,
+        "blood_type_id": 1,
+        "address": {"line_1": "Casa 1", "city": "Managua", "department": "Managua", "country": "Nicaragua"},
+        "emergency_contact": {"name": "María López", "relationship": "Madre", "phone": "+50587777777"},
+        "accept_terms": True,
+        "accept_privacy": True,
+    }
+    body.update(overrides)
+    return body
+
+
+async def seed_registration_catalogs(session_factory):
+    async with session_factory() as session:
+        session.add_all([Rol(id=1, nombre="Paciente"), Sexo(id=1, nombre="Femenino"), TipoSangre(id=1, nombre="O+")])
+        await session.commit()
+
+
+@pytest.mark.asyncio
+async def test_patient_registration_is_atomic_and_returns_no_secrets(client, session_factory):
+    await seed_registration_catalogs(session_factory)
+    response = await client.post("/api/v1/auth/register", json=registration_body())
+    assert response.status_code == 201
+    assert set(response.json()) == {"user_id", "person_id", "patient_id", "emergency_contact_id", "email_verified", "status"}
+    async with session_factory() as session:
+        user = await session.scalar(select(Usuario).where(Usuario.username == "new-patient"))
+        assert user.persona.nombres == "Ana María"
+        assert [role.nombre for role in user.roles] == ["Paciente"]
+        patient = await session.scalar(select(Paciente).where(Paciente.persona_id == user.persona_id))
+        assert (await session.scalar(select(Direccion).where(Direccion.persona_id == user.persona_id))).es_principal is True
+        assert (await session.scalar(select(ContactoEmergencia).where(ContactoEmergencia.paciente_id == patient.id))).parentesco == "Madre"
+        assert response.json().get("password_hash") is None
+
+
+@pytest.mark.asyncio
+async def test_patient_registration_rejects_duplicate_email_and_username(client, session_factory):
+    await seed_registration_catalogs(session_factory)
+    assert (await client.post("/api/v1/auth/register", json=registration_body())).status_code == 201
+    duplicate_email = await client.post("/api/v1/auth/register", json=registration_body(username="other"))
+    duplicate_username = await client.post("/api/v1/auth/register", json=registration_body(email="other@example.com"))
+    assert duplicate_email.status_code == 409
+    assert duplicate_username.status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_patient_registration_rejects_invalid_catalog_references_without_partial_rows(client, session_factory):
+    await seed_registration_catalogs(session_factory)
+    response = await client.post("/api/v1/auth/register", json=registration_body(sex_id=999))
+    assert response.status_code == 404
+    async with session_factory() as session:
+        assert await session.scalar(select(Usuario).where(Usuario.email == "new-patient@example.com")) is None
+        assert await session.scalar(select(Persona).where(Persona.nombres == "Ana María")) is None
+
+
+@pytest.mark.asyncio
+async def test_patient_registration_rejects_invalid_blood_type(client, session_factory):
+    await seed_registration_catalogs(session_factory)
+    response = await client.post("/api/v1/auth/register", json=registration_body(blood_type_id=999))
+    assert response.status_code == 404
+    assert response.json()["error"]["code"] == "not_found"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("overrides", [{"password": "weak"}, {"accept_terms": False}, {"accept_privacy": False}])
+async def test_patient_registration_validates_security_and_consents(client, session_factory, overrides):
+    await seed_registration_catalogs(session_factory)
+    response = await client.post("/api/v1/auth/register", json=registration_body(**overrides))
+    assert response.status_code == 422
 
 
 async def register(client, session_factory, username: str):

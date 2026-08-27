@@ -4,6 +4,9 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from lumora_api.models import (
+    Rol,
+    Sexo,
+    TipoSangre,
     TokenRecuperacion,
     Usuario,
     UsuarioMetodoMfa,
@@ -42,6 +45,20 @@ class AuthRepository:
                 Usuario.deleted_at.is_(None),
             )
         )
+
+    async def user_by_username(self, username: str) -> Usuario | None:
+        return await self.session.scalar(
+            select(Usuario).where(Usuario.username == username.lower())
+        )
+
+    async def patient_role(self) -> Rol | None:
+        return await self.session.scalar(select(Rol).where(Rol.nombre == "Paciente"))
+
+    async def sex_exists(self, sex_id: int) -> bool:
+        return await self.session.get(Sexo, sex_id) is not None
+
+    async def blood_type_exists(self, blood_type_id: int) -> bool:
+        return await self.session.get(TipoSangre, blood_type_id) is not None
 
     async def recovery_by_hash(self, token_hash: str) -> TokenRecuperacion | None:
         return await self.session.scalar(

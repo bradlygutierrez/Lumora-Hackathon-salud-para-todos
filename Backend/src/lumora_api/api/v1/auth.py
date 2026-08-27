@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 
 from lumora_api.api.dependencies import CurrentSessionId, CurrentUser, SessionDep
@@ -12,6 +12,8 @@ from lumora_api.schemas import (
     ResetPasswordRequest,
     VerifyEmailRequest,
     LoginRequest,
+    PatientRegistrationRequest,
+    RegistrationResponse,
     RefreshRequest,
     SessionRead,
     TokenPair,
@@ -23,6 +25,11 @@ router = APIRouter(prefix="/auth", tags=["Autenticación"])
 
 def client_data(request: Request) -> tuple[str | None, str | None]:
     return (request.client.host if request.client else None, request.headers.get("user-agent"))
+
+
+@router.post("/register", response_model=RegistrationResponse, status_code=status.HTTP_201_CREATED)
+async def register(data: PatientRegistrationRequest, session: SessionDep):
+    return await AuthService(AuthRepository(session)).register_patient(data)
 
 
 @router.post("/login", response_model=TokenPair)

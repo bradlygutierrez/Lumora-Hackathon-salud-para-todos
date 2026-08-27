@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+import secrets
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -19,7 +20,11 @@ from lumora_api.core.security import (
     verify_password,
 )
 from lumora_api.models import (
+    ContactoEmergencia,
+    Direccion,
+    Paciente,
     Permiso,
+    Persona,
     Rol,
     TokenRecuperacion,
     Usuario,
@@ -28,6 +33,8 @@ from lumora_api.models import (
     SesionUsuario,
 )
 from lumora_api.repositories.auth_repository import AuthRepository
+from lumora_api.schemas.auth import PatientRegistrationRequest
+from lumora_api.services.email_service import EmailService
 
 
 def _expired(expires_at: datetime) -> bool:
@@ -37,8 +44,86 @@ def _expired(expires_at: datetime) -> bool:
 
 
 class AuthService:
-    def __init__(self, repository: AuthRepository) -> None:
+    def __init__(self, repository: AuthRepository, email_service: EmailService | None = None) -> None:
         self.repository = repository
+        self.email_service = email_service
+
+    async def register_patient(self, data: PatientRegistrationRequest) -> dict:
+        if await self.repository.user_by_email(str(data.email)):
+            raise ResourceConflictError("El correo ya está registrado")
+        if await self.repository.user_by_username(data.username):
+            raise ResourceConflictError("El nombre de usuario ya está registrado")
+        if not await self.repository.sex_exists(data.sex_id):
+            raise ResourceNotFoundError("El sexo indicado no existe")
+        if data.blood_type_id is not None and not await self.repository.blood_type_exists(data.blood_type_id):
+            raise ResourceNotFoundError("El tipo de sangre indicado no existe")
+        role = await self.repository.patient_role()
+        if role is None:
+            raise ResourceNotFoundError("El rol Paciente no está configurado")
+
+        session = self.repository.session
+        code = f"{secrets.randbelow(1_000_000):06d}"
+        try:
+            person = Persona(
+                nombres=data.first_names,
+                apellidos=data.last_names,
+                fecha_nacimiento=data.birth_date,
+                telefono=data.phone,
+                sexo_id=data.sex_id,
+            )
+            user = Usuario(
+                persona=person,
+                email=str(data.email).lower(),
+                username=data.username,
+                password_hash=hash_password(data.password),
+                roles=[role],
+            )
+            address = Direccion(
+                persona=person,
+                linea_1=data.address.line_1,
+                ciudad=data.address.city,
+                departamento=data.address.department,
+                pais=data.address.country,
+                codigo_postal=data.address.postal_code,
+                es_principal=True,
+            )
+            patient = Paciente(persona=person, tipo_sangre_id=data.blood_type_id)
+            contact = ContactoEmergencia(
+                paciente=patient,
+                nombre=data.emergency_contact.name,
+                parentesco=data.emergency_contact.relationship,
+                telefono=data.emergency_contact.phone,
+            )
+            verification = VerificacionCorreo(
+                usuario=user,
+                token_hash=hash_token(code),
+                expires_at=datetime.now(timezone.utc)
+                + timedelta(minutes=get_settings().verification_code_minutes),
+            )
+            session.add_all([person, user, address, patient, contact, verification])
+            await session.flush()
+            response = {
+                "user_id": user.id,
+                "person_id": person.id,
+                "patient_id": patient.id,
+                "emergency_contact_id": contact.id,
+                "email_verified": False,
+                "status": "pending_email_verification",
+            }
+            await session.commit()
+        except IntegrityError as error:
+            await session.rollback()
+            raise ResourceConflictError("El correo o usuario ya está registrado") from error
+        except Exception:
+            await session.rollback()
+            raise
+
+        sender = self.email_service or EmailService()
+        try:
+            sender.send_verification_code(str(data.email), code)
+        except RuntimeError:
+            pass
+        return response
 
     async def authenticate(self, login: str, password: str) -> str:
         user = await self.authenticate_user(login, password)

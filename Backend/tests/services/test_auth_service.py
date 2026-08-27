@@ -4,8 +4,11 @@ import pytest
 
 from lumora_api.core.exceptions import InvalidTokenError
 from lumora_api.core.security import hash_password, hash_token, verify_password
-from lumora_api.models import Persona, Rol, TokenRecuperacion, Usuario, VerificacionCorreo
+from sqlalchemy import func, select
+
+from lumora_api.models import Persona, Rol, Sexo, TipoSangre, TokenRecuperacion, Usuario, VerificacionCorreo
 from lumora_api.repositories.auth_repository import AuthRepository
+from lumora_api.schemas.auth import PatientRegistrationRequest
 from lumora_api.services.auth_service import AuthService
 
 
@@ -61,3 +64,29 @@ async def test_email_verification_is_single_use_and_expires(session_factory):
         await session.commit()
         with pytest.raises(InvalidTokenError):
             await service.verify_email(expired_raw)
+
+
+@pytest.mark.asyncio
+async def test_registration_rolls_back_when_downstream_flush_fails(session_factory, monkeypatch):
+    async with session_factory() as session:
+        session.add_all([Rol(id=1, nombre="Paciente"), Sexo(id=1, nombre="Femenino"), TipoSangre(id=1, nombre="O+")])
+        await session.commit()
+        data = PatientRegistrationRequest.model_validate({
+            "username": "rollback", "email": "rollback@example.com", "password": "Secure123!",
+            "phone": "+50588888888", "first_names": "Rollback", "last_names": "Test",
+            "birth_date": "2000-01-01", "sex_id": 1, "blood_type_id": 1,
+            "address": {"line_1": "Casa", "city": "Managua", "country": "Nicaragua"},
+            "emergency_contact": {"name": "Contacto", "relationship": "Madre", "phone": "+50587777777"},
+            "accept_terms": True, "accept_privacy": True,
+        })
+
+        async def fail_flush(*_args, **_kwargs):
+            raise RuntimeError("downstream failure")
+
+        monkeypatch.setattr(session, "flush", fail_flush)
+        with pytest.raises(RuntimeError, match="downstream failure"):
+            await AuthService(AuthRepository(session)).register_patient(data)
+
+    async with session_factory() as verification_session:
+        assert await verification_session.scalar(select(func.count()).select_from(Persona)) == 0
+        assert await verification_session.scalar(select(func.count()).select_from(Usuario)) == 0
