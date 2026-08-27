@@ -94,6 +94,9 @@ class MfaService:
     async def create_challenge(self, login: str, password: str) -> dict:
         auth_repository = AuthRepository(self.repository.session)
         user = await AuthService(auth_repository).authenticate_user(login, password)
+        return await self.create_challenge_for_user(user)
+
+    async def create_challenge_for_user(self, user: Usuario) -> dict:
         configured = await self.repository.active_method(user.id)
         if configured is None:
             raise ResourceNotFoundError("El usuario no tiene MFA activo")

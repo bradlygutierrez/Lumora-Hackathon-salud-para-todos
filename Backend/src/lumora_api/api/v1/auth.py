@@ -8,6 +8,8 @@ from lumora_api.repositories.auth_repository import AuthRepository
 from lumora_api.schemas import (
     AccessToken,
     ForgotPasswordRequest,
+    LoginMfaResponse,
+    LoginTokenResponse,
     MessageResponse,
     ResetPasswordRequest,
     VerifyEmailRequest,
@@ -34,7 +36,7 @@ async def register(data: PatientRegistrationRequest, session: SessionDep):
     return await AuthService(AuthRepository(session)).register_patient(data)
 
 
-@router.post("/login", response_model=TokenPair)
+@router.post("/login", response_model=LoginTokenResponse | LoginMfaResponse)
 async def session_login(data: LoginRequest, request: Request, session: SessionDep):
     return await AuthService(AuthRepository(session)).login(data.login, data.password, *client_data(request))
 

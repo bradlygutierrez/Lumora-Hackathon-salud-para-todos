@@ -55,7 +55,17 @@ async def test_valid_totp_consumes_challenge_and_blocks_oauth_bypass(client, ses
     assert bypass.status_code == 403
     assert bypass.json()["error"]["code"] == "mfa_required"
 
-    pending = await challenge(client)
+    mobile_login = await client.post(
+        "/api/v1/auth/login",
+        json={"login": "ana", "password": "safe-password"},
+    )
+    assert mobile_login.status_code == 200
+    assert mobile_login.json()["mfa_required"] is True
+    assert "challenge_token" in mobile_login.json()
+    assert "access_token" not in mobile_login.json()
+    assert "refresh_token" not in mobile_login.json()
+
+    pending = mobile_login
     raw_challenge = pending.json()["challenge_token"]
     verified = await client.post(
         "/api/v1/auth/mfa/verify",

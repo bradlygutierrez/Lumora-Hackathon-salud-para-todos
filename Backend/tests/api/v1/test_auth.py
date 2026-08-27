@@ -207,6 +207,7 @@ async def test_session_login_refresh_rotation_and_logout(client, session_factory
     logged = await client.post("/api/v1/auth/login", json={"login": "session-user@example.com", "password": "safe-password"})
     assert logged.status_code == 200
     first = logged.json()
+    assert first["mfa_required"] is False
     headers = {"Authorization": f"Bearer {first['access_token']}"}
     assert (await client.get("/api/v1/auth/sessions", headers=headers)).status_code == 200
 

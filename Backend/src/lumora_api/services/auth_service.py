@@ -152,8 +152,17 @@ class AuthService:
     async def login(self, login: str, password: str, ip: str | None, user_agent: str | None) -> dict:
         user = await self.authenticate_user(login, password, ip, user_agent)
         if await self.repository.has_active_mfa(user.id):
-            raise MfaRequiredError("Se requiere un segundo factor de autenticación")
-        return await self.create_session(user.id, ip, user_agent)
+            from lumora_api.repositories.mfa_repository import MfaRepository
+            from lumora_api.services.mfa_service import MfaService
+
+            challenge = await MfaService(
+                MfaRepository(self.repository.session)
+            ).create_challenge_for_user(user)
+            return {"mfa_required": True, **challenge}
+        return {
+            "mfa_required": False,
+            **await self.create_session(user.id, ip, user_agent),
+        }
 
     async def create_session(self, user_id: int, ip: str | None, user_agent: str | None) -> dict:
         raw = generate_token()
