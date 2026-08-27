@@ -892,6 +892,31 @@ A task is complete only when:
 * [ ] Backend/frontend mismatches are documented.
 * [ ] The implementation works on the intended mobile platforms.
 
+## Uso de clases en Lumora
+
+Para mantener una arquitectura consistente y fácil de entender, usar clases en la capa de servicios e infraestructura cuando exista una responsabilidad clara y reutilizable.
+
+### Usar clases para
+
+- Clientes HTTP.
+- Manejo de sesión segura.
+- Servicios de autenticación.
+- Servicios de red.
+- Servicios de notificaciones.
+- Managers de ciclo de vida.
+- Servicios de almacenamiento.
+- Adaptadores o wrappers de APIs externas.
+- Lógica reutilizable que tenga estado interno, configuración o métodos privados.
+
+Ejemplos:
+
+```ts
+class SecureSessionManager {}
+class HttpClientManager {}
+class AuthService {}
+class QueryLifecycleManager {}
+class NotificationService {}
+
 ---
 
 # Final Agent Report
@@ -933,3 +958,4 @@ inspect the backend
 → implement the smallest correct solution
 → test it
 ```
+
