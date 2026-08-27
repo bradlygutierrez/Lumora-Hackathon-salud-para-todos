@@ -3,7 +3,7 @@ import secrets
 from typing import Literal
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -18,6 +18,13 @@ class Settings(BaseSettings):
     refresh_token_days: int = 30
     recovery_token_minutes: int = 30
     email_verification_hours: int = 24
+    verification_code_minutes: int = 15
+    verification_resend_seconds: int = 60
+    smtp_host: str = "smtp.gmail.com"
+    smtp_port: int = 587
+    smtp_username: str = ""
+    smtp_app_password: SecretStr = SecretStr("")
+    email_from: str = ""
     mfa_challenge_minutes: int = 5
     mfa_max_attempts: int = 5
     mfa_recovery_codes: int = 10

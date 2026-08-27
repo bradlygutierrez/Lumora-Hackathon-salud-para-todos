@@ -14,6 +14,22 @@ from lumora_api.core.exceptions import AuthenticationError
 password_hash = PasswordHash.recommended()
 
 
+def validate_password_policy(password: str) -> str:
+    if (
+        len(password) < 8
+        or len(password) > 128
+        or not any(char.islower() for char in password)
+        or not any(char.isupper() for char in password)
+        or not any(char.isdigit() for char in password)
+        or not any(not char.isalnum() for char in password)
+    ):
+        raise ValueError(
+            "La contraseña debe tener entre 8 y 128 caracteres, mayúscula, "
+            "minúscula, número y símbolo"
+        )
+    return password
+
+
 def hash_password(password: str) -> str:
     return password_hash.hash(password)
 
