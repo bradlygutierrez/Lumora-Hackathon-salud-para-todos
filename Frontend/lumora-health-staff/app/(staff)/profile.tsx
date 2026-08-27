@@ -2,10 +2,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { AppTopBar } from '@/src/shared/components/AppTopBar';
 import { useAuthSession } from '@/src/features/auth/hooks/use-auth-session';
 import { useProfessionals } from '@/src/features/profile/hooks/use-professionals';
 import { Button } from '@/src/shared/components/Button';
 import { Screen } from '@/src/shared/components/Screen';
+import { StaffAvatar } from '@/src/shared/components/StaffAvatar';
 import { theme } from '@/src/shared/constants/theme';
 
 export default function StaffProfileScreen() {
@@ -16,33 +18,32 @@ export default function StaffProfileScreen() {
     (item) => item.persona.id === user?.persona.id,
   );
   const fullName = user ? `${user.persona.nombres} ${user.persona.apellidos}` : 'Perfil no resuelto';
-  const initials = user
-    ? `${user.persona.nombres.slice(0, 1)}${user.persona.apellidos.slice(0, 1)}`
-    : 'HS';
 
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.container}>
-        <View style={styles.topBar}>
-          <View style={styles.topIdentity}>
-            <Ionicons color={theme.color.primaryPressed} name="person-circle-outline" size={22} />
-            <Text style={styles.topTitle}>{fullName}</Text>
-          </View>
-          <Ionicons color={theme.color.primaryPressed} name="notifications-outline" size={22} />
-        </View>
+        <AppTopBar />
 
         <View style={styles.profileCard}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{initials}</Text>
+          <View style={styles.avatarWrap}>
+            <StaffAvatar
+              firstName={user?.persona.nombres}
+              lastName={user?.persona.apellidos}
+              size={96}
+            />
+            <View style={styles.avatarBadge}>
+              <Ionicons color={theme.color.primary} name="pencil" size={12} />
+            </View>
           </View>
           <Text style={styles.title}>{fullName}</Text>
           <Text style={styles.subtitle}>{user?.email ?? 'Correo no disponible'}</Text>
           <Text style={styles.subtitle}>{user?.persona.telefono ?? 'Telefono no disponible'}</Text>
           <View style={styles.badges}>
-            <Text style={styles.badge}>
-              {user?.email_verificado ? 'Correo verificado' : 'Correo pendiente'}
-            </Text>
-            <Text style={styles.badge}>MFA {user ? 'gestionable' : 'pendiente'}</Text>
+            <Badge
+              icon="mail-outline"
+              label={user?.email_verificado ? 'Correo verificado' : 'Correo pendiente'}
+            />
+            <Badge icon="shield-checkmark-outline" label="MFA Activo" active />
           </View>
         </View>
 
@@ -121,35 +122,36 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: theme.color.surface,
     borderColor: theme.color.border,
-    borderRadius: theme.radius.md,
+    borderRadius: theme.radius.lg,
     borderWidth: 1,
     gap: theme.spacing.xs,
-    padding: theme.spacing.xl,
+    padding: 25,
   },
-  avatar: {
-    alignItems: 'center',
-    backgroundColor: theme.color.primarySoft,
-    borderColor: theme.color.border,
-    borderRadius: 52,
-    borderWidth: 2,
-    height: 104,
-    justifyContent: 'center',
+  avatarWrap: {
     marginBottom: theme.spacing.md,
-    width: 104,
+    position: 'relative',
   },
-  avatarText: {
-    color: theme.color.text,
-    fontSize: 34,
-    fontWeight: '900',
+  avatarBadge: {
+    alignItems: 'center',
+    backgroundColor: theme.color.surface,
+    borderColor: theme.color.softBorder,
+    borderRadius: 999,
+    borderWidth: 1,
+    bottom: 6,
+    height: 24,
+    justifyContent: 'center',
+    position: 'absolute',
+    right: 6,
+    width: 24,
   },
   title: {
     color: theme.color.text,
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: '800',
   },
   subtitle: {
     color: theme.color.mutedText,
-    fontSize: theme.typography.caption,
+    fontSize: theme.typography.body,
   },
   badges: {
     flexDirection: 'row',
@@ -167,11 +169,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.sm,
     paddingVertical: theme.spacing.xs,
   },
+  badgeActive: {
+    backgroundColor: theme.color.primaryPressed,
+  },
+  badgeText: {
+    color: theme.color.primaryPressed,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  badgeTextActive: {
+    color: '#FFFFFF',
+  },
   menuCard: {
     backgroundColor: theme.color.surface,
     borderColor: theme.color.border,
-    borderRadius: theme.radius.md,
+    borderRadius: theme.radius.lg,
     borderWidth: 1,
+    overflow: 'hidden',
   },
   menuRow: {
     alignItems: 'center',
@@ -224,3 +238,20 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.sm,
   },
 });
+
+function Badge({
+  active = false,
+  icon,
+  label,
+}: {
+  active?: boolean;
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+}) {
+  return (
+    <View style={[styles.badge, active ? styles.badgeActive : null]}>
+      <Ionicons color={active ? '#FFFFFF' : theme.color.primaryPressed} name={icon} size={12} />
+      <Text style={[styles.badgeText, active ? styles.badgeTextActive : null]}>{label}</Text>
+    </View>
+  );
+}

@@ -9,6 +9,7 @@ import { useAuthSession } from '@/src/features/auth/hooks/use-auth-session';
 import { env } from '@/src/application/config/env';
 import { toApiError } from '@/src/shared/api/api-error';
 import { Button } from '@/src/shared/components/Button';
+import { LumoraBrand } from '@/src/shared/components/LumoraBrand';
 import { Screen } from '@/src/shared/components/Screen';
 import { TextField } from '@/src/shared/components/TextField';
 import { theme } from '@/src/shared/constants/theme';
@@ -41,12 +42,11 @@ export default function LoginScreen() {
   return (
     <Screen>
       <View style={styles.container}>
+        <View style={styles.decorTop} />
+        <View style={styles.decorBottom} />
         <View style={styles.card}>
-          <View style={styles.logoMark}>
-            <Ionicons color={theme.color.accent} name="sparkles" size={18} />
-          </View>
           <View style={styles.header}>
-            <Text style={styles.title}>Lumora</Text>
+            <LumoraBrand />
             <Text style={styles.subtitle}>Acceso Seguro al Sistema</Text>
           </View>
 
@@ -140,6 +140,11 @@ export default function LoginScreen() {
               </Link>
             </View>
           </View>
+          <View style={styles.legalFooter}>
+            <Text style={styles.legalText}>
+              Al iniciar sesion, aceptas nuestros Terminos de Servicio y Politica de Privacidad.
+            </Text>
+          </View>
         </View>
       </View>
     </Screen>
@@ -151,27 +156,40 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
   },
-  card: {
-    backgroundColor: theme.color.surfaceMuted,
-    borderColor: theme.color.border,
-    borderRadius: theme.radius.md,
-    borderWidth: 1,
-    gap: theme.spacing.lg,
-    padding: theme.spacing.xl,
+  decorTop: {
+    backgroundColor: '#B0C6FF',
+    borderRadius: theme.radius.pill,
+    height: 195,
+    position: 'absolute',
+    right: -86,
+    top: 10,
+    width: 175,
   },
-  logoMark: {
-    alignItems: 'center',
-    alignSelf: 'center',
-    borderColor: theme.color.primary,
-    borderRadius: 12,
-    borderWidth: 4,
-    height: 56,
-    justifyContent: 'center',
-    width: 56,
+  decorBottom: {
+    backgroundColor: theme.color.primarySoft,
+    borderRadius: theme.radius.pill,
+    bottom: 8,
+    height: 55,
+    left: -110,
+    position: 'absolute',
+    width: 234,
+  },
+  card: {
+    backgroundColor: theme.color.surface,
+    borderColor: theme.color.border,
+    borderRadius: theme.radius.lg,
+    borderWidth: 1,
+    overflow: 'hidden',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
   },
   header: {
     alignItems: 'center',
+    backgroundColor: '#F1F4FA',
     gap: theme.spacing.xs,
+    paddingVertical: 20,
   },
   title: {
     color: theme.color.text,
@@ -184,6 +202,7 @@ const styles = StyleSheet.create({
   },
   form: {
     gap: theme.spacing.lg,
+    padding: theme.spacing.xl,
   },
   helperRow: {
     alignItems: 'center',
@@ -211,7 +230,7 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   errorBox: {
-    backgroundColor: '#FADBD6',
+    backgroundColor: theme.color.dangerSoft,
     borderLeftColor: theme.color.danger,
     borderLeftWidth: 4,
     borderRadius: theme.radius.sm,
@@ -238,7 +257,7 @@ const styles = StyleSheet.create({
     gap: theme.spacing.md,
   },
   divider: {
-    backgroundColor: theme.color.border,
+    backgroundColor: theme.color.softBorder,
     flex: 1,
     height: 1,
   },
@@ -254,5 +273,17 @@ const styles = StyleSheet.create({
     color: theme.color.text,
     fontSize: theme.typography.caption,
     fontWeight: '700',
+  },
+  legalFooter: {
+    alignItems: 'center',
+    backgroundColor: theme.color.surface,
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.lg,
+  },
+  legalText: {
+    color: theme.color.subtleText,
+    fontSize: 12,
+    lineHeight: 17,
+    textAlign: 'center',
   },
 });

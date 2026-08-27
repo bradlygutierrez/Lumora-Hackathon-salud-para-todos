@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Ionicons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
 import { Controller, useForm } from 'react-hook-form';
 import { StyleSheet, Text, View } from 'react-native';
@@ -19,6 +20,7 @@ import {
 } from '@/src/features/auth/schemas/mfa.schema';
 import { toApiError } from '@/src/shared/api/api-error';
 import { Button } from '@/src/shared/components/Button';
+import { CodeBoxes } from '@/src/shared/components/CodeBoxes';
 import { Screen } from '@/src/shared/components/Screen';
 import { TextField } from '@/src/shared/components/TextField';
 import { theme } from '@/src/shared/constants/theme';
@@ -71,15 +73,98 @@ export default function MfaChallengeScreen() {
 
   return (
     <Screen>
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Desafío MFA</Text>
-          <Link href="/(auth)/login" style={styles.link}>
-            Volver a inicio de sesión
-          </Link>
+      <View style={styles.shell}>
+        <View style={styles.card}>
+          <View style={styles.topStripe} />
+          <View style={styles.header}>
+            <View style={styles.iconCircle}>
+              <Ionicons color={theme.color.primary} name="shield-checkmark" size={28} />
+            </View>
+            <Text style={styles.title}>Verificación de Seguridad</Text>
+            <Text style={styles.subtitle}>
+              Ingresa el codigo de verificacion de 6 digitos enviado a tu metodo seleccionado:
+            </Text>
+            <Text style={styles.method}>SMS al ****1234</Text>
+          </View>
+
+          <Controller
+            control={verifyForm.control}
+            name="code"
+            render={({ field: { onChange, value } }) => (
+              <>
+                <CodeBoxes code={value} groups={[3, 3]} />
+                <TextField
+                  error={verifyForm.formState.errors.code?.message}
+                  keyboardType="number-pad"
+                  label="Codigo MFA"
+                  maxLength={6}
+                  onChangeText={onChange}
+                  value={value}
+                />
+              </>
+            )}
+          />
+          <Controller
+            control={verifyForm.control}
+            name="challenge_token"
+            render={({ field: { onBlur, onChange, value } }) => (
+              <TextField
+                autoCapitalize="none"
+                error={verifyForm.formState.errors.challenge_token?.message}
+                label="Desafio"
+                onBlur={onBlur}
+                onChangeText={onChange}
+                value={value}
+              />
+            )}
+          />
+          {verifyForm.formState.errors.root?.message ? (
+            <Text style={styles.message}>{verifyForm.formState.errors.root.message}</Text>
+          ) : null}
+          <Button loading={verifyForm.formState.isSubmitting} onPress={verifyCode}>
+            Verificar
+          </Button>
+
+          <View style={styles.actions}>
+            <Button icon="refresh-outline" onPress={requestChallenge} variant="ghost">
+              Reenviar codigo
+            </Button>
+            <Button icon="swap-horizontal-outline" onPress={() => undefined} variant="ghost">
+              Usar otro metodo
+            </Button>
+          </View>
+
+          <View style={styles.recoveryCard}>
+            <Controller
+              control={recoveryForm.control}
+              name="recovery_code"
+              render={({ field: { onBlur, onChange, value } }) => (
+                <TextField
+                  autoCapitalize="none"
+                  error={recoveryForm.formState.errors.recovery_code?.message}
+                  icon="key-outline"
+                  label="Codigo de recuperacion"
+                  onBlur={onBlur}
+                  onChangeText={onChange}
+                  value={value}
+                />
+              )}
+            />
+            {recoveryForm.formState.errors.root?.message ? (
+              <Text style={styles.message}>{recoveryForm.formState.errors.root.message}</Text>
+            ) : null}
+            <Button loading={recoveryForm.formState.isSubmitting} onPress={recover} variant="secondary">
+              Usar codigo de recuperacion
+            </Button>
+          </View>
+
+          <View style={styles.footer}>
+            <Ionicons color={theme.color.mutedText} name="shield-checkmark-outline" size={13} />
+            <Text style={styles.footerText}>Protegido por Lumora HN2026</Text>
+          </View>
         </View>
 
-        <View style={styles.card}>
+        <View style={styles.hiddenChallenge}>
           <Controller
             control={challengeForm.control}
             name="username"
@@ -87,6 +172,7 @@ export default function MfaChallengeScreen() {
               <TextField
                 autoCapitalize="none"
                 error={challengeForm.formState.errors.username?.message}
+                icon="person-outline"
                 label="Usuario"
                 onBlur={onBlur}
                 onChangeText={onChange}
@@ -100,6 +186,7 @@ export default function MfaChallengeScreen() {
             render={({ field: { onBlur, onChange, value } }) => (
               <TextField
                 error={challengeForm.formState.errors.password?.message}
+                icon="lock-closed-outline"
                 label="Contraseña"
                 onBlur={onBlur}
                 onChangeText={onChange}
@@ -112,104 +199,110 @@ export default function MfaChallengeScreen() {
             <Text style={styles.message}>{challengeForm.formState.errors.root.message}</Text>
           ) : null}
           <Button
+            icon="send-outline"
             loading={challengeForm.formState.isSubmitting}
             onPress={requestChallenge}
           >
             Generar desafío
           </Button>
         </View>
-
-        <View style={styles.card}>
-          <Controller
-            control={verifyForm.control}
-            name="challenge_token"
-            render={({ field: { onBlur, onChange, value } }) => (
-              <TextField
-                autoCapitalize="none"
-                error={verifyForm.formState.errors.challenge_token?.message}
-                label="Desafío"
-                onBlur={onBlur}
-                onChangeText={onChange}
-                value={value}
-              />
-            )}
-          />
-          <Controller
-            control={verifyForm.control}
-            name="code"
-            render={({ field: { onBlur, onChange, value } }) => (
-              <TextField
-                error={verifyForm.formState.errors.code?.message}
-                keyboardType="number-pad"
-                label="Código MFA"
-                maxLength={6}
-                onBlur={onBlur}
-                onChangeText={onChange}
-                value={value}
-              />
-            )}
-          />
-          {verifyForm.formState.errors.root?.message ? (
-            <Text style={styles.message}>{verifyForm.formState.errors.root.message}</Text>
-          ) : null}
-          <Button loading={verifyForm.formState.isSubmitting} onPress={verifyCode}>
-            Verificar código
-          </Button>
-        </View>
-
-        <View style={styles.card}>
-          <Controller
-            control={recoveryForm.control}
-            name="recovery_code"
-            render={({ field: { onBlur, onChange, value } }) => (
-              <TextField
-                autoCapitalize="none"
-                error={recoveryForm.formState.errors.recovery_code?.message}
-                label="Código de recuperación"
-                onBlur={onBlur}
-                onChangeText={onChange}
-                value={value}
-              />
-            )}
-          />
-          {recoveryForm.formState.errors.root?.message ? (
-            <Text style={styles.message}>{recoveryForm.formState.errors.root.message}</Text>
-          ) : null}
-          <Button loading={recoveryForm.formState.isSubmitting} onPress={recover}>
-            Usar recuperación
-          </Button>
-        </View>
+        <Link href="/(auth)/login" style={styles.link}>
+          Volver a inicio de sesion
+        </Link>
       </View>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  shell: {
     gap: theme.spacing.lg,
   },
+  card: {
+    backgroundColor: theme.color.surfaceMuted,
+    borderColor: '#C3C6D54D',
+    borderRadius: theme.radius.lg,
+    borderWidth: 1,
+    overflow: 'hidden',
+    shadowColor: '#003C90',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 16,
+  },
+  topStripe: {
+    backgroundColor: theme.color.primaryPressed,
+    height: 8,
+  },
   header: {
-    gap: theme.spacing.xs,
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.xl,
+    paddingTop: theme.spacing.lg,
+  },
+  iconCircle: {
+    alignItems: 'center',
+    backgroundColor: '#EBEEF4',
+    borderRadius: 32,
+    height: 64,
+    justifyContent: 'center',
+    width: 64,
   },
   title: {
     color: theme.color.text,
-    fontSize: theme.typography.title,
+    fontSize: 26,
+    fontWeight: '900',
+    textAlign: 'center',
+  },
+  subtitle: {
+    color: theme.color.mutedText,
+    fontSize: theme.typography.body,
+    lineHeight: 24,
+    textAlign: 'center',
+  },
+  method: {
+    color: theme.color.text,
+    fontSize: theme.typography.body,
     fontWeight: '800',
   },
   link: {
-    color: theme.color.text,
+    color: theme.color.primary,
     fontSize: theme.typography.caption,
     fontWeight: '700',
+    textAlign: 'center',
   },
-  card: {
+  hiddenChallenge: {
     backgroundColor: theme.color.surface,
-    borderColor: theme.color.border,
+    borderColor: theme.color.softBorder,
     borderRadius: theme.radius.md,
     borderWidth: 1,
     gap: theme.spacing.md,
     padding: theme.spacing.lg,
   },
   message: {
+    color: theme.color.mutedText,
+    fontSize: theme.typography.caption,
+    textAlign: 'center',
+  },
+  actions: {
+    borderTopColor: theme.color.softBorder,
+    borderTopWidth: 1,
+    marginHorizontal: theme.spacing.xl,
+    marginTop: theme.spacing.lg,
+    paddingTop: theme.spacing.lg,
+  },
+  recoveryCard: {
+    gap: theme.spacing.md,
+    padding: theme.spacing.xl,
+  },
+  footer: {
+    alignItems: 'center',
+    backgroundColor: '#F1F4FA',
+    flexDirection: 'row',
+    gap: theme.spacing.xs,
+    justifyContent: 'center',
+    padding: theme.spacing.md,
+  },
+  footerText: {
     color: theme.color.mutedText,
     fontSize: theme.typography.caption,
   },

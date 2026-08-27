@@ -3,12 +3,14 @@ import { Link } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { AppTopBar } from '@/src/shared/components/AppTopBar';
 import { PermissionGate } from '@/src/features/auth/components/PermissionGate';
 import { useProfessionals } from '@/src/features/profile/hooks/use-professionals';
 import { EmptyState, ErrorState, LoadingState } from '@/src/shared/components/RemoteState';
 import { Screen } from '@/src/shared/components/Screen';
 import { TextField } from '@/src/shared/components/TextField';
 import { theme } from '@/src/shared/constants/theme';
+import { StaffAvatar } from '@/src/shared/components/StaffAvatar';
 
 export default function MedicalDirectoryScreen() {
   const professionals = useProfessionals();
@@ -48,11 +50,7 @@ export default function MedicalDirectoryScreen() {
         }
       >
         <ScrollView contentContainerStyle={styles.container}>
-          <View style={styles.topBar}>
-            <Ionicons color={theme.color.text} name="menu-outline" size={28} />
-            <Text style={styles.logo}>Lumora</Text>
-            <Ionicons color={theme.color.danger} name="notifications" size={22} />
-          </View>
+          <AppTopBar />
           <View style={styles.header}>
             <Text style={styles.title}>Directorio de Personal Médico</Text>
             <Text style={styles.subtitle}>Gestiona y busca personal del hospital.</Text>
@@ -100,21 +98,26 @@ export default function MedicalDirectoryScreen() {
           {filteredProfessionals.map((professional) => (
             <Link href={`/(staff)/staff/${professional.id}`} key={professional.id} asChild>
               <Pressable style={styles.card}>
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>
-                    {professional.persona.nombres.slice(0, 1)}
-                    {professional.persona.apellidos.slice(0, 1)}
-                  </Text>
+                <View style={styles.cardHeader}>
+                  <StaffAvatar
+                    firstName={professional.persona.nombres}
+                    lastName={professional.persona.apellidos}
+                    size={64}
+                  />
+                  <View style={styles.statusPill}>
+                    <View style={styles.statusDot} />
+                    <Text style={styles.statusText}>Activo</Text>
+                  </View>
                 </View>
                 <Text style={styles.name}>
                   {professional.persona.nombres} {professional.persona.apellidos}
                 </Text>
-                <Text style={styles.meta}>Licencia {professional.numero_licencia}</Text>
-                <View style={styles.cardDivider} />
+                <Text style={styles.meta}>Médico de Cabecera</Text>
+                <View style={styles.divider} />
                 <View style={styles.specialtyRow}>
-                  <Ionicons color={theme.color.primaryPressed} name="heart-outline" size={18} />
+                  <Ionicons color={theme.color.primary} name="heart-outline" size={18} />
                   <Text style={styles.specialtyText}>{professional.especialidad}</Text>
-                  <Ionicons color={theme.color.primaryPressed} name="arrow-forward" size={22} />
+                  <Ionicons color={theme.color.primary} name="arrow-forward" size={22} />
                 </View>
               </Pressable>
             </Link>
@@ -130,29 +133,18 @@ const styles = StyleSheet.create({
     gap: theme.spacing.md,
     paddingBottom: theme.spacing.xxl,
   },
-  topBar: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: theme.spacing.xl,
-  },
-  logo: {
-    color: theme.color.text,
-    fontSize: 34,
-    fontWeight: '900',
-  },
   header: {
     gap: theme.spacing.xs,
     marginBottom: theme.spacing.sm,
   },
   title: {
     color: theme.color.text,
-    fontSize: 30,
+    fontSize: 26,
     fontWeight: '900',
   },
   subtitle: {
     color: theme.color.mutedText,
-    fontSize: 18,
+    fontSize: theme.typography.body,
   },
   searchRow: {
     alignItems: 'flex-end',
@@ -205,37 +197,44 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: theme.color.surface,
     borderColor: theme.color.border,
-    borderRadius: theme.radius.md,
+    borderRadius: theme.radius.lg,
     borderWidth: 1,
-    borderLeftColor: '#12B886',
+    borderLeftColor: '#10B981',
     borderLeftWidth: 4,
-    padding: theme.spacing.xl,
+    padding: 24,
+    shadowColor: '#003C90',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
   },
-  avatar: {
+  cardHeader: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: theme.spacing.md,
+  },
+  statusPill: {
     alignItems: 'center',
-    backgroundColor: theme.color.primarySoft,
-    borderRadius: 24,
-    height: 48,
-    justifyContent: 'center',
-    marginBottom: theme.spacing.xl,
-    width: 48,
+    alignSelf: 'flex-start',
+    backgroundColor: theme.color.successSoft,
+    borderRadius: theme.radius.pill,
+    flexDirection: 'row',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
   },
-  avatarText: {
-    color: theme.color.text,
-    fontSize: theme.typography.body,
-    fontWeight: '900',
+  statusDot: {
+    backgroundColor: '#059669',
+    borderRadius: 999,
+    height: 6,
+    width: 6,
   },
-  name: {
-    color: theme.color.text,
-    fontSize: 24,
-    fontWeight: '800',
+  statusText: {
+    color: '#065F46',
+    fontSize: 12,
+    fontWeight: '700',
   },
-  meta: {
-    color: theme.color.mutedText,
-    fontSize: theme.typography.body,
-    marginTop: theme.spacing.xs,
-  },
-  cardDivider: {
+  divider: {
     backgroundColor: theme.color.border,
     height: 1,
     marginVertical: theme.spacing.lg,
@@ -246,9 +245,19 @@ const styles = StyleSheet.create({
     gap: theme.spacing.sm,
   },
   specialtyText: {
-    color: theme.color.primaryPressed,
+    color: theme.color.primary,
     flex: 1,
     fontSize: theme.typography.body,
     fontWeight: '800',
+  },
+  name: {
+    color: theme.color.text,
+    fontSize: 24,
+    fontWeight: '800',
+  },
+  meta: {
+    color: theme.color.mutedText,
+    fontSize: theme.typography.body,
+    marginTop: theme.spacing.xs,
   },
 });
