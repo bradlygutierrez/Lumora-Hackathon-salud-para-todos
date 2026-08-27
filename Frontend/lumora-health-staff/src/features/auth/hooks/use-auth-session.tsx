@@ -8,7 +8,9 @@ import {
   useState,
 } from 'react';
 
+import { env } from '@/src/application/config/env';
 import { fastApiClient, type SessionTokens } from '@/src/shared/api/client';
+import { previewSession } from '@/src/shared/preview/health-staff-preview';
 import { loginStaff, logoutStaff, refreshStaffSession } from '../api/auth.api';
 import { getStaffUser } from '../api/users.api';
 import { secureSessionManager } from '../services/session-storage';
@@ -64,6 +66,9 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
     if (!storedSession) {
       return null;
     }
+    if (storedSession.isPreview) {
+      return toClientSession(storedSession);
+    }
 
     const tokens = await refreshStaffSession(storedSession.refreshToken);
     const nextSession = {
@@ -80,6 +85,9 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
   const enrichSession = useCallback(async (baseSession: StaffSession) => {
     const userId = baseSession.userId ?? getUserIdFromAccessToken(baseSession.accessToken);
     if (!userId) {
+      return baseSession;
+    }
+    if (baseSession.isPreview) {
       return baseSession;
     }
 
@@ -107,8 +115,9 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
       if (!mounted) {
         return;
       }
-      if (storedSession) {
-        const enriched = await enrichSession(storedSession);
+      const sessionToRestore = storedSession ?? (env.enableUiPreview ? previewSession : null);
+      if (sessionToRestore) {
+        const enriched = await enrichSession(sessionToRestore);
         if (!mounted) {
           return;
         }
@@ -117,7 +126,7 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
       } else {
         setSession(null);
       }
-      setStatus(storedSession ? 'authenticated' : 'anonymous');
+      setStatus(sessionToRestore ? 'authenticated' : 'anonymous');
     }
 
     restoreSession();
@@ -142,6 +151,10 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
   const signOut = useCallback(async () => {
     try {
       if (session) {
+        if (session.isPreview) {
+          await clearSession();
+          return;
+        }
         await logoutStaff();
       }
     } finally {
@@ -153,6 +166,10 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
     const { logoutAllStaffSessions } = await import('../api/auth.api');
     try {
       if (session) {
+        if (session.isPreview) {
+          await clearSession();
+          return;
+        }
         await logoutAllStaffSessions();
       }
     } finally {
@@ -161,7 +178,7 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
   }, [clearSession, session]);
 
   const reloadUser = useCallback(async () => {
-    if (!session?.userId) {
+    if (!session?.userId || session.isPreview) {
       return;
     }
     const user = await getStaffUser(session.userId);
