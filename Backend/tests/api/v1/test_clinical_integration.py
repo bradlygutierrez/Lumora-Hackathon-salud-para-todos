@@ -202,6 +202,7 @@ async def _setup(session_factory, user_id: int):
             profesional_id=professional.id,
             consulta_id=consultation.id,
             estado_id=prescription_state.id,
+            titulo="Plan metabólico",
             fecha_emision=now.replace(hour=10),
             observaciones="Plan nutricional indicado",
         )
@@ -288,6 +289,14 @@ async def test_clinical_summary_timeline_and_search(client, session_factory):
     assert payload["consultas"][0]["signos_vitales"][0]["glucosa_mg_dl"] == 145
     assert payload["consultas"][0]["notas"][0]["contenido"] == "Ajustar alimentación"
     assert payload["consultas"][0]["diagnosticos"][0]["descripcion"] == "Prediabetes"
+    assert payload["recetas"][0]["titulo"] == "Plan metabólico"
+    assert payload["recetas"][0]["consulta_id"] == setup["consultation_id"]
+    assert payload["mediciones"][0]["indicador_nombre"] == "Glucosa"
+    assert payload["mediciones"][0]["unidad_medida"] == "mg/dL"
+    assert payload["mediciones"][0]["valor"] == 145
+    assert payload["alertas"][0]["mensaje"] == "Glucosa por encima del objetivo"
+    assert payload["alertas"][0]["nivel_severidad"] == "Alta"
+    assert payload["alertas"][0]["tipo_alerta"] == "Clínica"
     assert "deleted_at" not in payload["consultas"][0]["notas"][0]
     assert all(
         note["contenido"] != "No debe aparecer"
