@@ -1,9 +1,15 @@
 from pydantic import BaseModel, EmailStr
 
 
+class PermissionSummary(BaseModel):
+    id: int
+    nombre: str
+
+
 class RoleSummary(BaseModel):
     id: int
     nombre: str
+    permisos: list[PermissionSummary]
 
 
 class PersonSummary(BaseModel):

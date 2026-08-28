@@ -16,7 +16,17 @@ class PatientAccessService:
             "username": user.username,
             "activo": user.activo,
             "email_verificado": user.email_verificado,
-            "roles": [{"id": role.id, "nombre": role.nombre} for role in user.roles],
+            "roles": [
+                {
+                    "id": role.id,
+                    "nombre": role.nombre,
+                    "permisos": [
+                        {"id": permission.id, "nombre": permission.nombre}
+                        for permission in role.permisos
+                    ],
+                }
+                for role in user.roles
+            ],
             "persona": {
                 "id": user.persona.id,
                 "nombres": user.persona.nombres,
