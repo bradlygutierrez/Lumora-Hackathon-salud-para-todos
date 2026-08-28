@@ -30,7 +30,7 @@ export default function ForgotPasswordRoute() {
     <Screen contentClassName="justify-center gap-7">
       <AuthHeader
         title="Recuperar contraseña"
-        subtitle="Te enviaremos instrucciones a tu correo."
+        subtitle="Te enviaremos un enlace para crear una nueva contraseña."
       />
 
       <View className="gap-4">
@@ -52,9 +52,17 @@ export default function ForgotPasswordRoute() {
         ) : null}
 
         {requestRecovery.data ? (
-          <Text className="text-sm leading-5 text-coal-500">
-            {requestRecovery.data.message}
-          </Text>
+          <View className="rounded-2xl bg-lumen-300 p-4">
+            <Text className="font-semibold text-coal-900">
+              Revisa tu correo
+            </Text>
+
+            <Text className="mt-1 text-sm leading-5 text-coal-500">
+              Si existe una cuenta asociada a ese correo,
+              recibirás un enlace para restablecer tu contraseña.
+              Ábrelo desde este dispositivo para continuar.
+            </Text>
+          </View>
         ) : null}
 
         <AppButton
