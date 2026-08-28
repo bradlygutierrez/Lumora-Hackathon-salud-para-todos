@@ -1,60 +1,81 @@
-jest.mock('@/features/prescriptions/api/prescriptions-api', () => ({
-  prescriptionsApi: {
-    getMyPatientProfile: jest.fn(),
-  },
+jest.mock('@/features/shell/hooks/useShellContext', () => ({
+  useShellContext: jest.fn(),
 }));
 
-import { renderHook, waitFor } from '@testing-library/react-native';
+import { renderHook } from '@testing-library/react-native';
 
 import { usePatientId } from '@/features/health-indicators/hooks/usePatientId';
-import {
-  createQueryWrapper,
-  createTestQueryClient,
-} from '@/features/health-indicators/tests/query-test-utils';
-import { prescriptionsApi } from '@/features/prescriptions/api/prescriptions-api';
+import { useShellContext } from '@/features/shell/hooks/useShellContext';
 
 /**
- * `usePatientId` es hoy el "patientContext" de A08: resuelve el
- * paciente_id del usuario logueado (reutilizando GET /pacientes/me, ya
- * probado en A07) para que Seleccionar Indicador, Historial y Nueva
- * Medición sepan de qué paciente traer/guardar datos. B09 agregará el
- * patientContext completo (cuidador eligiendo ENTRE varios pacientes).
+ * `usePatientId` es el "patientContext" de A08: delega en el shell (B09,
+ * mergeado en develop) para saber de qué paciente traer/guardar datos,
+ * tanto si el usuario logueado ES el paciente como si es un cuidador que
+ * seleccionó uno en /select-patient.
  */
 describe('usePatientId (patientContext)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('resolves the paciente_id of the logged in user from /pacientes/me', async () => {
-    (prescriptionsApi.getMyPatientProfile as jest.Mock).mockResolvedValue({
-      id: 7,
-      tipo_sangre_id: null,
-      alergias: null,
-      persona: { id: 1, nombres: 'Ana', apellidos: 'Zepeda' },
+  it('resolves the pacienteId propio cuando el rol es Paciente', async () => {
+    (useShellContext as jest.Mock).mockReturnValue({
+      status: 'ready',
+      role: 'patient',
+      activePatient: { patientId: 7, displayName: 'Ana Zepeda', relationship: null },
+      availablePatients: [{ patientId: 7, displayName: 'Ana Zepeda', relationship: null }],
+      switchPatient: jest.fn(),
     });
 
-    const client = createTestQueryClient();
-    const { result } = await renderHook(() => usePatientId(), {
-      wrapper: createQueryWrapper(client),
-    });
-
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    const { result } = await renderHook(() => usePatientId());
 
     expect(result.current.pacienteId).toBe(7);
+    expect(result.current.isLoading).toBe(false);
     expect(result.current.isError).toBe(false);
   });
 
-  it('reports isError without a pacienteId when /pacientes/me fails', async () => {
-    (prescriptionsApi.getMyPatientProfile as jest.Mock).mockRejectedValue(
-      new Error('network error'),
-    );
-
-    const client = createTestQueryClient();
-    const { result } = await renderHook(() => usePatientId(), {
-      wrapper: createQueryWrapper(client),
+  it('resolves el paciente que un Cuidador seleccionó en /select-patient', async () => {
+    (useShellContext as jest.Mock).mockReturnValue({
+      status: 'ready',
+      role: 'caregiver',
+      activePatient: { patientId: 12, displayName: 'Juan Pérez', relationship: 'Padre' },
+      availablePatients: [
+        { patientId: 12, displayName: 'Juan Pérez', relationship: 'Padre' },
+        { patientId: 15, displayName: 'María Pérez', relationship: 'Hermana' },
+      ],
+      switchPatient: jest.fn(),
     });
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    const { result } = await renderHook(() => usePatientId());
+
+    expect(result.current.pacienteId).toBe(12);
+  });
+
+  it('reports isLoading while the shell is resolving patientContext', async () => {
+    (useShellContext as jest.Mock).mockReturnValue({
+      status: 'loading',
+      role: null,
+      activePatient: null,
+      availablePatients: [],
+      switchPatient: jest.fn(),
+    });
+
+    const { result } = await renderHook(() => usePatientId());
+
+    expect(result.current.isLoading).toBe(true);
+    expect(result.current.pacienteId).toBeUndefined();
+  });
+
+  it('reports isError when the shell failed to prepare patientContext', async () => {
+    (useShellContext as jest.Mock).mockReturnValue({
+      status: 'error',
+      role: null,
+      activePatient: null,
+      availablePatients: [],
+      switchPatient: jest.fn(),
+    });
+
+    const { result } = await renderHook(() => usePatientId());
 
     expect(result.current.isError).toBe(true);
     expect(result.current.pacienteId).toBeUndefined();

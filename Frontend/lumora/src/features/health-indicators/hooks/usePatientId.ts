@@ -1,31 +1,28 @@
-import { useQuery } from '@tanstack/react-query';
-
-import { prescriptionsApi } from '@/features/prescriptions/api/prescriptions-api';
+import { useShellContext } from '@/features/shell/hooks/useShellContext';
 
 /**
- * Resuelve el paciente_id del usuario logueado.
+ * Resuelve el patientId activo (patientContext) para Indicadores de Salud.
  *
- * Reutiliza `prescriptionsApi.getMyPatientProfile()` (GET /pacientes/me) en
- * vez de duplicar la llamada -- mismo criterio que useTodayMedicationPlan
- * (A07). El comentario original en PrescriptionsApiService.getMyPatientProfile
- * ya avisaba que si otra feature lo volvía a necesitar convenía moverlo a un
- * shared/features de "patients"; por ahora se reutiliza tal cual para no
- * tocar código de A07 ya mergeado.
+ * Antes de que existiera el patientContext real (B09, mergeado en
+ * `develop` después de que empezamos A08), este hook llamaba a
+ * GET /pacientes/me directamente -- pero eso solo funciona para el rol
+ * "Paciente" y no soporta cuidadores, que es justo uno de los dos roles
+ * que pide el ticket ("Roles: Paciente + Cuidador autorizado").
  *
- * B09 agregará el "patientContext" real (que un cuidador autorizado pueda
- * elegir ENTRE varios pacientes). Hasta entonces, este hook resuelve el
- * paciente propio del usuario logueado, igual que el resto de la app.
+ * Ahora reutiliza el patientContext del shell (useShellContext /
+ * usePatientContextStore), que ya resuelve el paciente correcto para
+ * AMBOS roles y respeta el paciente que el cuidador haya seleccionado en
+ * "/select-patient". El route guard de (app)/_layout.tsx ya redirige a
+ * "/select-patient" antes de que estas pantallas puedan montarse sin un
+ * patientContext activo, así que en el uso normal `activePatient` siempre
+ * está resuelto acá.
  */
 export function usePatientId() {
-  const query = useQuery({
-    queryKey: ['patient-me'],
-    queryFn: () => prescriptionsApi.getMyPatientProfile(),
-    staleTime: 5 * 60 * 1000,
-  });
+  const { status, activePatient } = useShellContext();
 
   return {
-    pacienteId: query.data?.id,
-    isLoading: query.isLoading,
-    isError: query.isError,
+    pacienteId: activePatient?.patientId,
+    isLoading: status === 'idle' || status === 'loading',
+    isError: status === 'error',
   };
 }

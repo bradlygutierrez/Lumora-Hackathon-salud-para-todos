@@ -7,10 +7,8 @@ jest.mock('@/features/health-indicators/api/health-indicators-api', () => ({
   },
 }));
 
-jest.mock('@/features/prescriptions/api/prescriptions-api', () => ({
-  prescriptionsApi: {
-    getMyPatientProfile: jest.fn(),
-  },
+jest.mock('@/features/shell/hooks/useShellContext', () => ({
+  useShellContext: jest.fn(),
 }));
 
 import { renderHook, waitFor } from '@testing-library/react-native';
@@ -21,7 +19,7 @@ import {
   createQueryWrapper,
   createTestQueryClient,
 } from '@/features/health-indicators/tests/query-test-utils';
-import { prescriptionsApi } from '@/features/prescriptions/api/prescriptions-api';
+import { useShellContext } from '@/features/shell/hooks/useShellContext';
 
 const PRESION_ID = 'ind-presion';
 const PESO_ID = 'ind-peso';
@@ -30,7 +28,13 @@ describe('useIndicatorHistory (historial + límites clínicos)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    (prescriptionsApi.getMyPatientProfile as jest.Mock).mockResolvedValue({ id: 7 });
+    (useShellContext as jest.Mock).mockReturnValue({
+      status: 'ready',
+      role: 'patient',
+      activePatient: { patientId: 7, displayName: 'Ana Zepeda', relationship: null },
+      availablePatients: [],
+      switchPatient: jest.fn(),
+    });
 
     (healthIndicatorsApi.getIndicators as jest.Mock).mockResolvedValue([
       {

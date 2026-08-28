@@ -8,6 +8,10 @@ jest.mock('@/features/prescriptions/hooks/useCatalog', () => ({
   useRecordOriginCatalog: jest.fn(),
 }));
 
+jest.mock('@/features/shell/hooks/useShellContext', () => ({
+  useShellContext: jest.fn(),
+}));
+
 import { renderHook, waitFor } from '@testing-library/react-native';
 
 import { healthIndicatorsApi } from '@/features/health-indicators/api/health-indicators-api';
@@ -17,6 +21,7 @@ import {
   createTestQueryClient,
 } from '@/features/health-indicators/tests/query-test-utils';
 import { useRecordOriginCatalog } from '@/features/prescriptions/hooks/useCatalog';
+import { useShellContext } from '@/features/shell/hooks/useShellContext';
 
 describe('useRegisterMeasurement', () => {
   beforeEach(() => {
@@ -29,32 +34,22 @@ describe('useRegisterMeasurement', () => {
         return undefined;
       },
     });
-  });
 
-  /**
-   * `usePatientId` (patientContext) resuelve de forma asíncrona; se
-   * precarga el cache de React Query con GET /pacientes/me ya resuelto
-   * -- mismo escenario real cuando el usuario ya visitó "Medicación" antes
-   * (ambos comparten la queryKey 'patient-me') -- para probar la mutación
-   * sin depender de temporizadores.
-   */
-  function clientWithPatientCached() {
-    const client = createTestQueryClient();
-    client.setQueryData(['patient-me'], {
-      id: 7,
-      tipo_sangre_id: null,
-      alergias: null,
-      persona: { id: 1, nombres: 'Ana', apellidos: 'Zepeda' },
+    (useShellContext as jest.Mock).mockReturnValue({
+      status: 'ready',
+      role: 'patient',
+      activePatient: { patientId: 7, displayName: 'Ana Zepeda', relationship: null },
+      availablePatients: [],
+      switchPatient: jest.fn(),
     });
-    return client;
-  }
+  });
 
   it('registers a measurement, resolving "Manual" to its origen_registro_id and trimming empty observaciones to null', async () => {
     (healthIndicatorsApi.registerMeasurement as jest.Mock).mockResolvedValue({
       id: 'medicion-1',
     });
 
-    const client = clientWithPatientCached();
+    const client = createTestQueryClient();
     const { result } = await renderHook(() => useRegisterMeasurement(), {
       wrapper: createQueryWrapper(client),
     });
@@ -83,7 +78,34 @@ describe('useRegisterMeasurement', () => {
       idByName: () => undefined,
     });
 
-    const client = clientWithPatientCached();
+    const client = createTestQueryClient();
+    const { result } = await renderHook(() => useRegisterMeasurement(), {
+      wrapper: createQueryWrapper(client),
+    });
+
+    result.current.mutate({
+      indicadorId: 'ind-1',
+      valor: 120,
+      unidadMedidaId: 1,
+      origen: 'Manual',
+      observaciones: null,
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    expect(healthIndicatorsApi.registerMeasurement).not.toHaveBeenCalled();
+  });
+
+  it('fails without calling the API when there is no active patientContext (ej. Cuidador sin paciente seleccionado)', async () => {
+    (useShellContext as jest.Mock).mockReturnValue({
+      status: 'needs-patient',
+      role: 'caregiver',
+      activePatient: null,
+      availablePatients: [],
+      switchPatient: jest.fn(),
+    });
+
+    const client = createTestQueryClient();
     const { result } = await renderHook(() => useRegisterMeasurement(), {
       wrapper: createQueryWrapper(client),
     });
