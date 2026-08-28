@@ -1,8 +1,12 @@
 from datetime import datetime
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 from sqlalchemy import String, ForeignKey, Boolean, DateTime, Text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from lumora_api.db.base import Base
+
+if TYPE_CHECKING:
+    from lumora_api.models.catalogs import TipoRelacion
+    from lumora_api.models.identity import Paciente, Usuario
 
 
 class Recordatorio(Base):
@@ -65,4 +69,10 @@ class RelacionPaciente(Base):
     
     recibir_notificaciones: Mapped[bool] = mapped_column(Boolean, default=True)
     activo: Mapped[bool] = mapped_column(Boolean, default=True)
+    estado: Mapped[str] = mapped_column(String(20), default="active", server_default="active", nullable=False)
+    nivel_acceso: Mapped[str] = mapped_column(String(20), default="read", server_default="read", nullable=False)
+    expira_en: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    paciente: Mapped["Paciente"] = relationship(lazy="selectin")
+    usuario_relacionado: Mapped["Usuario"] = relationship(lazy="selectin")
+    tipo_relacion: Mapped["TipoRelacion"] = relationship(lazy="selectin")

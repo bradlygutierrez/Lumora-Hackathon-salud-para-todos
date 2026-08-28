@@ -1,5 +1,7 @@
 from typing import Sequence, Optional
-from sqlalchemy import select
+from datetime import datetime, timezone
+
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from lumora_api.models.reminders import (
     Recordatorio,
@@ -77,3 +79,20 @@ class ReminderRepository:
         stmt = select(RelacionPaciente).where(RelacionPaciente.paciente_id == paciente_id)
         res = await self.session.execute(stmt)
         return res.scalars().all()
+
+    async def get_active_relationships_for_caregiver(
+        self, usuario_id: int
+    ) -> Sequence[RelacionPaciente]:
+        now = datetime.now(timezone.utc)
+        stmt = (
+            select(RelacionPaciente)
+            .where(
+                RelacionPaciente.usuario_relacionado_id == usuario_id,
+                RelacionPaciente.activo.is_(True),
+                RelacionPaciente.estado == "active",
+                or_(RelacionPaciente.expira_en.is_(None), RelacionPaciente.expira_en > now),
+            )
+            .order_by(RelacionPaciente.id)
+        )
+        result = await self.session.execute(stmt)
+        return result.scalars().all()
