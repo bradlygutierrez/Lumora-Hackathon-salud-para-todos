@@ -108,6 +108,7 @@ async def list_mediciones_paciente(
     paciente_id: int,
     current_user: CurrentUser,
     session: SessionDep,
+    current_user: CurrentUser,
 ):
     await _patient_access(session).require_access(current_user, paciente_id, action="read")
     return await HealthIndicatorsService.get_mediciones_paciente(session, paciente_id)
@@ -133,6 +134,7 @@ async def list_alertas_paciente(
     paciente_id: int,
     current_user: CurrentUser,
     session: SessionDep,
+    current_user: CurrentUser,
     solo_pendientes: bool = Query(True),
 ):
     await _patient_access(session).require_access(current_user, paciente_id, action="read")

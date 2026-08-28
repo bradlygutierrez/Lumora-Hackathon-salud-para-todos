@@ -17,6 +17,7 @@ from lumora_api.api.v1 import (
     estados_expediente,
     estados_receta,
     health_indicators,
+    health_summary,
     medical_records,
     mfa,
     motivos_consulta,
@@ -69,6 +70,7 @@ api_router.include_router(consultations.router)
 api_router.include_router(prescriptions.router)
 api_router.include_router(schedules.router)
 api_router.include_router(health_indicators.router)
+api_router.include_router(health_summary.router)
 api_router.include_router(diagnoses.router)
 api_router.include_router(conditions.router)
 api_router.include_router(clinical_integration.router)

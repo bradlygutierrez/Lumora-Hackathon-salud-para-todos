@@ -70,6 +70,7 @@ from lumora_api.schemas.clinical import (
     VitalSignsCreate,
     VitalSignsRead,
 )
+from lumora_api.schemas.health_summary import AllergySummaryRead, ConditionSummaryRead, HealthSummaryRead
 from lumora_api.schemas.identity import (
     EmergencyContactCreate,
     EmergencyContactRead,
@@ -141,6 +142,9 @@ __all__ = [
     "UserCreate",
     "UserRead",
     "UserUpdate",
+    "AllergySummaryRead",
+    "ConditionSummaryRead",
+    "HealthSummaryRead",
     "AccessToken",
     "ChangePasswordRequest",
     "ForgotPasswordRequest",
