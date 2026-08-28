@@ -1,12 +1,18 @@
-import { httpClient } from '@/shared/api/http-client';
-import { secureSession } from '@/shared/api/secure-session';
+import {
+  httpClient,
+} from '@/shared/api/http-client';
 
-import { resolveLumoraRole } from '@/features/shell/navigation/shell-route-guard';
+import {
+  secureSession,
+} from '@/shared/api/secure-session';
+
+import {
+  resolveLumoraRole,
+} from '@/features/shell/navigation/shell-route-guard';
 
 import type {
   CaregiverPatientLink,
   CurrentUser,
-  PaginatedPatients,
   PatientContext,
   ShellIdentity,
 } from '@/features/shell/types/shell.types';
@@ -15,29 +21,87 @@ type JwtPayload = {
   sub?: string;
 };
 
-export class CaregiverRelationsUnavailableError extends Error {
+/**
+ * Respuesta del endpoint seguro:
+ *
+ * GET /patients/me
+ *
+ * El backend resuelve el paciente utilizando
+ * exclusivamente la identidad autenticada.
+ */
+type OwnPatientContextResponse = {
+  patient_id: number;
+  first_names: string;
+  last_names: string;
+};
+
+/**
+ * Error específico para indicar que el backend
+ * todavía no expone correctamente las relaciones
+ * Caregiver -> Patient.
+ */
+export class CaregiverRelationsUnavailableError
+  extends Error {
   constructor() {
     super(
       'El backend todavía no expone las relaciones autorizadas del cuidador.',
     );
 
-    this.name = 'CaregiverRelationsUnavailableError';
+    this.name =
+      'CaregiverRelationsUnavailableError';
   }
 }
 
+/**
+ * Servicio responsable de construir el contexto
+ * de navegación privado de Lumora.
+ *
+ * Responsabilidades:
+ *
+ * 1. Resolver el usuario autenticado.
+ * 2. Resolver su rol funcional.
+ * 3. Resolver los pacientes permitidos.
+ * 4. Entregar esa información al ShellBootstrap.
+ *
+ * Este servicio NO almacena datos clínicos.
+ */
 export class ShellContextService {
-  public async loadIdentity(): Promise<ShellIdentity> {
-    const userId = await this.currentUserId();
+  /**
+   * Construye la identidad completa utilizada
+   * por el shell privado de la aplicación.
+   */
+  public async loadIdentity():
+    Promise<ShellIdentity> {
+    const userId =
+      await this.currentUserId();
 
-    const user = await httpClient.get<CurrentUser>(
-      `/usuarios/${userId}`,
-    );
+    /**
+     * B08/B09:
+     * Obtenemos el usuario actual usando el ID
+     * almacenado dentro del JWT.
+     */
+    const user =
+      await httpClient.get<CurrentUser>(
+        `/usuarios/${userId}`,
+      );
 
-    const role = resolveLumoraRole(user.roles);
+    const role =
+      resolveLumoraRole(
+        user.roles,
+      );
 
-    if (role === 'patient') {
+    /**
+     * Paciente:
+     *
+     * Su único contexto válido es su propio
+     * perfil de paciente.
+     */
+    if (
+      role ===
+      'patient'
+    ) {
       const availablePatients =
-        await this.ownPatientContext(user);
+        await this.ownPatientContext();
 
       return {
         user,
@@ -46,9 +110,19 @@ export class ShellContextService {
       };
     }
 
-    if (role === 'caregiver') {
+    /**
+     * Cuidador:
+     *
+     * Puede tener uno o varios pacientes
+     * vinculados mediante relaciones activas.
+     */
+    if (
+      role ===
+      'caregiver'
+    ) {
       const availablePatients =
-        await this.caregiverPatientContexts();
+        await this
+          .caregiverPatientContexts();
 
       return {
         user,
@@ -57,6 +131,10 @@ export class ShellContextService {
       };
     }
 
+    /**
+     * Roles fuera del alcance de la app
+     * Patient/Caregiver.
+     */
     return {
       user,
       role,
@@ -64,23 +142,37 @@ export class ShellContextService {
     };
   }
 
-  private async currentUserId(): Promise<number> {
-    const session = await secureSession.get();
+  /**
+   * Obtiene el ID de usuario desde el JWT
+   * almacenado en SecureStore.
+   */
+  private async currentUserId():
+    Promise<number> {
+    const session =
+      await secureSession.get();
 
-    if (!session?.accessToken) {
+    if (
+      !session?.accessToken
+    ) {
       throw new Error(
         'No existe una sesión autenticada.',
       );
     }
 
-    const payload = this.decodeJwtPayload(
-      session.accessToken,
-    );
+    const payload =
+      this.decodeJwtPayload(
+        session.accessToken,
+      );
 
-    const userId = Number(payload.sub);
+    const userId =
+      Number(
+        payload.sub,
+      );
 
     if (
-      !Number.isInteger(userId) ||
+      !Number.isInteger(
+        userId,
+      ) ||
       userId <= 0
     ) {
       throw new Error(
@@ -91,44 +183,72 @@ export class ShellContextService {
     return userId;
   }
 
-  private async ownPatientContext(
-    user: CurrentUser,
-  ): Promise<PatientContext[]> {
-    const response =
-      await httpClient.get<PaginatedPatients>(
-        '/pacientes?limit=100&offset=0',
-      );
-
+  /**
+   * Resuelve el patientContext del usuario
+   * autenticado cuando su rol es Paciente.
+   *
+   * IMPORTANTE:
+   *
+   * Anteriormente B09 hacía:
+   *
+   * GET /pacientes?limit=100
+   *
+   * y buscaba manualmente el paciente dentro
+   * de la lista completa.
+   *
+   * Eso ya no es válido porque el backend
+   * protege la enumeración de pacientes.
+   *
+   * El endpoint correcto es:
+   *
+   * GET /patients/me
+   *
+   * De esta manera:
+   *
+   * - no enumeramos otros pacientes;
+   * - evitamos 403;
+   * - no dependemos de persona.id;
+   * - dejamos al backend como fuente de verdad.
+   */
+  private async ownPatientContext():
+    Promise<PatientContext[]> {
     const patient =
-      response.items.find(
-        (item) =>
-          item.persona.id ===
-          user.persona.id,
+      await httpClient.get<
+        OwnPatientContextResponse
+      >(
+        '/patients/me',
       );
-
-    if (!patient) {
-      return [];
-    }
 
     return [
       {
-        patientId: patient.id,
+        patientId:
+          patient.patient_id,
 
         displayName:
-          `${patient.persona.nombres} ${patient.persona.apellidos}`.trim(),
+          `${patient.first_names} ${patient.last_names}`.trim(),
 
-        relationship: null,
+        relationship:
+          null,
       },
     ];
   }
 
-  private async caregiverPatientContexts(): Promise<
-    PatientContext[]
-  > {
+  /**
+   * Obtiene todos los pacientes autorizados
+   * para el caregiver autenticado.
+   *
+   * Solo incluimos relaciones activas.
+   *
+   * La validación de autorización real continúa
+   * siendo responsabilidad del backend.
+   */
+  private async caregiverPatientContexts():
+    Promise<PatientContext[]> {
     try {
       const response =
         await httpClient.get<{
-          items: CaregiverPatientLink[];
+          items:
+            CaregiverPatientLink[];
         }>(
           '/caregivers/me/patients',
         );
@@ -136,7 +256,8 @@ export class ShellContextService {
       return response.items
         .filter(
           (item) =>
-            item.status.toLowerCase() ===
+            item.status
+              .toLowerCase() ===
             'active',
         )
         .map(
@@ -152,8 +273,13 @@ export class ShellContextService {
           }),
         );
     } catch (error) {
+      /**
+       * Normalizamos únicamente el caso donde
+       * el endpoint todavía no está disponible.
+       */
       const maybeStatus =
-        typeof error === 'object' &&
+        typeof error ===
+          'object' &&
         error !== null &&
         'status' in error
           ? (
@@ -163,7 +289,10 @@ export class ShellContextService {
             ).status
           : undefined;
 
-      if (maybeStatus === 404) {
+      if (
+        maybeStatus ===
+        404
+      ) {
         throw new CaregiverRelationsUnavailableError();
       }
 
@@ -171,32 +300,63 @@ export class ShellContextService {
     }
   }
 
+  /**
+   * Decodifica únicamente el payload del JWT.
+   *
+   * No intenta validar criptográficamente el token.
+   * Esa validación pertenece al backend.
+   *
+   * Aquí solo necesitamos leer `sub` para obtener
+   * el ID del usuario autenticado.
+   */
   private decodeJwtPayload(
     token: string,
   ): JwtPayload {
-    const parts = token.split('.');
+    const parts =
+      token.split('.');
 
-    if (parts.length < 2) {
+    if (
+      parts.length < 2
+    ) {
       throw new Error(
         'Access token inválido.',
       );
     }
 
+    /**
+     * JWT usa Base64 URL-safe.
+     *
+     * Convertimos:
+     * - "-" -> "+"
+     * - "_" -> "/"
+     */
     const payload =
       parts[1]
-        .replace(/-/g, '+')
-        .replace(/_/g, '/');
+        .replace(
+          /-/g,
+          '+',
+        )
+        .replace(
+          /_/g,
+          '/',
+        );
 
+    /**
+     * Base64 requiere longitud múltiplo de 4.
+     */
     const padded =
       payload.padEnd(
         Math.ceil(
-          payload.length / 4,
+          payload.length /
+            4,
         ) * 4,
         '=',
       );
 
     const decoded =
-      globalThis.atob(padded);
+      globalThis.atob(
+        padded,
+      );
 
     return JSON.parse(
       decoded,
@@ -204,5 +364,8 @@ export class ShellContextService {
   }
 }
 
+/**
+ * Singleton compartido por ShellBootstrap.
+ */
 export const shellContextService =
   new ShellContextService();

@@ -1,12 +1,22 @@
-import { useQueries, useQuery } from '@tanstack/react-query';
+import {
+  useQueries,
+  useQuery,
+} from '@tanstack/react-query';
 
-import { prescriptionsApi } from '@/features/prescriptions/api/prescriptions-api';
-import { schedulesApi } from '@/features/prescriptions/api/schedules-api';
+import {
+  prescriptionsApi,
+} from '@/features/prescriptions/api/prescriptions-api';
+
+import {
+  schedulesApi,
+} from '@/features/prescriptions/api/schedules-api';
+
 import {
   useDoseStatusCatalog,
   useMedicationsCatalog,
   usePrescriptionStatusCatalog,
 } from '@/features/prescriptions/hooks/useCatalog';
+
 import type {
   DosisAdministradaResponse,
   HorarioMedicamentoResponse,
@@ -14,11 +24,20 @@ import type {
   TodayMedicationItem,
   TodayMedicationPlan,
 } from '@/features/prescriptions/types/prescriptions.types';
+
 import {
   bucketForHora,
   horaToMinutes,
   isSameLocalDay,
 } from '@/features/prescriptions/utils/time-of-day';
+
+import {
+  useShellContext,
+} from '@/features/shell/hooks/useShellContext';
+
+import {
+  patientQueryKeys,
+} from '@/features/shell/query/patient-query-keys';
 
 const EMPTY_SECTIONS: Record<TimeOfDayBucket, TodayMedicationItem[]> = {
   manana: [],
@@ -27,28 +46,29 @@ const EMPTY_SECTIONS: Record<TimeOfDayBucket, TodayMedicationItem[]> = {
 };
 
 /**
- * Arma el "Plan de Hoy": recetas activas -> sus detalles -> horarios de
- * hoy -> si ya se registró la dosis.
+ * Arma el Plan de Hoy para el patientContext activo de B09.
  *
- * El backend no expone un endpoint agregado para esto (no existe todavía
- * un "GET /plan-de-hoy"), así que se compone a partir de los endpoints
- * que sí existen. Con pocas recetas/medicamentos activos (caso normal de
- * un paciente) el costo de estas llamadas en paralelo es aceptable; si el
- * catálogo de recetas de un paciente crece mucho, valdría la pena pedirle
- * al equipo de backend un endpoint agregado.
+ * Antes resolvía el paciente con GET /pacientes/me, lo cual funcionaba
+ * únicamente para rol Paciente. B10 enlaza Inicio cuidador con Medicación,
+ * por lo que esta integración debe respetar `activePatient` y funcionar
+ * también para cuidadores autorizados.
  */
 export function useTodayMedicationPlan() {
-  const patientQuery = useQuery({
-    queryKey: ['patient-me'],
-    queryFn: () => prescriptionsApi.getMyPatientProfile(),
-    staleTime: 5 * 60 * 1000,
-  });
+  const {
+    status: shellStatus,
+    activePatient,
+  } = useShellContext();
 
-  const pacienteId = patientQuery.data?.id;
+  const pacienteId = activePatient?.patientId;
+  const medicationQueryKey =
+    pacienteId !== undefined
+      ? patientQueryKeys.medication(pacienteId)
+      : (['patient', 'medication', 'unresolved'] as const);
 
   const prescriptionsQuery = useQuery({
-    queryKey: ['prescriptions-by-patient', pacienteId],
-    queryFn: () => prescriptionsApi.getPrescriptionsByPatient(pacienteId as number),
+    queryKey: medicationQueryKey,
+    queryFn: () =>
+      prescriptionsApi.getPrescriptionsByPatient(pacienteId as number),
     enabled: pacienteId !== undefined,
   });
 
@@ -63,14 +83,16 @@ export function useTodayMedicationPlan() {
     (receta) => activeEstadoId !== undefined && receta.estado_id === activeEstadoId,
   );
 
-  // Aplana los detalles (medicamentos) de todas las recetas activas.
   const activeDetails = activePrescriptions.flatMap((receta) =>
-    receta.detalles.map((detalle) => ({ ...detalle, recetaId: receta.id })),
+    receta.detalles.map((detalle) => ({
+      ...detalle,
+      recetaId: receta.id,
+    })),
   );
 
   const horariosQueries = useQueries({
     queries: activeDetails.map((detalle) => ({
-      queryKey: ['horarios', detalle.id],
+      queryKey: [...medicationQueryKey, 'horarios', detalle.id],
       queryFn: () => schedulesApi.getHorarios(detalle.id),
     })),
   });
@@ -103,7 +125,7 @@ export function useTodayMedicationPlan() {
 
   const dosisQueries = useQueries({
     queries: activeHorarios.map((horario) => ({
-      queryKey: ['dosis-logs', horario.id],
+      queryKey: [...medicationQueryKey, 'dosis-logs', horario.id],
       queryFn: () => schedulesApi.getDosisLogs(horario.id),
     })),
   });
@@ -144,7 +166,9 @@ export function useTodayMedicationPlan() {
   }
 
   for (const bucket of Object.keys(sections) as TimeOfDayBucket[]) {
-    sections[bucket].sort((a, b) => horaToMinutes(a.hora) - horaToMinutes(b.hora));
+    sections[bucket].sort(
+      (a, b) => horaToMinutes(a.hora) - horaToMinutes(b.hora),
+    );
   }
 
   const plan: TodayMedicationPlan = {
@@ -154,7 +178,8 @@ export function useTodayMedicationPlan() {
   };
 
   const isLoading =
-    patientQuery.isLoading ||
+    shellStatus === 'idle' ||
+    shellStatus === 'loading' ||
     prescriptionsQuery.isLoading ||
     statusCatalog.isLoading ||
     doseStatusCatalog.isLoading ||
@@ -163,7 +188,8 @@ export function useTodayMedicationPlan() {
     dosisQueries.some((query) => query.isLoading);
 
   const isError =
-    patientQuery.isError ||
+    shellStatus === 'error' ||
+    !activePatient ||
     prescriptionsQuery.isError ||
     statusCatalog.isError ||
     doseStatusCatalog.isError ||
@@ -172,7 +198,6 @@ export function useTodayMedicationPlan() {
     dosisQueries.some((query) => query.isError);
 
   const refetch = () => {
-    void patientQuery.refetch();
     void prescriptionsQuery.refetch();
     void Promise.all(horariosQueries.map((query) => query.refetch()));
     void Promise.all(dosisQueries.map((query) => query.refetch()));

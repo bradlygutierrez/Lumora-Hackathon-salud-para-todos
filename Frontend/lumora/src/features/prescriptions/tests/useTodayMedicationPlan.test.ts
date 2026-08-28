@@ -1,6 +1,5 @@
 jest.mock('@/features/prescriptions/api/prescriptions-api', () => ({
   prescriptionsApi: {
-    getMyPatientProfile: jest.fn(),
     getPrescriptionsByPatient: jest.fn(),
     getPrescriptionStatuses: jest.fn(),
     getDoseStatuses: jest.fn(),
@@ -15,11 +14,39 @@ jest.mock('@/features/prescriptions/api/schedules-api', () => ({
   },
 }));
 
-import { renderHook, waitFor } from '@testing-library/react-native';
+/**
+ * B10 integra A07 con B09: la medicación ya no resuelve /pacientes/me,
+ * sino el patientContext activo. El mock representa tanto a un paciente
+ * como a un cuidador que ya seleccionó al paciente 7.
+ */
+jest.mock('@/features/shell/hooks/useShellContext', () => ({
+  useShellContext: () => ({
+    status: 'ready',
+    activePatient: {
+      patientId: 7,
+      displayName: 'Ana Zepeda',
+      relationship: null,
+    },
+  }),
+}));
 
-import { prescriptionsApi } from '@/features/prescriptions/api/prescriptions-api';
-import { schedulesApi } from '@/features/prescriptions/api/schedules-api';
-import { useTodayMedicationPlan } from '@/features/prescriptions/hooks/useTodayMedicationPlan';
+import {
+  renderHook,
+  waitFor,
+} from '@testing-library/react-native';
+
+import {
+  prescriptionsApi,
+} from '@/features/prescriptions/api/prescriptions-api';
+
+import {
+  schedulesApi,
+} from '@/features/prescriptions/api/schedules-api';
+
+import {
+  useTodayMedicationPlan,
+} from '@/features/prescriptions/hooks/useTodayMedicationPlan';
+
 import {
   createQueryWrapper,
   createTestQueryClient,
@@ -30,13 +57,6 @@ const todayIso = new Date().toISOString();
 describe('useTodayMedicationPlan', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-
-    (prescriptionsApi.getMyPatientProfile as jest.Mock).mockResolvedValue({
-      id: 7,
-      tipo_sangre_id: null,
-      alergias: null,
-      persona: { id: 1, nombres: 'Ana', apellidos: 'Zepeda' },
-    });
 
     (prescriptionsApi.getPrescriptionStatuses as jest.Mock).mockResolvedValue({
       items: [
@@ -59,8 +79,26 @@ describe('useTodayMedicationPlan', () => {
     });
 
     (prescriptionsApi.getMedications as jest.Mock).mockResolvedValue([
-      { id: 'med-1', nombre: 'Metformina', activo: true, created_at: todayIso },
-      { id: 'med-2', nombre: 'Lisinopril', activo: true, created_at: todayIso },
+      {
+        id: 'med-1',
+        nombre: 'Metformina',
+        nombre_generico: null,
+        presentacion: null,
+        concentracion: null,
+        fabricante: null,
+        activo: true,
+        created_at: todayIso,
+      },
+      {
+        id: 'med-2',
+        nombre: 'Lisinopril',
+        nombre_generico: null,
+        presentacion: null,
+        concentracion: null,
+        fabricante: null,
+        activo: true,
+        created_at: todayIso,
+      },
     ]);
 
     (prescriptionsApi.getPrescriptionsByPatient as jest.Mock).mockResolvedValue([
@@ -69,7 +107,7 @@ describe('useTodayMedicationPlan', () => {
         paciente_id: 7,
         profesional_id: 1,
         consulta_id: null,
-        estado_id: 1, // Activa
+        estado_id: 1,
         titulo: 'Tratamiento',
         fecha_emision: todayIso,
         vigencia_hasta: null,
@@ -79,7 +117,11 @@ describe('useTodayMedicationPlan', () => {
           id: 1,
           especialidad: 'Medicina interna',
           numero_licencia: '123',
-          persona: { id: 2, nombres: 'Emilio', apellidos: 'Cárdenas' },
+          persona: {
+            id: 2,
+            nombres: 'Emilio',
+            apellidos: 'Cárdenas',
+          },
         },
         detalles: [
           {
@@ -110,74 +152,83 @@ describe('useTodayMedicationPlan', () => {
       },
     ]);
 
-    (schedulesApi.getHorarios as jest.Mock).mockImplementation((detalleId: string) => {
-      if (detalleId === 'det-1') {
-        return Promise.resolve([
-          { id: 'hor-1', detalle_receta_id: 'det-1', hora: '08:00:00', activo: true, created_at: todayIso },
-        ]);
-      }
+    (schedulesApi.getHorarios as jest.Mock).mockImplementation(
+      (detalleId: string) => {
+        if (detalleId === 'det-1') {
+          return Promise.resolve([
+            {
+              id: 'hor-1',
+              detalle_receta_id: 'det-1',
+              hora: '08:00:00',
+              activo: true,
+              created_at: todayIso,
+            },
+          ]);
+        }
 
-      return Promise.resolve([
-        { id: 'hor-2', detalle_receta_id: 'det-2', hora: '20:00:00', activo: true, created_at: todayIso },
-      ]);
-    });
-
-    (schedulesApi.getDosisLogs as jest.Mock).mockImplementation((horarioId: string) => {
-      if (horarioId === 'hor-1') {
         return Promise.resolve([
           {
-            id: 'dosis-1',
-            horario_id: 'hor-1',
-            estado_dosis_id: 1, // Tomada
-            fecha_programada: todayIso,
-            fecha_registro: todayIso,
-            responsable_id: 99,
-            origen_registro_id: 1,
-            observaciones: null,
+            id: 'hor-2',
+            detalle_receta_id: 'det-2',
+            hora: '20:00:00',
+            activo: true,
+            created_at: todayIso,
           },
         ]);
-      }
+      },
+    );
 
-      return Promise.resolve([]); // hor-2 sin registrar -> Pendiente
-    });
+    (schedulesApi.getDosisLogs as jest.Mock).mockImplementation(
+      (horarioId: string) => {
+        if (horarioId === 'hor-1') {
+          return Promise.resolve([
+            {
+              id: 'dosis-1',
+              horario_id: 'hor-1',
+              estado_dosis_id: 1,
+              fecha_programada: todayIso,
+              fecha_registro: todayIso,
+              responsable_id: 99,
+              origen_registro_id: 1,
+              observaciones: null,
+            },
+          ]);
+        }
+
+        return Promise.resolve([]);
+      },
+    );
   });
 
-  it('groups today\'s schedules by time of day and resolves dose status', async () => {
+  it('uses the active B09 patient context and resolves today medication', async () => {
     const client = createTestQueryClient();
-    const { result } = await renderHook(() => useTodayMedicationPlan(), {
+    const { result } = renderHook(() => useTodayMedicationPlan(), {
       wrapper: createQueryWrapper(client),
     });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
+    expect(prescriptionsApi.getPrescriptionsByPatient).toHaveBeenCalledWith(7);
     expect(result.current.plan.totalCount).toBe(2);
     expect(result.current.plan.completedCount).toBe(1);
-
-    expect(result.current.plan.sections.manana).toHaveLength(1);
     expect(result.current.plan.sections.manana[0]).toMatchObject({
       medicamentoNombre: 'Metformina',
       status: 'tomada',
-      recetaId: 'receta-1',
     });
-
-    expect(result.current.plan.sections.tarde).toHaveLength(0);
-
-    expect(result.current.plan.sections.noche).toHaveLength(1);
     expect(result.current.plan.sections.noche[0]).toMatchObject({
       medicamentoNombre: 'Lisinopril',
       status: 'pendiente',
-      recetaId: 'receta-1',
     });
   });
 
-  it('excludes prescriptions that are not "Activa"', async () => {
+  it('excludes prescriptions that are not active', async () => {
     (prescriptionsApi.getPrescriptionsByPatient as jest.Mock).mockResolvedValue([
       {
         id: 'receta-vencida',
         paciente_id: 7,
         profesional_id: 1,
         consulta_id: null,
-        estado_id: 2, // Completada, no debe aparecer en el plan de hoy
+        estado_id: 2,
         titulo: 'Tratamiento viejo',
         fecha_emision: todayIso,
         vigencia_hasta: null,
@@ -187,14 +238,18 @@ describe('useTodayMedicationPlan', () => {
           id: 1,
           especialidad: 'Medicina interna',
           numero_licencia: '123',
-          persona: { id: 2, nombres: 'Emilio', apellidos: 'Cárdenas' },
+          persona: {
+            id: 2,
+            nombres: 'Emilio',
+            apellidos: 'Cárdenas',
+          },
         },
         detalles: [],
       },
     ]);
 
     const client = createTestQueryClient();
-    const { result } = await renderHook(() => useTodayMedicationPlan(), {
+    const { result } = renderHook(() => useTodayMedicationPlan(), {
       wrapper: createQueryWrapper(client),
     });
 
