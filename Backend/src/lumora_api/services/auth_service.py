@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+import logging
 import secrets
 
 from sqlalchemy import select
@@ -37,6 +38,8 @@ from lumora_api.models import (
 from lumora_api.repositories.auth_repository import AuthRepository
 from lumora_api.schemas.auth import PatientRegistrationRequest
 from lumora_api.services.email_service import EmailService
+
+logger = logging.getLogger(__name__)
 
 
 def _expired(expires_at: datetime) -> bool:
@@ -124,7 +127,7 @@ class AuthService:
         try:
             sender.send_verification_code(str(data.email), code)
         except RuntimeError:
-            pass
+            logger.exception("Email verification delivery failed for user_id=%s", user.id)
         return response
 
     async def authenticate(self, login: str, password: str) -> str:
@@ -260,7 +263,7 @@ class AuthService:
         try:
             sender.send_password_reset(user.email, raw_token)
         except RuntimeError:
-            pass
+            logger.exception("Password recovery email delivery failed for user_id=%s", user.id)
         return raw_token
 
     async def reset_password(self, raw_token: str, new_password: str) -> None:

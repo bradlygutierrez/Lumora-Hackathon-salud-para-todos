@@ -24,12 +24,18 @@ from lumora_api.schemas import (
     VerifyEmailCodeRequest,
 )
 from lumora_api.services.auth_service import AuthService
+from lumora_api.schemas.patient_context import CurrentUserRead
+from lumora_api.services.patient_access_service import PatientAccessService
 
 router = APIRouter(prefix="/auth", tags=["Autenticación"])
 
 
 def client_data(request: Request) -> tuple[str | None, str | None]:
     return (request.client.host if request.client else None, request.headers.get("user-agent"))
+
+@router.get("/me", response_model=CurrentUserRead)
+async def current_user_context(current_user: CurrentUser) -> CurrentUserRead:
+    return CurrentUserRead.model_validate(PatientAccessService.current_user_context(current_user))
 
 
 @router.post("/register", response_model=RegistrationResponse, status_code=status.HTTP_201_CREATED)
