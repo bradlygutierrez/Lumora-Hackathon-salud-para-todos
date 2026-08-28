@@ -26,18 +26,18 @@ import { TextField } from '@/src/shared/components/TextField';
 import { theme } from '@/src/shared/constants/theme';
 
 export default function MfaChallengeScreen() {
-  const { completeTokenSignIn } = useAuthSession();
+  const { completeTokenSignIn, pendingMfa } = useAuthSession();
   const challengeForm = useForm<MfaChallengeFormValues>({
     resolver: zodResolver(mfaChallengeSchema),
     defaultValues: { username: '', password: '' },
   });
   const verifyForm = useForm<MfaVerifyFormValues>({
     resolver: zodResolver(mfaVerifySchema),
-    defaultValues: { challenge_token: '', code: '' },
+    defaultValues: { challenge_token: pendingMfa?.challengeToken ?? '', code: '' },
   });
   const recoveryForm = useForm<MfaRecoveryFormValues>({
     resolver: zodResolver(mfaRecoverySchema),
-    defaultValues: { challenge_token: '', recovery_code: '' },
+    defaultValues: { challenge_token: pendingMfa?.challengeToken ?? '', recovery_code: '' },
   });
 
   const requestChallenge = challengeForm.handleSubmit(async (values) => {
@@ -84,7 +84,7 @@ export default function MfaChallengeScreen() {
             <Text style={styles.subtitle}>
               Ingresa el codigo de verificacion de 6 digitos enviado a tu metodo seleccionado:
             </Text>
-            <Text style={styles.method}>SMS al ****1234</Text>
+            <Text style={styles.method}>Método MFA configurado en tu cuenta</Text>
           </View>
 
           <Controller
@@ -104,20 +104,22 @@ export default function MfaChallengeScreen() {
               </>
             )}
           />
-          <Controller
-            control={verifyForm.control}
-            name="challenge_token"
-            render={({ field: { onBlur, onChange, value } }) => (
-              <TextField
-                autoCapitalize="none"
-                error={verifyForm.formState.errors.challenge_token?.message}
-                label="Desafio"
-                onBlur={onBlur}
-                onChangeText={onChange}
-                value={value}
-              />
-            )}
-          />
+          {!pendingMfa ? (
+            <Controller
+              control={verifyForm.control}
+              name="challenge_token"
+              render={({ field: { onBlur, onChange, value } }) => (
+                <TextField
+                  autoCapitalize="none"
+                  error={verifyForm.formState.errors.challenge_token?.message}
+                  label="Desafio"
+                  onBlur={onBlur}
+                  onChangeText={onChange}
+                  value={value}
+                />
+              )}
+            />
+          ) : null}
           {verifyForm.formState.errors.root?.message ? (
             <Text style={styles.message}>{verifyForm.formState.errors.root.message}</Text>
           ) : null}
@@ -125,14 +127,13 @@ export default function MfaChallengeScreen() {
             Verificar
           </Button>
 
-          <View style={styles.actions}>
-            <Button icon="refresh-outline" onPress={requestChallenge} variant="ghost">
-              Reenviar codigo
-            </Button>
-            <Button icon="swap-horizontal-outline" onPress={() => undefined} variant="ghost">
-              Usar otro metodo
-            </Button>
-          </View>
+          {!pendingMfa ? (
+            <View style={styles.actions}>
+              <Button icon="refresh-outline" onPress={requestChallenge} variant="ghost">
+                Generar nuevo desafío
+              </Button>
+            </View>
+          ) : null}
 
           <View style={styles.recoveryCard}>
             <Controller
@@ -164,48 +165,50 @@ export default function MfaChallengeScreen() {
           </View>
         </View>
 
-        <View style={styles.hiddenChallenge}>
-          <Controller
-            control={challengeForm.control}
-            name="username"
-            render={({ field: { onBlur, onChange, value } }) => (
-              <TextField
-                autoCapitalize="none"
-                error={challengeForm.formState.errors.username?.message}
-                icon="person-outline"
-                label="Usuario"
-                onBlur={onBlur}
-                onChangeText={onChange}
-                value={value}
-              />
-            )}
-          />
-          <Controller
-            control={challengeForm.control}
-            name="password"
-            render={({ field: { onBlur, onChange, value } }) => (
-              <TextField
-                error={challengeForm.formState.errors.password?.message}
-                icon="lock-closed-outline"
-                label="Contraseña"
-                onBlur={onBlur}
-                onChangeText={onChange}
-                secureTextEntry
-                value={value}
-              />
-            )}
-          />
-          {challengeForm.formState.errors.root?.message ? (
-            <Text style={styles.message}>{challengeForm.formState.errors.root.message}</Text>
-          ) : null}
-          <Button
-            icon="send-outline"
-            loading={challengeForm.formState.isSubmitting}
-            onPress={requestChallenge}
-          >
-            Generar desafío
-          </Button>
-        </View>
+        {!pendingMfa ? (
+          <View style={styles.hiddenChallenge}>
+            <Controller
+              control={challengeForm.control}
+              name="username"
+              render={({ field: { onBlur, onChange, value } }) => (
+                <TextField
+                  autoCapitalize="none"
+                  error={challengeForm.formState.errors.username?.message}
+                  icon="person-outline"
+                  label="Usuario"
+                  onBlur={onBlur}
+                  onChangeText={onChange}
+                  value={value}
+                />
+              )}
+            />
+            <Controller
+              control={challengeForm.control}
+              name="password"
+              render={({ field: { onBlur, onChange, value } }) => (
+                <TextField
+                  error={challengeForm.formState.errors.password?.message}
+                  icon="lock-closed-outline"
+                  label="Contraseña"
+                  onBlur={onBlur}
+                  onChangeText={onChange}
+                  secureTextEntry
+                  value={value}
+                />
+              )}
+            />
+            {challengeForm.formState.errors.root?.message ? (
+              <Text style={styles.message}>{challengeForm.formState.errors.root.message}</Text>
+            ) : null}
+            <Button
+              icon="send-outline"
+              loading={challengeForm.formState.isSubmitting}
+              onPress={requestChallenge}
+            >
+              Generar desafío
+            </Button>
+          </View>
+        ) : null}
         <Link href="/(auth)/login" style={styles.link}>
           Volver a inicio de sesion
         </Link>

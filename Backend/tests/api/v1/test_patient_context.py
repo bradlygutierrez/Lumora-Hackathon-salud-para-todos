@@ -2,7 +2,7 @@ import pytest
 from sqlalchemy import select
 
 from lumora_api.core.security import create_access_token, hash_password
-from lumora_api.models import Paciente, Persona, Rol, Usuario
+from lumora_api.models import Paciente, Permiso, Persona, Rol, Usuario
 
 
 async def seed_patient(session_factory):
@@ -60,3 +60,34 @@ async def test_context_routes_reject_invalid_bearer(client):
         headers={"Authorization": "Bearer invalid-token"},
     )
     assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_auth_me_returns_effective_role_permissions(client, session_factory):
+    async with session_factory() as session:
+        permission = Permiso(
+            nombre="clinica:manage", descripcion="Gestionar expedientes clínicos"
+        )
+        role = Rol(nombre="Profesional", permisos=[permission])
+        user = Usuario(
+            persona=Persona(nombres="J08", apellidos="Staff"),
+            email="j08.staff@example.com",
+            username="j08-staff",
+            password_hash=hash_password("Strong123!"),
+            roles=[role],
+        )
+        session.add(user)
+        await session.commit()
+        user_id = user.id
+        permission_id = permission.id
+
+    response = await client.get(
+        "/api/v1/auth/me",
+        headers={"Authorization": f"Bearer {create_access_token(user_id)}"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["roles"][0]["nombre"] == "Profesional"
+    assert response.json()["roles"][0]["permisos"] == [
+        {"id": permission_id, "nombre": "clinica:manage"}
+    ]

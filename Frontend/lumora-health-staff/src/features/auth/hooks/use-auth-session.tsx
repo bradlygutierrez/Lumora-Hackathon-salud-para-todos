@@ -12,21 +12,24 @@ import { env } from '@/src/application/config/env';
 import { fastApiClient, type SessionTokens } from '@/src/shared/api/client';
 import { previewSession } from '@/src/shared/preview/health-staff-preview';
 import { loginStaff, logoutStaff, refreshStaffSession } from '../api/auth.api';
-import { getStaffUser } from '../api/users.api';
+import { getCurrentStaffUser } from '../api/users.api';
 import { secureSessionManager } from '../services/session-storage';
 import type {
   LoginRequest,
+  PendingMfaChallenge,
   SessionStatus,
   StaffSession,
   TokenPairResponse,
 } from '../types/auth.types';
-import { getUserIdFromAccessToken } from '../utils/jwt';
+
+type SignInOutcome = 'authenticated' | 'mfa_required';
 
 type AuthSessionContextValue = {
   session: StaffSession | null;
   status: SessionStatus;
+  pendingMfa: PendingMfaChallenge | null;
   permissions: Set<string>;
-  signIn: (data: LoginRequest) => Promise<void>;
+  signIn: (data: LoginRequest) => Promise<SignInOutcome>;
   completeTokenSignIn: (tokens: TokenPairResponse) => Promise<void>;
   startPreviewSession: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -55,10 +58,12 @@ function permissionSet(session: StaffSession | null) {
 export function AuthSessionProvider({ children }: PropsWithChildren) {
   const [session, setSession] = useState<StaffSession | null>(null);
   const [status, setStatus] = useState<SessionStatus>('restoring');
+  const [pendingMfa, setPendingMfa] = useState<PendingMfaChallenge | null>(null);
 
   const clearSession = useCallback(async () => {
     await secureSessionManager.clearSession();
     setSession(null);
+    setPendingMfa(null);
     setStatus('anonymous');
   }, []);
 
@@ -84,19 +89,15 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
   }, []);
 
   const enrichSession = useCallback(async (baseSession: StaffSession) => {
-    const userId = baseSession.userId ?? getUserIdFromAccessToken(baseSession.accessToken);
-    if (!userId) {
-      return baseSession;
-    }
     if (baseSession.isPreview) {
       return baseSession;
     }
 
     try {
-      const user = await getStaffUser(userId);
-      return { ...baseSession, userId, user };
+      const user = await getCurrentStaffUser(baseSession.accessToken);
+      return { ...baseSession, userId: user.id, user };
     } catch {
-      return { ...baseSession, userId };
+      return baseSession;
     }
   }, []);
 
@@ -142,6 +143,7 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
   }, [enrichSession]);
 
   const completeTokenSignIn = useCallback(async (tokens: TokenPairResponse) => {
+    setPendingMfa(null);
     const baseSession = await secureSessionManager.saveTokenPair(tokens);
     const nextSession = await enrichSession(baseSession);
     await secureSessionManager.saveSession(nextSession);
@@ -149,9 +151,18 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
     setStatus('authenticated');
   }, [enrichSession]);
 
-  const signIn = useCallback(async (data: LoginRequest) => {
-    const tokens = await loginStaff(data);
-    await completeTokenSignIn(tokens);
+  const signIn = useCallback(async (data: LoginRequest): Promise<SignInOutcome> => {
+    const response = await loginStaff(data);
+    if (response.mfa_required) {
+      setPendingMfa({
+        challengeToken: response.challenge_token,
+        expiresIn: response.expires_in,
+      });
+      return 'mfa_required';
+    }
+
+    await completeTokenSignIn(response);
+    return 'authenticated';
   }, [completeTokenSignIn]);
 
   const startPreviewSession = useCallback(async () => {
@@ -190,11 +201,11 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
   }, [clearSession, session]);
 
   const reloadUser = useCallback(async () => {
-    if (!session?.userId || session.isPreview) {
+    if (!session || session.isPreview) {
       return;
     }
-    const user = await getStaffUser(session.userId);
-    const nextSession = { ...session, user };
+    const user = await getCurrentStaffUser(session.accessToken);
+    const nextSession = { ...session, userId: user.id, user };
     await secureSessionManager.saveSession(nextSession);
     setSession(nextSession);
   }, [session]);
@@ -203,6 +214,7 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
     () => ({
       session,
       status,
+      pendingMfa,
       permissions: permissionSet(session),
       signIn,
       completeTokenSignIn,
@@ -214,6 +226,7 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
     [
       completeTokenSignIn,
       reloadUser,
+      pendingMfa,
       session,
       signIn,
       signOut,

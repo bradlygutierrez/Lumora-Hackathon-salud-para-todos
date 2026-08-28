@@ -1,13 +1,18 @@
 import { apiClient } from '@/src/shared/api/client';
 import {
+  changeStaffPassword,
   createMfaChallenge,
   forgotPassword,
   listStaffSessions,
   loginStaff,
   logoutAllStaffSessions,
+  logoutOtherStaffSessions,
+  revokeStaffSession,
   recoverMfaChallenge,
+  resendEmailVerification,
   refreshStaffSession,
   verifyEmail,
+  verifyEmailCode,
   verifyMfaChallenge,
 } from '../api/auth.api';
 
@@ -15,6 +20,7 @@ jest.mock('@/src/shared/api/client', () => ({
   apiClient: {
     get: jest.fn(),
     post: jest.fn(),
+    delete: jest.fn(),
   },
 }));
 
@@ -74,6 +80,21 @@ describe('auth API', () => {
     expect(mockedApiClient.post).toHaveBeenCalledWith('/auth/logout-all');
   });
 
+
+  it('revokes one session and logs out other sessions without closing the current session', async () => {
+    expect(revokeStaffSession).toEqual(expect.any(Function));
+    expect(logoutOtherStaffSessions).toEqual(expect.any(Function));
+
+    mockedApiClient.delete.mockResolvedValueOnce({ data: undefined });
+    mockedApiClient.post.mockResolvedValueOnce({ data: { message: 'ok' } });
+
+    await revokeStaffSession(42);
+    await expect(logoutOtherStaffSessions()).resolves.toEqual({ message: 'ok' });
+
+    expect(mockedApiClient.delete).toHaveBeenCalledWith('/auth/sessions/42');
+    expect(mockedApiClient.post).toHaveBeenCalledWith('/auth/logout-others');
+  });
+
   it('calls recovery and verification endpoints with backend schemas', async () => {
     mockedApiClient.post.mockResolvedValue({ data: { message: 'ok' } });
 
@@ -119,4 +140,37 @@ describe('auth API', () => {
       recovery_code: 'recovery-code',
     });
   });
+
+  it('changes the authenticated staff password with the backend schema', async () => {
+    mockedApiClient.post.mockResolvedValueOnce({ data: { message: 'Contraseña actualizada' } });
+
+    await expect(
+      changeStaffPassword({
+        current_password: 'StrongOld123!',
+        new_password: 'Stronger123!',
+      }),
+    ).resolves.toEqual({ message: 'Contraseña actualizada' });
+
+    expect(mockedApiClient.post).toHaveBeenCalledWith('/auth/change-password', {
+      current_password: 'StrongOld123!',
+      new_password: 'Stronger123!',
+    });
+  });
+
+
+  it('verifies and resends email using the six-digit backend contract', async () => {
+    mockedApiClient.post.mockResolvedValue({ data: { message: 'ok' } });
+
+    await verifyEmailCode({ email: 'doctor@example.com', code: '123456' });
+    await resendEmailVerification({ email: 'doctor@example.com' });
+
+    expect(mockedApiClient.post).toHaveBeenCalledWith('/auth/verify-email', {
+      email: 'doctor@example.com',
+      code: '123456',
+    });
+    expect(mockedApiClient.post).toHaveBeenCalledWith('/auth/resend-verification', {
+      email: 'doctor@example.com',
+    });
+  });
+
 });

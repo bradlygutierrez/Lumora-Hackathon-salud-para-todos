@@ -1,7 +1,9 @@
 import { apiClient } from '@/src/shared/api/client';
 import type {
+  ChangePasswordRequest,
   ForgotPasswordRequest,
   LoginRequest,
+  LoginResponse,
   MessageResponse,
   MfaChallengeRequest,
   MfaChallengeResponse,
@@ -10,14 +12,16 @@ import type {
   MfaSetupRequest,
   MfaSetupResponse,
   MfaVerifyRequest,
+  ResendVerificationRequest,
   ResetPasswordRequest,
   SessionRead,
   TokenPairResponse,
+  VerifyEmailCodeRequest,
   VerifyEmailRequest,
 } from '../types/auth.types';
 
-export async function loginStaff(data: LoginRequest): Promise<TokenPairResponse> {
-  const response = await apiClient.post<TokenPairResponse>('/auth/login', data);
+export async function loginStaff(data: LoginRequest): Promise<LoginResponse> {
+  const response = await apiClient.post<LoginResponse>('/auth/login', data);
   return response.data;
 }
 
@@ -42,6 +46,15 @@ export async function listStaffSessions(): Promise<SessionRead[]> {
   return response.data;
 }
 
+export async function revokeStaffSession(sessionId: number): Promise<void> {
+  await apiClient.delete(`/auth/sessions/${sessionId}`);
+}
+
+export async function logoutOtherStaffSessions(): Promise<MessageResponse> {
+  const response = await apiClient.post<MessageResponse>('/auth/logout-others');
+  return response.data;
+}
+
 export async function forgotPassword(data: ForgotPasswordRequest): Promise<MessageResponse> {
   const response = await apiClient.post<MessageResponse>('/auth/forgot-password', data);
   return response.data;
@@ -52,8 +65,29 @@ export async function resetPassword(data: ResetPasswordRequest): Promise<Message
   return response.data;
 }
 
+export async function changeStaffPassword(
+  data: ChangePasswordRequest,
+): Promise<MessageResponse> {
+  const response = await apiClient.post<MessageResponse>('/auth/change-password', data);
+  return response.data;
+}
+
 export async function verifyEmail(data: VerifyEmailRequest): Promise<MessageResponse> {
   const response = await apiClient.post<MessageResponse>('/auth/verify-email', data);
+  return response.data;
+}
+
+export async function verifyEmailCode(
+  data: VerifyEmailCodeRequest,
+): Promise<MessageResponse> {
+  const response = await apiClient.post<MessageResponse>('/auth/verify-email', data);
+  return response.data;
+}
+
+export async function resendEmailVerification(
+  data: ResendVerificationRequest,
+): Promise<MessageResponse> {
+  const response = await apiClient.post<MessageResponse>('/auth/resend-verification', data);
   return response.data;
 }
 

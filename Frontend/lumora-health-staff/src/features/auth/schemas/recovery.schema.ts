@@ -13,7 +13,8 @@ export const resetPasswordSchema = z.object({
 });
 
 export const verifyEmailSchema = z.object({
-  token: z.string().min(32, 'Token requerido').max(200, 'Token demasiado largo'),
+  email: z.email('Correo inválido'),
+  code: z.string().regex(/^\d{6}$/, 'El código debe tener 6 dígitos'),
 });
 
 export type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;

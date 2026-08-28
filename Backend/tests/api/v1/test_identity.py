@@ -3,7 +3,7 @@ from sqlalchemy import select
 
 from lumora_api.core.security import verify_password
 from lumora_api.core.security import create_access_token
-from lumora_api.models import ContactoEmergencia, Rol, Usuario
+from lumora_api.models import ContactoEmergencia, Permiso, Rol, Usuario
 
 
 async def create_user(client, session_factory, *, email="ana@example.com", username="ana"):
@@ -30,6 +30,20 @@ async def create_user(client, session_factory, *, email="ana@example.com", usern
             },
         },
     )
+
+
+async def grant_permissions(session_factory, user_id: int, *permission_names: str):
+    async with session_factory() as session:
+        user = await session.get(Usuario, user_id)
+        role = Rol(nombre=f"J08-{user_id}-{'-'.join(permission_names)}")
+        role.permisos = [Permiso(nombre=name) for name in permission_names]
+        user.roles.append(role)
+        session.add(role)
+        await session.commit()
+
+
+def auth_headers(user_id: int) -> dict[str, str]:
+    return {"Authorization": f"Bearer {create_access_token(user_id)}"}
 
 
 @pytest.mark.asyncio
@@ -112,15 +126,34 @@ async def test_profiles_contacts_and_soft_delete_preserve_rows(client, session_f
 
 @pytest.mark.asyncio
 async def test_professional_profile_requires_existing_person(client, session_factory):
+    manager = (
+        await create_user(
+            client,
+            session_factory,
+            email="manager-existing@example.com",
+            username="manager-existing",
+        )
+    ).json()
+    await grant_permissions(
+        session_factory, manager["id"], "clinica:manage", "usuarios:editar"
+    )
+    headers = auth_headers(manager["id"])
+
     missing = await client.post(
         "/api/v1/profesionales",
-        json={"persona_id": 999, "especialidad": "Cardiología", "numero_licencia": "MED-1"},
+        headers=headers,
+        json={
+            "persona_id": 999,
+            "especialidad": "Cardiología",
+            "numero_licencia": "MED-1",
+        },
     )
     assert missing.status_code == 404
 
     user = (await create_user(client, session_factory)).json()
     created = await client.post(
         "/api/v1/profesionales",
+        headers=headers,
         json={
             "persona_id": user["persona"]["id"],
             "especialidad": "Cardiología",
@@ -132,10 +165,105 @@ async def test_professional_profile_requires_existing_person(client, session_fac
     professional_id = created.json()["id"]
     updated = await client.patch(
         f"/api/v1/profesionales/{professional_id}",
+        headers=headers,
         json={"especialidad": "Medicina interna"},
     )
     assert updated.json()["especialidad"] == "Medicina interna"
-    assert (await client.get("/api/v1/profesionales")).json()["total"] == 1
     assert (
-        await client.delete(f"/api/v1/profesionales/{professional_id}")
+        await client.get("/api/v1/profesionales", headers=headers)
+    ).json()["total"] == 1
+    assert (
+        await client.delete(
+            f"/api/v1/profesionales/{professional_id}", headers=headers
+        )
     ).status_code == 204
+
+
+@pytest.mark.asyncio
+async def test_professional_directory_requires_clinical_permission(
+    client, session_factory
+):
+    anonymous = await client.get("/api/v1/profesionales")
+    assert anonymous.status_code == 401
+
+    patient = (
+        await create_user(
+            client,
+            session_factory,
+            email="patient@example.com",
+            username="patient-j08",
+        )
+    ).json()
+    forbidden = await client.get(
+        "/api/v1/profesionales", headers=auth_headers(patient["id"])
+    )
+    assert forbidden.status_code == 403
+    assert forbidden.json()["error"]["code"] == "forbidden"
+
+    clinician = (
+        await create_user(
+            client,
+            session_factory,
+            email="clinician@example.com",
+            username="clinician-j08",
+        )
+    ).json()
+    await grant_permissions(session_factory, clinician["id"], "clinica:manage")
+    allowed = await client.get(
+        "/api/v1/profesionales", headers=auth_headers(clinician["id"])
+    )
+    assert allowed.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_professional_mutations_require_user_edit_permission(
+    client, session_factory
+):
+    target = (
+        await create_user(
+            client,
+            session_factory,
+            email="target@example.com",
+            username="target-j08",
+        )
+    ).json()
+
+    clinician = (
+        await create_user(
+            client,
+            session_factory,
+            email="clinician2@example.com",
+            username="clinician2-j08",
+        )
+    ).json()
+    await grant_permissions(session_factory, clinician["id"], "clinica:manage")
+    forbidden = await client.post(
+        "/api/v1/profesionales",
+        headers=auth_headers(clinician["id"]),
+        json={
+            "persona_id": target["persona"]["id"],
+            "especialidad": "Cardiología",
+            "numero_licencia": "J08-NO-EDIT",
+        },
+    )
+    assert forbidden.status_code == 403
+
+    manager = (
+        await create_user(
+            client,
+            session_factory,
+            email="manager@example.com",
+            username="manager-j08",
+        )
+    ).json()
+    await grant_permissions(session_factory, manager["id"], "usuarios:editar")
+    created = await client.post(
+        "/api/v1/profesionales",
+        headers=auth_headers(manager["id"]),
+        json={
+            "persona_id": target["persona"]["id"],
+            "especialidad": "Cardiología",
+            "numero_licencia": "J08-EDIT",
+        },
+    )
+    assert created.status_code == 201

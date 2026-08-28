@@ -32,7 +32,10 @@ export default function LoginScreen() {
 
   const onSubmit = handleSubmit(async (values) => {
     try {
-      await signIn(values);
+      const outcome = await signIn(values);
+      if (outcome === 'mfa_required') {
+        router.push('/(auth)/mfa-challenge');
+      }
     } catch (error) {
       const apiError = toApiError(error);
       setError('root', { message: apiError.message });

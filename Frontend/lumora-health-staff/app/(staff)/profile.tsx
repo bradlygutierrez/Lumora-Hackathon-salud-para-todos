@@ -4,20 +4,22 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { AppTopBar } from '@/src/shared/components/AppTopBar';
 import { useAuthSession } from '@/src/features/auth/hooks/use-auth-session';
+import { useMfaMethods } from '@/src/features/auth/hooks/use-security';
 import { useProfessionals } from '@/src/features/profile/hooks/use-professionals';
-import { Button } from '@/src/shared/components/Button';
 import { Screen } from '@/src/shared/components/Screen';
 import { StaffAvatar } from '@/src/shared/components/StaffAvatar';
 import { theme } from '@/src/shared/constants/theme';
 
 export default function StaffProfileScreen() {
-  const { reloadUser, session, signOut } = useAuthSession();
+  const { session, signOut } = useAuthSession();
   const professionals = useProfessionals();
+  const mfaMethods = useMfaMethods();
   const user = session?.user;
   const professional = professionals.data?.items.find(
     (item) => item.persona.id === user?.persona.id,
   );
   const fullName = user ? `${user.persona.nombres} ${user.persona.apellidos}` : 'Perfil no resuelto';
+  const mfaActive = Boolean(mfaMethods.data?.some((method) => method.activo));
 
   return (
     <Screen>
@@ -31,31 +33,29 @@ export default function StaffProfileScreen() {
               lastName={user?.persona.apellidos}
               size={96}
             />
-            <View style={styles.avatarBadge}>
-              <Ionicons color={theme.color.primary} name="pencil" size={12} />
-            </View>
           </View>
           <Text style={styles.title}>{fullName}</Text>
           <Text style={styles.subtitle}>{user?.email ?? 'Correo no disponible'}</Text>
-          <Text style={styles.subtitle}>{user?.persona.telefono ?? 'Telefono no disponible'}</Text>
+          <Text style={styles.subtitle}>{professional?.persona.telefono ?? 'Teléfono no disponible'}</Text>
           <View style={styles.badges}>
             <Badge
               icon="mail-outline"
               label={user?.email_verificado ? 'Correo verificado' : 'Correo pendiente'}
             />
-            <Badge icon="shield-checkmark-outline" label="MFA Activo" active />
+            <Badge
+              icon="shield-checkmark-outline"
+              label={`MFA ${mfaActive ? 'Activo' : 'Inactivo'}`}
+              active={mfaActive}
+            />
           </View>
         </View>
 
         <View style={styles.menuCard}>
-          <MenuRow icon="create-outline" title="Editar Perfil" />
-          <MenuRow icon="keypad-outline" title="Cambiar Contraseña" />
           <Link href="/(staff)/security" asChild>
             <Pressable>
               <MenuRow icon="shield-checkmark-outline" title="Centro de Seguridad" />
             </Pressable>
           </Link>
-          <MenuRow icon="options-outline" title="Ajustes de la App" />
           <Pressable onPress={signOut}>
             <MenuRow danger icon="log-out-outline" title="Cerrar Sesión" />
           </Pressable>
@@ -70,9 +70,6 @@ export default function StaffProfileScreen() {
           <Text style={styles.label}>Roles</Text>
           <Text style={styles.value}>{user?.roles.map((role) => role.nombre).join(', ') || 'Sin roles cargados'}</Text>
         </View>
-        <Button accessibilityLabel="Recargar perfil" icon="refresh-outline" onPress={reloadUser} variant="secondary">
-          Recargar perfil
-        </Button>
       </ScrollView>
     </Screen>
   );

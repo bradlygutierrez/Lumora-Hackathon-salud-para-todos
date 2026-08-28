@@ -1,5 +1,5 @@
 import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Redirect, Stack } from 'expo-router';
+import { Redirect, Stack, type Href } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
@@ -26,7 +26,7 @@ const navigationTheme = {
 };
 
 function RootNavigator() {
-  const { status } = useAuthSession();
+  const { permissions, status } = useAuthSession();
 
   if (status === 'restoring') {
     return <LoadingState title="Restaurando sesión clínica" />;
@@ -37,8 +37,11 @@ function RootNavigator() {
       <Stack>
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="(staff)" options={{ headerShown: false }} />
+        <Stack.Screen name="unauthorized" options={{ headerShown: false }} />
       </Stack>
-      {status === 'authenticated' ? <Redirect href="/(staff)" /> : null}
+      {status === 'authenticated' ? (
+        <Redirect href={(permissions.has('clinica:manage') ? '/(staff)' : '/unauthorized') as Href} />
+      ) : null}
       {status === 'anonymous' ? <Redirect href="/(auth)/login" /> : null}
       <StatusBar style="auto" />
     </>
