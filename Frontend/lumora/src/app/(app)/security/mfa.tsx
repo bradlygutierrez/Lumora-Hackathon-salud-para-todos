@@ -1,117 +1,727 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Text, View } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native';
+import {
+  useState,
+} from 'react';
 
-import { authApi } from '@/features/auth/api/auth-api';
-import { ApiError } from '@/shared/api/api-error';
-import { AppButton } from '@/shared/components/AppButton';
-import { Screen } from '@/shared/components/Screen';
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
+
+import {
+  Text,
+  View,
+} from 'react-native';
+
+import {
+  authApi,
+} from '@/features/auth/api/auth-api';
+
+import {
+  VerificationCodeInput,
+} from '@/features/auth/components/VerificationCodeInput';
+
+import type {
+  MfaMethod,
+  MfaMethodName,
+} from '@/features/auth/types/auth.types';
+
+import {
+  ApiError,
+} from '@/shared/api/api-error';
+
+import {
+  AppButton,
+} from '@/shared/components/AppButton';
+
+import {
+  Screen,
+} from '@/shared/components/Screen';
 
 /**
- * Configuración MFA autenticada.
+ * Encapsula las reglas visuales y de interacción
+ * del enrollment MFA.
  *
- * El backend B08 anuncia solo `totp`. No existe SMS y la UI no lo ofrece.
+ * No conoce React ni Zustand.
+ */
+class MfaEnrollmentController {
+  /**
+   * Determina si un código puede enviarse.
+   */
+  public canConfirm(
+    code: string,
+  ): boolean {
+    return /^\d{6}$/.test(
+      code,
+    );
+  }
+
+  /**
+   * Nombre amigable del factor.
+   */
+  public title(
+    method: MfaMethodName,
+  ): string {
+    return method ===
+      'email'
+      ? 'Código por correo'
+      : 'App de autenticación';
+  }
+
+  /**
+   * Texto descriptivo utilizado
+   * en las tarjetas principales.
+   */
+  public description(
+    method: MfaMethodName,
+  ): string {
+    if (
+      method ===
+      'email'
+    ) {
+      return (
+        'Recibe un código de 6 dígitos en tu correo ' +
+        'cada vez que necesites verificar tu identidad.'
+      );
+    }
+
+    return (
+      'Usa Google Authenticator, Microsoft Authenticator, ' +
+      'Authy u otra aplicación compatible con TOTP.'
+    );
+  }
+
+  /**
+   * Estado legible para UI.
+   */
+  public status(
+    method: MfaMethod,
+  ): string {
+    return method.activo
+      ? 'Activo'
+      : 'Inactivo';
+  }
+
+  /**
+   * Convierte expiración en segundos
+   * a minutos legibles.
+   */
+  public expirationMinutes(
+    seconds:
+      number | null,
+  ): number | null {
+    if (!seconds) {
+      return null;
+    }
+
+    return Math.max(
+      1,
+      Math.ceil(
+        seconds /
+          60,
+      ),
+    );
+  }
+}
+
+const enrollmentController =
+  new MfaEnrollmentController();
+
+/**
+ * Centro de configuración MFA.
+ *
+ * Flujo:
+ *
+ * Email:
+ * setup -> OTP correo -> confirm -> active
+ *
+ * TOTP:
+ * setup -> secret -> código app -> confirm -> active
  */
 export default function SecurityMfaRoute() {
-  const queryClient = useQueryClient();
+  const queryClient =
+    useQueryClient();
 
-  const methods = useQuery({
-    queryKey: ['auth', 'mfa-methods'],
-    queryFn: () => authApi.mfaMethods(),
-  });
+  /**
+   * Método que actualmente está siendo configurado.
+   */
+  const [
+    enrollmentMethod,
+    setEnrollmentMethod,
+  ] =
+    useState<MfaMethodName | null>(
+      null,
+    );
 
-  const setup = useMutation({
-    mutationFn: (methodId: number) => authApi.setupMfa(methodId),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ['auth', 'mfa-methods'] }),
-  });
+  /**
+   * Código de confirmación de 6 dígitos.
+   */
+  const [
+    code,
+    setCode,
+  ] =
+    useState('');
 
-  const disable = useMutation({
-    mutationFn: (configuredMethodId: number) =>
-      authApi.disableMfa(configuredMethodId),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ['auth', 'mfa-methods'] }),
-  });
+  /**
+   * Se muestran solamente después
+   * de activar MFA correctamente.
+   */
+  const [
+    recoveryCodes,
+    setRecoveryCodes,
+  ] =
+    useState<string[]>([]);
 
-  const totp = methods.data?.find((method) => method.nombre === 'totp');
+  // =========================================================
+  // QUERY DE MÉTODOS
+  // =========================================================
+
+  const methods =
+    useQuery({
+      queryKey: [
+        'auth',
+        'mfa-methods',
+      ],
+
+      queryFn: () =>
+        authApi.mfaMethods(),
+    });
+
+  // =========================================================
+  // INICIAR CONFIGURACIÓN
+  // =========================================================
+
+  const setup =
+    useMutation({
+      mutationFn:
+        (
+          method: MfaMethod,
+        ) =>
+          authApi.setupMfa(
+            method.metodo_id,
+          ),
+
+      onSuccess:
+        () => {
+          setCode('');
+          setRecoveryCodes(
+            [],
+          );
+
+          /**
+           * El método continúa inactivo.
+           * Refrescamos por consistencia con backend.
+           */
+          void queryClient
+            .invalidateQueries({
+              queryKey: [
+                'auth',
+                'mfa-methods',
+              ],
+            });
+        },
+    });
+
+  // =========================================================
+  // CONFIRMAR CONFIGURACIÓN
+  // =========================================================
+
+  const confirm =
+    useMutation({
+      mutationFn:
+        async (
+          verificationCode:
+            string,
+        ) => {
+          if (
+            !setup.data
+          ) {
+            throw new Error(
+              'No existe una configuración MFA pendiente.',
+            );
+          }
+
+          return authApi
+            .confirmMfaSetup(
+              setup.data
+                .method_id,
+
+              verificationCode,
+            );
+        },
+
+      /**
+       * Solamente aquí MFA pasa a activo.
+       */
+      onSuccess:
+        (
+          response,
+        ) => {
+          setRecoveryCodes(
+            response
+              .recovery_codes,
+          );
+
+          setCode('');
+
+          setEnrollmentMethod(
+            null,
+          );
+
+          /**
+           * Ya no necesitamos los datos
+           * temporales del setup.
+           */
+          setup.reset();
+
+          void queryClient
+            .invalidateQueries({
+              queryKey: [
+                'auth',
+                'mfa-methods',
+              ],
+            });
+        },
+    });
+
+  // =========================================================
+  // DESACTIVAR MFA
+  // =========================================================
+
+  const disable =
+    useMutation({
+      mutationFn:
+        (
+          configuredMethodId:
+            number,
+        ) =>
+          authApi.disableMfa(
+            configuredMethodId,
+          ),
+
+      onSuccess:
+        () => {
+          setCode('');
+
+          setRecoveryCodes(
+            [],
+          );
+
+          setEnrollmentMethod(
+            null,
+          );
+
+          setup.reset();
+          confirm.reset();
+
+          void queryClient
+            .invalidateQueries({
+              queryKey: [
+                'auth',
+                'mfa-methods',
+              ],
+            });
+        },
+    });
+
+  /**
+   * Buscamos por nombre y nunca por ID fijo.
+   *
+   * Los IDs pertenecen al catálogo de base de datos
+   * y no deben hardcodearse.
+   */
+  const email =
+    methods.data?.find(
+      (
+        method,
+      ) =>
+        method.nombre ===
+        'email',
+    );
+
+  const totp =
+    methods.data?.find(
+      (
+        method,
+      ) =>
+        method.nombre ===
+        'totp',
+    );
+
+  /**
+   * Inicia un nuevo enrollment.
+   */
+  const startSetup = (
+    method: MfaMethod,
+  ) => {
+    setEnrollmentMethod(
+      method.nombre,
+    );
+
+    setCode('');
+
+    setRecoveryCodes(
+      [],
+    );
+
+    confirm.reset();
+
+    setup.mutate(
+      method,
+    );
+  };
+
+  /**
+   * Confirma el código solamente si
+   * cumple el formato esperado.
+   */
+  const confirmSetup =
+    () => {
+      if (
+        !enrollmentController
+          .canConfirm(
+            code,
+          )
+      ) {
+        return;
+      }
+
+      confirm.mutate(
+        code,
+      );
+    };
+
+  /**
+   * Reutiliza el mismo diseño para ambas
+   * tarjetas de métodos MFA.
+   */
+  const renderMethodCard = (
+    method: MfaMethod,
+  ) => (
+    <View
+      key={
+        method.nombre
+      }
+      className="gap-4 rounded-3xl border border-lumen-300 bg-bone-300 p-5"
+    >
+      <View className="gap-1">
+        <Text className="text-lg font-bold text-coal-900">
+          {
+            enrollmentController.title(
+              method.nombre,
+            )
+          }
+        </Text>
+
+        <Text className="text-sm leading-5 text-coal-500">
+          {
+            enrollmentController.description(
+              method.nombre,
+            )
+          }
+        </Text>
+      </View>
+
+      <View className="self-start rounded-full bg-lumen-300 px-3 py-1.5">
+        <Text className="text-xs font-semibold text-coal-900">
+          {
+            enrollmentController.status(
+              method,
+            )
+          }
+        </Text>
+      </View>
+
+      {method.activo &&
+      method.id ? (
+        <AppButton
+          variant="ghost"
+          title="Desactivar"
+          loading={
+            disable.isPending
+          }
+          onPress={() =>
+            disable.mutate(
+              method.id!,
+            )
+          }
+        />
+      ) : (
+        <AppButton
+          title={
+            method.nombre ===
+            'email'
+              ? 'Configurar correo'
+              : 'Configurar aplicación'
+          }
+          loading={
+            setup.isPending &&
+            enrollmentMethod ===
+              method.nombre
+          }
+          onPress={() =>
+            startSetup(
+              method,
+            )
+          }
+        />
+      )}
+    </View>
+  );
 
   return (
-    <Screen scrollable contentClassName="gap-5">
-      <View className="gap-1">
+    <Screen
+      scrollable
+      keyboardAvoiding
+      contentClassName="gap-6"
+    >
+      <View className="gap-2">
         <Text className="text-3xl font-bold text-coal-900">
-          Autenticación de Dos Factores
+          Autenticación de dos factores
         </Text>
+
         <Text className="text-base leading-6 text-coal-500">
-          Lumora soporta Authenticator/TOTP. SMS no está implementado.
+          Agrega una capa extra de seguridad a tu cuenta.
         </Text>
       </View>
 
       {methods.isPending ? (
-        <Text className="text-sm text-coal-500">Consultando métodos...</Text>
+        <Text className="text-sm text-coal-500">
+          Consultando métodos de seguridad...
+        </Text>
       ) : null}
 
       {methods.error ? (
-        <Text accessibilityRole="alert" className="text-sm text-coal-900">
-          {methods.error instanceof ApiError
-            ? methods.error.message
-            : 'No fue posible consultar MFA.'}
+        <Text
+          accessibilityRole="alert"
+          className="text-sm text-coal-900"
+        >
+          {methods.error instanceof
+          ApiError
+            ? methods.error
+                .message
+            : 'No fue posible consultar los métodos MFA.'}
         </Text>
       ) : null}
 
-      {totp ? (
-        <View className="gap-3 rounded-2xl border border-lumen-300 bg-bone-300 p-4">
-          <Text className="text-lg font-semibold text-coal-900">
-            App de autenticación
-          </Text>
-          <Text className="text-sm text-coal-500">
-            Estado: {totp.activo ? 'Activo' : 'Inactivo'}
-          </Text>
+      {email
+        ? renderMethodCard(
+            email,
+          )
+        : null}
 
-          {totp.activo && totp.id ? (
-            <AppButton
-              variant="ghost"
-              title="Desactivar"
-              loading={disable.isPending}
-              onPress={() => disable.mutate(totp.id!)}
-            />
-          ) : (
-            <AppButton
-              title="Configurar"
-              loading={setup.isPending}
-              onPress={() => setup.mutate(totp.metodo_id)}
-            />
-          )}
+      {totp
+        ? renderMethodCard(
+            totp,
+          )
+        : null}
+
+      {setup.error ? (
+        <Text
+          accessibilityRole="alert"
+          className="text-sm text-coal-900"
+        >
+          {setup.error instanceof
+          ApiError
+            ? setup.error
+                .message
+            : 'No fue posible iniciar la configuración MFA.'}
+        </Text>
+      ) : null}
+
+      {/* =====================================================
+          EMAIL OTP ENROLLMENT
+         ===================================================== */}
+
+      {setup.data &&
+      enrollmentMethod ===
+        'email' ? (
+        <View className="gap-5 rounded-3xl bg-lumen-300 p-5">
+          <View className="gap-1">
+            <Text className="text-lg font-bold text-coal-900">
+              Revisa tu correo
+            </Text>
+
+            <Text className="text-sm leading-5 text-coal-700">
+              Enviamos un código de 6 dígitos a tu correo electrónico.
+              Escríbelo para activar este método.
+            </Text>
+
+            {enrollmentController
+              .expirationMinutes(
+                setup.data
+                  .expires_in,
+              ) ? (
+              <Text className="text-xs text-coal-500">
+                El código expira en aproximadamente{' '}
+                {
+                  enrollmentController
+                    .expirationMinutes(
+                      setup.data
+                        .expires_in,
+                    )
+                }{' '}
+                minuto(s).
+              </Text>
+            ) : null}
+          </View>
+
+          <VerificationCodeInput
+            value={code}
+            onChange={
+              setCode
+            }
+          />
+
+          <AppButton
+            title="Confirmar código"
+            loading={
+              confirm.isPending
+            }
+            onPress={
+              confirmSetup
+            }
+          />
         </View>
       ) : null}
 
-      {setup.error ? (
-        <Text accessibilityRole="alert" className="text-sm text-coal-900">
-          {setup.error instanceof ApiError
-            ? setup.error.message
-            : 'No fue posible configurar MFA.'}
+      {/* =====================================================
+          TOTP ENROLLMENT
+         ===================================================== */}
+
+      {setup.data &&
+      enrollmentMethod ===
+        'totp' ? (
+        <View className="gap-5 rounded-3xl bg-lumen-300 p-5">
+          <View className="gap-1">
+            <Text className="text-lg font-bold text-coal-900">
+              Configura tu aplicación
+            </Text>
+
+            <Text className="text-sm leading-5 text-coal-700">
+              Agrega Lumora a tu aplicación Authenticator y después
+              ingresa el código generado.
+            </Text>
+          </View>
+
+          {setup.data
+            .secret ? (
+            <View className="gap-2 rounded-2xl bg-bone-300 p-4">
+              <Text className="text-xs font-semibold text-coal-500">
+                Clave manual
+              </Text>
+
+              <Text
+                selectable
+                className="font-mono text-base font-semibold text-coal-900"
+              >
+                {
+                  setup.data
+                    .secret
+                }
+              </Text>
+            </View>
+          ) : null}
+
+          {setup.data
+            .provisioning_uri ? (
+            <View className="gap-2">
+              <Text className="text-xs font-semibold text-coal-500">
+                URI de configuración
+              </Text>
+
+              <Text
+                selectable
+                className="text-xs leading-5 text-coal-700"
+              >
+                {
+                  setup.data
+                    .provisioning_uri
+                }
+              </Text>
+            </View>
+          ) : null}
+
+          <View className="gap-2">
+            <Text className="text-sm font-semibold text-coal-900">
+              Código de la aplicación
+            </Text>
+
+            <VerificationCodeInput
+              value={code}
+              onChange={
+                setCode
+              }
+            />
+          </View>
+
+          <AppButton
+            title="Activar autenticación"
+            loading={
+              confirm.isPending
+            }
+            onPress={
+              confirmSetup
+            }
+          />
+        </View>
+      ) : null}
+
+      {/* =====================================================
+          ERRORES DE CONFIRMACIÓN
+         ===================================================== */}
+
+      {confirm.error ? (
+        <Text
+          accessibilityRole="alert"
+          className="text-sm text-coal-900"
+        >
+          {confirm.error instanceof
+          ApiError
+            ? confirm.error
+                .message
+            : 'El código ingresado no es válido.'}
         </Text>
       ) : null}
 
-      {setup.data ? (
-        <View className="gap-3 rounded-2xl bg-lumen-300 p-4">
-          <Text className="font-bold text-coal-900">Configuración TOTP</Text>
-          <Text className="text-sm leading-5 text-coal-700">
-            Agrega esta clave manualmente en tu app de autenticación.
-          </Text>
-          <Text selectable className="font-mono text-sm text-coal-900">
-            {setup.data.secret}
-          </Text>
-          <Text selectable className="text-xs text-coal-500">
-            {setup.data.provisioning_uri}
-          </Text>
+      {/* =====================================================
+          RECOVERY CODES
+         ===================================================== */}
 
-          <Text className="mt-2 text-sm font-semibold text-coal-900">
-            Guarda estos códigos de recuperación en un lugar seguro:
-          </Text>
-          {setup.data.recovery_codes.map((code) => (
-            <Text key={code} selectable className="font-mono text-sm text-coal-700">
-              {code}
+      {recoveryCodes.length >
+      0 ? (
+        <View className="gap-4 rounded-3xl border border-lumen-500/30 bg-bone-300 p-5">
+          <View className="gap-1">
+            <Text className="text-lg font-bold text-coal-900">
+              Códigos de recuperación
             </Text>
-          ))}
+
+            <Text className="text-sm leading-5 text-coal-500">
+              Guarda estos códigos en un lugar seguro. Solo se muestran
+              una vez y cada uno puede utilizarse una sola vez.
+            </Text>
+          </View>
+
+          <View className="gap-2 rounded-2xl bg-lumen-300 p-4">
+            {recoveryCodes.map(
+              (
+                recoveryCode,
+              ) => (
+                <Text
+                  key={
+                    recoveryCode
+                  }
+                  selectable
+                  className="font-mono text-sm font-semibold text-coal-900"
+                >
+                  {
+                    recoveryCode
+                  }
+                </Text>
+              ),
+            )}
+          </View>
         </View>
       ) : null}
     </Screen>
