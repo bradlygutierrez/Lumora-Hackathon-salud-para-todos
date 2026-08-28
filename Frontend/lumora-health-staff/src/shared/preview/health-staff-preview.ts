@@ -5,6 +5,14 @@ import type {
   StaffUser,
 } from '@/src/features/auth/types/auth.types';
 import type { Page, Professional } from '@/src/features/profile/types/professional.types';
+import type {
+  CatalogItem as PatientCatalogItem,
+  Page as PatientPage,
+  Patient,
+  PatientClinicalSummary,
+  PatientDetail,
+  PatientFamilyRelationship,
+} from '@/src/features/patients/types/patient.types';
 
 export const previewStaffUser: StaffUser = {
   id: 9001,
@@ -125,3 +133,190 @@ export const previewMfaMethods: MfaMethod[] = [
     activo: true,
   },
 ];
+
+
+export const previewSexesPage: PatientPage<PatientCatalogItem> = {
+  items: [
+    { id: 1, nombre: 'Masculino' },
+    { id: 2, nombre: 'Femenino' },
+    { id: 3, nombre: 'Otro' },
+  ],
+  total: 3,
+  limit: 100,
+  offset: 0,
+};
+
+export const previewBloodTypesPage: PatientPage<PatientCatalogItem> = {
+  items: [
+    { id: 1, nombre: 'O+' },
+    { id: 2, nombre: 'A+' },
+    { id: 3, nombre: 'B+' },
+    { id: 4, nombre: 'AB+' },
+  ],
+  total: 4,
+  limit: 100,
+  offset: 0,
+};
+
+const previewPatients: Patient[] = [
+  {
+    id: 101,
+    tipo_sangre_id: 1,
+    alergias: 'Penicilina',
+    persona: {
+      id: 8101,
+      nombres: 'Ana',
+      apellidos: 'Morales',
+      fecha_nacimiento: '1988-06-14',
+      telefono: '8888-1201',
+      email: 'ana.morales@example.com',
+      sexo_id: 2,
+      direcciones: [
+        {
+          id: 7101,
+          linea_1: 'Reparto San Juan, casa 18',
+          ciudad: 'Managua',
+          departamento: 'Managua',
+          pais: 'Nicaragua',
+          codigo_postal: null,
+          es_principal: true,
+        },
+      ],
+    },
+  },
+  {
+    id: 102,
+    tipo_sangre_id: 2,
+    alergias: null,
+    persona: {
+      id: 8102,
+      nombres: 'Carlos',
+      apellidos: 'Gutiérrez',
+      fecha_nacimiento: '1979-11-02',
+      telefono: '8888-1202',
+      email: 'carlos.gutierrez@example.com',
+      sexo_id: 1,
+      direcciones: [
+        {
+          id: 7102,
+          linea_1: 'Las Colinas, calle 4',
+          ciudad: 'Managua',
+          departamento: 'Managua',
+          pais: 'Nicaragua',
+          codigo_postal: null,
+          es_principal: true,
+        },
+      ],
+    },
+  },
+  {
+    id: 103,
+    tipo_sangre_id: 3,
+    alergias: 'Mariscos',
+    persona: {
+      id: 8103,
+      nombres: 'María',
+      apellidos: 'López',
+      fecha_nacimiento: '1995-03-25',
+      telefono: '8888-1203',
+      email: 'maria.lopez@example.com',
+      sexo_id: 2,
+      direcciones: [
+        {
+          id: 7103,
+          linea_1: 'Villa Fontana, bloque B',
+          ciudad: 'Managua',
+          departamento: 'Managua',
+          pais: 'Nicaragua',
+          codigo_postal: null,
+          es_principal: true,
+        },
+      ],
+    },
+  },
+];
+
+export const previewPatientsPage: PatientPage<Patient> = {
+  items: previewPatients,
+  total: previewPatients.length,
+  limit: 10,
+  offset: 0,
+};
+
+export const previewPatientDetails: Record<number, PatientDetail> = {
+  101: {
+    ...previewPatients[0],
+    contactos_emergencia: [
+      {
+        id: 501,
+        paciente_id: 101,
+        nombre: 'Roberto Morales',
+        parentesco: 'Hermano',
+        telefono: '8888-5001',
+        email: 'roberto.morales@example.com',
+      },
+    ],
+  },
+  102: {
+    ...previewPatients[1],
+    contactos_emergencia: [
+      {
+        id: 502,
+        paciente_id: 102,
+        nombre: 'Lucía Gutiérrez',
+        parentesco: 'Esposa',
+        telefono: '8888-5002',
+        email: null,
+      },
+    ],
+  },
+  103: {
+    ...previewPatients[2],
+    contactos_emergencia: [],
+  },
+};
+
+export const previewPatientFamilies: Record<number, PatientFamilyRelationship[]> = {
+  101: [
+    {
+      id: 601,
+      usuario_relacionado_id: 9201,
+      nombres: 'Valeria',
+      apellidos: 'Morales',
+      tipo_relacion_id: 2,
+      tipo_relacion: 'Hija',
+      recibir_notificaciones: true,
+      estado: 'active',
+      nivel_acceso: 'read',
+      expira_en: null,
+    },
+  ],
+  102: [],
+  103: [],
+};
+
+export const previewPatientSummaries: Record<number, PatientClinicalSummary> = {
+  101: {
+    paciente_id: 101,
+    expediente: {
+      id: 7001,
+      paciente_id: 101,
+      estado_expediente_id: 1,
+      numero_expediente: 'LM-2026-0101',
+      notas: 'Expediente de demostración para revisión visual.',
+      activo: true,
+    },
+  },
+  102: {
+    paciente_id: 102,
+    expediente: {
+      id: 7002,
+      paciente_id: 102,
+      estado_expediente_id: 1,
+      numero_expediente: 'LM-2026-0102',
+      notas: null,
+      activo: true,
+    },
+  },
+  103: { paciente_id: 103, expediente: null },
+};
