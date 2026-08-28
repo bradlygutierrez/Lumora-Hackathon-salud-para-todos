@@ -2,8 +2,10 @@ from datetime import datetime
 
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from lumora_api.models import Cita
+from lumora_api.models.identity import ProfesionalSalud
 
 
 class AppointmentRepository:
@@ -15,7 +17,9 @@ class AppointmentRepository:
 
     async def list(self, paciente_id: int | None, profesional_id: int | None,
                    desde: datetime | None, hasta: datetime | None) -> list[Cita]:
-        query = select(Cita).order_by(Cita.inicio)
+        query = select(Cita).options(
+            selectinload(Cita.professional).selectinload(ProfesionalSalud.persona)
+        ).order_by(Cita.inicio)
         if paciente_id is not None:
             query = query.where(Cita.paciente_id == paciente_id)
         if profesional_id is not None:

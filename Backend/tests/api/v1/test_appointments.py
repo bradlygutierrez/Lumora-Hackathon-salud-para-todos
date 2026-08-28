@@ -34,6 +34,8 @@ async def test_appointment_crud_overlap_filters_and_audit(client, session_factor
     assert (await client.post("/api/v1/citas", json=payload, headers=headers)).status_code == 409
     listed = await client.get(f"/api/v1/citas?paciente_id={patient_id}", headers=headers)
     assert [item["id"] for item in listed.json()] == [appointment_id]
+    professional = listed.json()[0]["professional"]
+    assert professional == {"id": professional_id, "full_name": "D Uno", "specialty": "General"}
     assert (await client.patch(f"/api/v1/citas/{appointment_id}", json={"notas": "Actualizada"}, headers=headers)).status_code == 200
     assert (await client.delete(f"/api/v1/citas/{appointment_id}", headers=headers)).status_code == 204
     async with session_factory() as session:
