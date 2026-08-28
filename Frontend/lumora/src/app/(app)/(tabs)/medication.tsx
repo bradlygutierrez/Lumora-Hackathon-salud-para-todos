@@ -113,6 +113,15 @@ export default function MedicationRoute() {
           <AppButton title="Ver receta completa" variant="ghost" />
         </Link>
       ) : null}
+
+      {/* Entrada provisional a Indicadores de Salud (A08): la entrada
+          "oficial" del Figma es desde "Mi Salud" (B10, todavía sin
+          construir), así que mientras esa pantalla no exista se deja este
+          acceso acá para que la feature sea alcanzable y se pueda probar.
+          Quitar esta línea cuando B10 conecte su propio enlace. */}
+      <Link href="/(app)/health-indicators" asChild>
+        <AppButton title="Ver mis indicadores de salud" variant="ghost" />
+      </Link>
     </Screen>
   );
 }
