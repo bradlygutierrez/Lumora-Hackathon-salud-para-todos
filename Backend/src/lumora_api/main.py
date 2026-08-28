@@ -1,6 +1,8 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
+from urllib.parse import urlencode
+from html import escape
 
 from lumora_api.api.v1.router import api_router
 from lumora_api.core.config import get_settings
@@ -92,3 +94,13 @@ async def global_exception_handler(_: Request, error: Exception) -> JSONResponse
 @app.get("/", tags=["Health"], summary="Comprobar estado de la API")
 async def root() -> dict[str, str]:
     return {"message": "Lumora API"}
+
+
+@app.get("/reset-password", include_in_schema=False, response_class=HTMLResponse)
+async def reset_password_bridge(token: str) -> HTMLResponse:
+    app_url = f"{settings.password_reset_deep_link}?{urlencode(dict(token=token))}"
+    safe_url = escape(app_url, quote=True)
+    html = f"""<!doctype html><html><head><meta name=\"robots\" content=\"noindex,nofollow\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>Restablecer contraseña</title></head>
+<body><main><h1>Restablecer contraseña</h1><p>Abriendo Lumora…</p><p><a href=\"{safe_url}\">Abrir Lumora</a></p><p>Necesitas tener Lumora instalado en este dispositivo para continuar.</p></main>
+<script>window.location.replace({safe_url!r});</script></body></html>"""
+    return HTMLResponse(html, headers={"Cache-Control": "no-store, no-cache, must-revalidate", "Pragma": "no-cache"})

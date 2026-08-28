@@ -38,8 +38,9 @@ def test_password_reset_email_contains_encoded_deep_link_and_html_button():
     settings = Settings(database_url="sqlite+aiosqlite://", smtp_username="sender@gmail.com", smtp_app_password="app-password", email_from="sender@gmail.com")
     EmailService(settings, factory).send_password_reset("user@example.com", "abc+/=?123")
     message = instances[0].message
-    encoded = "lumora://reset-password?token=abc%2B%2F%3D%3F123"
+    encoded = "https://backend-3d83d7df.fastapicloud.dev/reset-password?token=abc%2B%2F%3D%3F123"
     parts = [part.get_content() for part in message.walk() if part.get_content_type() in {"text/plain", "text/html"}]
     assert any(encoded in part for part in parts)
     assert any("Restablecer contrase" in part for part in parts)
+    assert all("lumora://reset-password" not in part for part in parts)
     assert any("href=\"" + encoded + "\"" in part for part in parts)

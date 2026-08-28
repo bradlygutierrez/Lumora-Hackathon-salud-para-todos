@@ -13,7 +13,7 @@ class EmailService:
         self._send(recipient, "Código de verificación de Lumora", f"Tu código de verificación es: {code}\n")
 
     def send_password_reset(self, recipient: str, token: str) -> None:
-        link = f"{self.settings.password_reset_deep_link}?{urlencode(dict(token=token))}"
+        link = f"{self.settings.password_reset_web_url}?{urlencode(dict(token=token))}"
         plain = ("Solicitaste restablecer tu contraseña de Lumora.\n\n"
                  "Abre este enlace desde el dispositivo donde tienes Lumora instalado:\n\n"
                  f"<{link}>\n\nEste enlace expira en 30 minutos.\n\n"
