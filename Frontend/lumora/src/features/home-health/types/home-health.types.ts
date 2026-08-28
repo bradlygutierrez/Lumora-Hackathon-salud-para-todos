@@ -5,12 +5,15 @@ import type {
 } from '@/features/health-indicators/types/health-indicators.types';
 
 /**
- * Contratos propios de B10 — Inicio + Mi Salud.
+ * Contratos de B10: Inicio + Mi Salud.
  *
- * Los DTO que vienen directamente de FastAPI conservan snake_case.
- * Los modelos derivados para UI usan camelCase porque ya no representan
- * literalmente el contrato HTTP.
+ * Los DTO provenientes directamente de FastAPI
+ * mantienen snake_case.
  */
+
+// =========================================================
+// HEALTH SUMMARY
+// =========================================================
 
 export type AllergySummary = {
   id: number;
@@ -34,30 +37,55 @@ export type HealthSummaryResponse = {
   active_conditions: ActiveConditionSummary[];
 };
 
+// =========================================================
+// APPOINTMENTS
+// =========================================================
+
+/**
+ * Información mínima y segura del profesional
+ * incluida por B10 dentro de cada cita.
+ */
+export type AppointmentProfessionalSummary = {
+  id: number;
+  full_name: string;
+  specialty: string;
+};
+
+/**
+ * Contrato real de AppointmentRead.
+ *
+ * Backend:
+ *
+ * GET /api/v1/citas?paciente_id={patientId}
+ */
 export type AppointmentResponse = {
   id: number;
+
   paciente_id: number;
   profesional_id: number;
 
   /**
-   * Campo opcional preparado para el follow-up backend B10.
-   * El contrato actual solo envía profesional_id; mientras no exista, la
-   * UI usa un fallback sin inventar el nombre del profesional.
+   * Puede ser null si por alguna razón la relación
+   * con el profesional no está disponible.
    */
-  professional?: {
-    id: number;
-    full_name: string;
-    specialty: string | null;
-  };
+  professional:
+    AppointmentProfessionalSummary | null;
 
   tipo_cita_id: number | null;
   estado_cita_id: number | null;
+
   inicio: string;
   fin: string;
+
   notas: string | null;
+
   created_at: string;
   updated_at: string;
 };
+
+// =========================================================
+// GENERIC CATALOG
+// =========================================================
 
 export type CatalogItem = {
   id: number;
@@ -72,44 +100,94 @@ export type CatalogPage = {
   offset: number;
 };
 
+// =========================================================
+// MEDICATION
+// =========================================================
+
 /**
- * Próxima dosis calculada a partir de recetas activas + horarios + logs.
- * No existe como DTO agregado en FastAPI, por eso es un modelo de UI.
+ * Modelo calculado por frontend.
+ *
+ * FastAPI todavía no expone una única ruta
+ * "next dose", por eso B10 compone esta información
+ * usando recetas, horarios y registros de dosis.
  */
 export type NextDose = {
   horarioId: string;
   detalleRecetaId: string;
   recetaId: string;
+
   medicationName: string;
+
   dose: string;
+
   instructions: string | null;
+
   scheduledAt: string;
+
   isOverdue: boolean;
 };
 
+// =========================================================
+// B10 DASHBOARD
+// =========================================================
+
 /**
- * Snapshot único que comparten Inicio y Mi Salud.
- * La query siempre está scoped por patientId para soportar Paciente y
- * Cuidador autorizado sin reutilizar datos de otro contexto.
+ * Snapshot completo utilizado por:
+ *
+ * - Inicio Paciente
+ * - Inicio Cuidador
+ * - Mi Salud
+ *
+ * Todo está scoped al patientId seleccionado por B09.
  */
 export type HomeHealthDashboardData = {
   patientId: number;
-  healthSummary: HealthSummaryResponse;
-  measurements: MedicionIndicadorResponse[];
-  alerts: AlertaClinicaResponse[];
-  indicators: IndicadorMedicoResponse[];
-  measurementUnits: CatalogItem[];
-  appointmentTypes: CatalogItem[];
-  appointments: AppointmentResponse[];
-  nextDose: NextDose | null;
+
+  healthSummary:
+    HealthSummaryResponse;
+
+  measurements:
+    MedicionIndicadorResponse[];
+
+  alerts:
+    AlertaClinicaResponse[];
+
+  indicators:
+    IndicadorMedicoResponse[];
+
+  measurementUnits:
+    CatalogItem[];
+
+  appointmentTypes:
+    CatalogItem[];
+
+  appointments:
+    AppointmentResponse[];
+
+  nextDose:
+    NextDose | null;
+
   fetchedAt: string;
 };
 
+// =========================================================
+// HEALTH METRICS
+// =========================================================
+
+/**
+ * Modelo derivado utilizado para presentar
+ * la última medición de cada indicador.
+ */
 export type HealthMetric = {
   indicatorId: string;
+
   name: string;
+
   value: string;
+
   unit: string;
+
   measuredAt: string;
+
   hasAlert: boolean;
 };
