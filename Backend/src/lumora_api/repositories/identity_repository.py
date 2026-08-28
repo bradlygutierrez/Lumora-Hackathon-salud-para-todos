@@ -37,6 +37,19 @@ class IdentityRepository(Generic[ModelT]):
             )
         )
 
+    async def get_by_persona_id(self, persona_id: int) -> ModelT | None:
+        """Busca el perfil (Paciente/ProfesionalSalud/...) ligado a una Persona.
+
+        Se usa para resolver, a partir del usuario autenticado (que conoce su
+        persona_id), cuál es su propio registro de paciente/profesional sin
+        depender de que el cliente adivine o reciba un id numérico.
+        """
+        return await self.session.scalar(
+            select(self.model).where(
+                self.model.persona_id == persona_id, self.model.deleted_at.is_(None)
+            )
+        )
+
     async def create(self, values: dict) -> ModelT:
         item = self.model(**values)
         self.session.add(item)
