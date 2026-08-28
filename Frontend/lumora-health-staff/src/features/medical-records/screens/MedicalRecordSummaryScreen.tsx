@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { type Href, useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useAuthSession } from '@/src/features/auth/hooks/use-auth-session';
