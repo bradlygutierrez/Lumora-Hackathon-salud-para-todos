@@ -22,6 +22,7 @@ from lumora_api.schemas import (
 from lumora_api.schemas.clinical import (
     ClinicalAlertSummary,
     ClinicalMeasurementSummary,
+    ClinicalPatientIdentitySummary,
     ClinicalPrescriptionSummary,
 )
 
@@ -38,6 +39,7 @@ class ClinicalIntegrationService:
         if record is None:
             return PatientClinicalSummary(
                 paciente_id=patient_id,
+                paciente=ClinicalPatientIdentitySummary.model_validate(patient.persona),
                 expediente=None,
                 antecedentes=[],
                 alergias=[],
@@ -52,6 +54,7 @@ class ClinicalIntegrationService:
         payload = await self.repository.summary_payload(record)
         return PatientClinicalSummary(
             paciente_id=patient_id,
+            paciente=ClinicalPatientIdentitySummary.model_validate(patient.persona),
             expediente=MedicalRecordRead.model_validate(payload["record"]),
             antecedentes=[
                 MedicalHistoryRead.model_validate(item) for item in payload["histories"]

@@ -279,6 +279,15 @@ class ConsultationClinicalSummary(BaseModel):
     diagnosticos: list[DiagnosisRead]
 
 
+class ClinicalPatientIdentitySummary(BaseModel):
+    id: int
+    nombres: str
+    apellidos: str
+    fecha_nacimiento: date | None
+    sexo_id: int | None
+    model_config = ConfigDict(from_attributes=True)
+
+
 class ClinicalPrescriptionSummary(BaseModel):
     id: str
     profesional_id: int
@@ -317,6 +326,7 @@ class ClinicalAlertSummary(BaseModel):
 
 class PatientClinicalSummary(BaseModel):
     paciente_id: int
+    paciente: ClinicalPatientIdentitySummary
     expediente: MedicalRecordRead | None
     antecedentes: list[MedicalHistoryRead]
     alergias: list[AllergyRead]

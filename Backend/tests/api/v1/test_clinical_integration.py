@@ -280,6 +280,8 @@ async def test_clinical_summary_timeline_and_search(client, session_factory):
     )
     assert summary.status_code == 200
     payload = summary.json()
+    assert payload["paciente"]["nombres"] == "Paciente"
+    assert payload["paciente"]["apellidos"] == "J05"
     assert payload["expediente"]["id"] == setup["record_id"]
     assert payload["antecedentes"][0]["descripcion"] == "Diabetes familiar"
     assert payload["alergias"][0]["nombre"] == "Penicilina"
