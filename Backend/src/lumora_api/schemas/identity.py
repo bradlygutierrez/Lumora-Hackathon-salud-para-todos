@@ -65,7 +65,7 @@ class UserUpdate(BaseModel):
 
 class UserRead(BaseModel):
     id: int
-    email: EmailStr
+    email: str
     username: str
     activo: bool
     email_verificado: bool
