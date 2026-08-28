@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from lumora_api.core.exceptions import PermissionDeniedError
 from lumora_api.models.identity import Paciente, Usuario
 from lumora_api.repositories.identity_repository import IdentityRepository
+from lumora_api.repositories.reminders import ReminderRepository
 
 CLINICAL_STAFF_PERMISSION = "clinica:manage"
 
@@ -46,6 +47,12 @@ async def ensure_can_access_patient_data(
     """
     if paciente_id is None or is_clinical_staff(user):
         return
+    roles = {role.nombre.lower() for role in user.roles}
+    if "cuidador" in roles:
+        relationships = await ReminderRepository(session).get_active_relationships_for_caregiver(user.id)
+        if any(item.paciente_id == paciente_id for item in relationships):
+            return
+
     my_patient_id = await own_patient_id(session, user)
     if my_patient_id != paciente_id:
         raise PermissionDeniedError(

@@ -3,7 +3,8 @@ from uuid import UUID
 
 from fastapi import APIRouter, Query, status
 
-from lumora_api.api.dependencies import SessionDep
+from lumora_api.api.dependencies import CurrentUser, SessionDep
+from lumora_api.services.authorization import ensure_can_access_patient_data
 from lumora_api.schemas.health_indicators import (
     AlertaClinicaResponse,
     AlertaClinicaUpdate,
@@ -73,7 +74,9 @@ async def registrar_medicion(
 async def list_mediciones_paciente(
     paciente_id: int,
     session: SessionDep,
+    current_user: CurrentUser,
 ):
+    await ensure_can_access_patient_data(session, current_user, paciente_id)
     return await HealthIndicatorsService.get_mediciones_paciente(session, paciente_id)
 
 
@@ -92,11 +95,11 @@ async def list_todas_alertas(
 async def list_alertas_paciente(
     paciente_id: int,
     session: SessionDep,
+    current_user: CurrentUser,
     solo_pendientes: bool = Query(True),
 ):
-    return await HealthIndicatorsService.get_alertas_paciente(
-        session, paciente_id, solo_pendientes
-    )
+    await ensure_can_access_patient_data(session, current_user, paciente_id)
+    return await HealthIndicatorsService.get_alertas_paciente(session, paciente_id, solo_pendientes)
 
 
 @router.patch("/alerts/{alerta_id}/attend", response_model=AlertaClinicaResponse)
