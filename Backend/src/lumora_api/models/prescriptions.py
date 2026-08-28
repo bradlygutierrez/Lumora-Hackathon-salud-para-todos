@@ -35,7 +35,9 @@ class Receta(Base):
     profesional_id: Mapped[int] = mapped_column(Integer, ForeignKey("profesionales_salud.id"), nullable=False, index=True)
     consulta_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("consultas_medicas.id"), nullable=True, index=True)
     estado_id: Mapped[int] = mapped_column(Integer, ForeignKey("estados_receta.id"), nullable=False, default=1)
-    
+
+    titulo: Mapped[Optional[str]] = mapped_column(String(150), nullable=True)
+
     fecha_emision: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     vigencia_hasta: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     observaciones: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
@@ -43,7 +45,11 @@ class Receta(Base):
 
     # Relaciones
     paciente: Mapped["Paciente"] = relationship("Paciente")
-    profesional: Mapped["ProfesionalSalud"] = relationship("ProfesionalSalud")
+    # lazy="selectin": RecetaResponse anida los datos del profesional (nombre,
+    # especialidad) directamente en la respuesta, y SQLAlchemy async no puede
+    # hacer lazy-load "select" normal fuera de un contexto sync: sin esto,
+    # serializar `receta.profesional` en la respuesta lanzaría MissingGreenlet.
+    profesional: Mapped["ProfesionalSalud"] = relationship("ProfesionalSalud", lazy="selectin")
     consulta: Mapped[Optional["ConsultaMedica"]] = relationship("ConsultaMedica")
     estado: Mapped["EstadoReceta"] = relationship("EstadoReceta")
     detalles: Mapped[List["DetalleReceta"]] = relationship("DetalleReceta", back_populates="receta", cascade="all, delete-orphan")

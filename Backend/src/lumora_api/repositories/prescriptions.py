@@ -59,7 +59,11 @@ class PrescriptionRepository:
 
         self.session.add(receta)
         await self.session.commit()
-        await self.session.refresh(receta, attribute_names=["detalles"])
+        # "profesional" se incluye aquí (y no solo "detalles") porque
+        # RecetaResponse ahora anida los datos del profesional; sin
+        # refrescarlo, el primer acceso ocurriría durante la serialización
+        # de la respuesta y no dentro de un await de SQLAlchemy.
+        await self.session.refresh(receta, attribute_names=["detalles", "profesional"])
         return receta
 
     async def get_receta_by_id(self, receta_id: str) -> Optional[Receta]:
@@ -85,7 +89,7 @@ class PrescriptionRepository:
         for key, value in update_data.items():
             setattr(receta, key, value)
         await self.session.commit()
-        await self.session.refresh(receta, attribute_names=["detalles"])
+        await self.session.refresh(receta, attribute_names=["detalles", "profesional"])
         return receta
 
     # --- DETALLES DE RECETA ---
@@ -117,3 +121,17 @@ class PrescriptionRepository:
     async def delete_detalle(self, detalle: DetalleReceta) -> None:
         await self.session.delete(detalle)
         await self.session.commit()
+
+    # --- APOYO PARA AUTORIZACIÓN (paciente dueño del recurso) ---
+    async def get_paciente_id_for_receta(self, receta_id: str) -> Optional[int]:
+        return await self.session.scalar(
+            select(Receta.paciente_id).where(Receta.id == receta_id)
+        )
+
+    async def get_paciente_id_for_detalle(self, detalle_receta_id: str) -> Optional[int]:
+        query = (
+            select(Receta.paciente_id)
+            .join(DetalleReceta, DetalleReceta.receta_id == Receta.id)
+            .where(DetalleReceta.id == detalle_receta_id)
+        )
+        return await self.session.scalar(query)

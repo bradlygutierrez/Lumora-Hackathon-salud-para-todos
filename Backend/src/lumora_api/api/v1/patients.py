@@ -42,6 +42,27 @@ async def create_patient(data: PatientCreate, session: SessionDep):
     return await service(session).create(data)
 
 
+@router.get(
+    "/me",
+    response_model=PatientRead,
+    responses={404: ERRORS[404]},
+    summary="Perfil de paciente del usuario autenticado",
+)
+async def get_my_patient_profile(session: SessionDep, current_user: CurrentUser):
+    """Resuelve el paciente_id del usuario logueado.
+
+    El JWT solo conoce el usuario_id; este endpoint hace el salto
+    Usuario -> Persona -> Paciente para que el frontend pueda llamar
+    endpoints como GET /prescriptions/patient/{paciente_id} sin tener
+    que adivinar o guardar ese id manualmente.
+
+    Debe declararse ANTES de /{patient_id}: si se pusiera después,
+    FastAPI intentaría convertir "me" a int para esa ruta y fallaría
+    con 422 en vez de resolver este endpoint.
+    """
+    return await service(session).get_by_persona_id(current_user.persona_id)
+
+
 @router.get("/{patient_id}", response_model=PatientRead, responses={404: ERRORS[404]})
 async def get_patient(patient_id: int, current_user: CurrentUser, session: SessionDep):
     await PatientAccessService(PatientAccessRepository(session)).require_access(current_user, patient_id)

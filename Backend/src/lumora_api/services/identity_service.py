@@ -118,6 +118,15 @@ class UserService(IdentityService):
 class PatientService(IdentityService):
     resource_name = "Paciente"
 
+    async def get_by_persona_id(self, persona_id: int) -> Paciente:
+        """Resuelve el perfil de paciente del usuario autenticado (GET /pacientes/me)."""
+        patient = await self.repository.get_by_persona_id(persona_id)
+        if patient is None:
+            raise ResourceNotFoundError(
+                "El usuario autenticado no tiene un perfil de paciente asociado"
+            )
+        return patient
+
     async def create(self, data: PatientCreate) -> Paciente:
         person = await self._person(data.persona_id)
         patient = await self.repository.create(

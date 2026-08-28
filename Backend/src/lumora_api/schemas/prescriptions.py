@@ -2,6 +2,8 @@ from datetime import datetime
 from typing import Optional, List
 from pydantic import BaseModel, ConfigDict, Field
 
+from lumora_api.schemas.identity import ProfessionalRead
+
 
 # --- MEDICAMENTOS ---
 class MedicamentoBase(BaseModel):
@@ -73,6 +75,7 @@ class RecetaCreate(BaseModel):
     profesional_id: int
     consulta_id: Optional[int] = None
     estado_id: int = 1
+    titulo: Optional[str] = Field(default=None, max_length=150)
     vigencia_hasta: Optional[datetime] = None
     observaciones: Optional[str] = None
     detalles: List[DetalleRecetaCreate]
@@ -80,6 +83,7 @@ class RecetaCreate(BaseModel):
 
 class RecetaUpdate(BaseModel):
     estado_id: Optional[int] = None
+    titulo: Optional[str] = Field(default=None, max_length=150)
     vigencia_hasta: Optional[datetime] = None
     observaciones: Optional[str] = None
 
@@ -90,10 +94,15 @@ class RecetaResponse(BaseModel):
     profesional_id: int
     consulta_id: Optional[int] = None
     estado_id: int
+    titulo: Optional[str] = None
     fecha_emision: datetime
     vigencia_hasta: Optional[datetime] = None
     observaciones: Optional[str] = None
     created_at: datetime
     detalles: List[DetalleRecetaResponse] = []
+    # Evita que el frontend tenga que hacer una llamada aparte a
+    # /professionals/{id} solo para pintar "Dr. X · Especialidad" en la
+    # tarjeta de Detalle de Receta.
+    profesional: ProfessionalRead
 
     model_config = ConfigDict(from_attributes=True)
