@@ -1,18 +1,56 @@
 from datetime import datetime
-from typing import Sequence
+from typing import List, Sequence
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from lumora_api.repositories.patient_access_repository import PatientAccessRepository
 from lumora_api.repositories.reminders import ReminderRepository
 from lumora_api.models.reminders import Recordatorio, Notificacion, PreferenciaNotificacion, RelacionPaciente
 from lumora_api.schemas.reminders import (
     RecordatorioCreate,
     RecordatorioUpdate,
+    NotificacionResponse,
     PreferenciaNotificacionUpdate,
     RelacionPacienteCreate,
 )
 
+
+def _tipo_notificacion(notificacion: Notificacion) -> str:
+    """A09: deriva el tipo (alerta/recordatorio/cita/sistema) mirando cuál
+    de los 3 campos de origen tiene el Recordatorio asociado. Nunca se
+    calcula en el frontend -- ver checklist "No inventar diagnóstico/
+    recomendaciones en frontend"."""
+    recordatorio = notificacion.recordatorio
+    if recordatorio is None:
+        return "sistema"
+    if recordatorio.alerta_id is not None:
+        return "alerta"
+    if recordatorio.cita_id is not None:
+        return "cita"
+    if recordatorio.horario_medicamento_id is not None:
+        return "recordatorio"
+    return "sistema"
+
+
+def _to_notificacion_response(notificacion: Notificacion) -> NotificacionResponse:
+    return NotificacionResponse(
+        id=notificacion.id,
+        usuario_id=notificacion.usuario_id,
+        recordatorio_id=notificacion.recordatorio_id,
+        titulo=notificacion.titulo,
+        mensaje=notificacion.mensaje,
+        canal=notificacion.canal,
+        tipo=_tipo_notificacion(notificacion),
+        enviado=notificacion.enviado,
+        fecha_envio=notificacion.fecha_envio,
+        leido=notificacion.leido,
+        fecha_lectura=notificacion.fecha_lectura,
+        creado_en=notificacion.creado_en,
+    )
+
+
 class ReminderService:
     def __init__(self, session: AsyncSession):
+        self.session = session
         self.repo = ReminderRepository(session)
 
     # Recordatorios
@@ -40,16 +78,35 @@ class ReminderService:
         await self.repo.delete_recordatorio(rec)
 
     # Notificaciones
-    async def obtener_notificaciones_usuario(self, usuario_id: int) -> Sequence[Notificacion]:
-        return await self.repo.get_notificaciones_by_usuario(usuario_id)
+    async def obtener_notificaciones_usuario(self, usuario_id: int) -> List[NotificacionResponse]:
+        notificaciones = await self.repo.get_notificaciones_by_usuario(usuario_id)
+        return [_to_notificacion_response(n) for n in notificaciones]
 
-    async def marcar_notificacion_leida(self, id: int) -> Notificacion:
+    async def obtener_notificaciones_paciente(self, paciente_id: int) -> List[NotificacionResponse]:
+        # A09: resuelve paciente -> persona -> usuario (comparten
+        # persona_id, igual que en PatientAccessService) para que un
+        # cuidador pueda consultar por el paciente activo, no por su
+        # propio usuario_id.
+        usuario_id = await PatientAccessRepository(self.session).user_id_for_patient(paciente_id)
+        if usuario_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="El paciente no tiene una cuenta de usuario asociada",
+            )
+        return await self.obtener_notificaciones_usuario(usuario_id)
+
+    async def obtener_notificacion_por_id(self, id: int) -> Notificacion:
         notif = await self.repo.get_notificacion_by_id(id)
         if not notif:
             raise HTTPException(status_code=404, detail="Notificación no encontrada")
+        return notif
+
+    async def marcar_notificacion_leida(self, id: int) -> NotificacionResponse:
+        notif = await self.obtener_notificacion_por_id(id)
         notif.leido = True
         notif.fecha_lectura = datetime.now()
-        return await self.repo.update_notificacion(notif)
+        actualizada = await self.repo.update_notificacion(notif)
+        return _to_notificacion_response(actualizada)
 
     # Preferencias
     async def obtener_preferencias(self, usuario_id: int) -> PreferenciaNotificacion:

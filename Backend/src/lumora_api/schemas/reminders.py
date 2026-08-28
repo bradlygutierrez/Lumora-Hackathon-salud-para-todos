@@ -49,6 +49,9 @@ class NotificacionCreate(NotificacionBase):
 
 class NotificacionResponse(NotificacionBase):
     id: int
+    # A09: calculado en el backend a partir del Recordatorio asociado --
+    # nunca lo decide el frontend (ver ReminderService._tipo_notificacion).
+    tipo: Literal["alerta", "recordatorio", "cita", "sistema"]
     enviado: bool
     fecha_envio: Optional[datetime] = None
     leido: bool

@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 from lumora_api.models.reminders import (
     Recordatorio,
     Notificacion,
@@ -42,12 +43,23 @@ class ReminderRepository:
 
     # --- NOTIFICACIONES ---
     async def get_notificaciones_by_usuario(self, usuario_id: int) -> Sequence[Notificacion]:
-        stmt = select(Notificacion).where(Notificacion.usuario_id == usuario_id)
+        # selectinload trae el Recordatorio asociado en la misma consulta
+        # (A09: necesario para derivar el "tipo" sin N+1 llamadas).
+        stmt = (
+            select(Notificacion)
+            .options(selectinload(Notificacion.recordatorio))
+            .where(Notificacion.usuario_id == usuario_id)
+            .order_by(Notificacion.creado_en.desc())
+        )
         res = await self.session.execute(stmt)
         return res.scalars().all()
 
     async def get_notificacion_by_id(self, notificacion_id: int) -> Optional[Notificacion]:
-        stmt = select(Notificacion).where(Notificacion.id == notificacion_id)
+        stmt = (
+            select(Notificacion)
+            .options(selectinload(Notificacion.recordatorio))
+            .where(Notificacion.id == notificacion_id)
+        )
         res = await self.session.execute(stmt)
         return res.scalar_one_or_none()
 

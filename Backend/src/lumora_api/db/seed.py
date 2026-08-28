@@ -55,7 +55,7 @@ CATALOGS = {
     UnidadMedida: ["mg", "g", "ml", "UI", "mcg", "Tableta", "Cápsula", "Gota", "mmHg", "mg/dL", "kg", "%", "°C"],
     OrigenRegistro: ["Manual", "Dispositivo", "Profesional"],
     NivelSeveridad: ["Baja", "Media", "Alta", "Crítica"],
-    TipoAlerta: ["Interacción", "Dosis Olvidada", "Reabastecimiento", "Efecto Secundario"],
+    TipoAlerta: ["Interacción", "Dosis Olvidada", "Reabastecimiento", "Efecto Secundario", "Medición Fuera de Rango"],
     TipoRecordatorio: ["Medicación", "Cita", "Medición"],
     TipoRelacion: ["Padre/Madre", "Hijo/a", "Cónyuge", "Tutor Legal", "Otro"],
 }

@@ -20,3 +20,19 @@ class PatientAccessRepository:
                 Paciente.deleted_at.is_(None),
             )
         )
+
+    async def user_id_for_patient(self, patient_id: int) -> int | None:
+        # A09: sentido inverso de patient_for_user -- resuelve la cuenta de
+        # usuario propia del paciente (comparten persona_id) para poder
+        # consultar sus notificaciones por paciente_id/patientContext.
+        return await self.session.scalar(
+            select(Usuario.id)
+            .join(Persona, Persona.id == Usuario.persona_id)
+            .join(Paciente, Paciente.persona_id == Persona.id)
+            .where(
+                Paciente.id == patient_id,
+                Usuario.activo.is_(True),
+                Usuario.deleted_at.is_(None),
+                Paciente.deleted_at.is_(None),
+            )
+        )

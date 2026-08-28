@@ -44,6 +44,11 @@ class Notificacion(Base):
     fecha_lectura: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
+    # A09: permite derivar el "tipo" de notificacion (alerta/recordatorio/
+    # cita/sistema) mirando el origen del Recordatorio asociado, sin
+    # necesidad de un campo tipo propio ni llamadas N+1 desde el frontend.
+    recordatorio: Mapped[Optional["Recordatorio"]] = relationship(lazy="selectin")
+
 
 class PreferenciaNotificacion(Base):
     __tablename__ = "preferencias_notificacion"
