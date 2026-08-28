@@ -95,7 +95,7 @@ describe('MedicalRecordSummaryScreen', () => {
 
     await fireEvent.press(screen.getByLabelText('Abrir línea de tiempo médica'));
 
-    expect(mockPush).toHaveBeenCalledWith('/(staff)/patients/9/record/timeline');
+    expect(mockPush).toHaveBeenCalledWith('/(staff)/patients/9/record/timeline?recordId=17');
   });
 
   it('blocks users without clinical permission', async () => {

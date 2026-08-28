@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { type Href, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -157,7 +157,11 @@ export function MedicalRecordSummaryScreen({ patientId, initialSection }: Props)
           <Button
             accessibilityLabel="Abrir línea de tiempo médica"
             icon="time-outline"
-            onPress={() => router.push(`/(staff)/patients/${patientId}/record/timeline`)}
+            onPress={() =>
+              router.push(
+                `/(staff)/patients/${patientId}/record/timeline?recordId=${record.id}` as Href,
+              )
+            }
             variant="secondary"
           >
             Línea de tiempo
