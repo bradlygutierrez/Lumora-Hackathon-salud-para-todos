@@ -1,8 +1,26 @@
 import pytest
 from httpx import AsyncClient
 
+from lumora_api.core.security import create_access_token, hash_password
+from lumora_api.models import Persona, Usuario
+
+
 @pytest.mark.asyncio
-async def test_flujo_completo_tratamiento_y_monitoreo(client: AsyncClient):
+async def test_flujo_completo_tratamiento_y_monitoreo(client: AsyncClient, session_factory):
+    # A09: /notificaciones/usuario/{id} ahora requiere sesion (antes no
+    # tenia ningun control de acceso) -- se crea un usuario real para
+    # poder autenticar esa consulta.
+    async with session_factory() as s:
+        usuario = Usuario(
+            persona=Persona(nombres="Flujo", apellidos="Integracion"),
+            email="flujo.integracion@example.com",
+            username="flujointegracion",
+            password_hash=hash_password("Safe123!"),
+        )
+        s.add(usuario)
+        await s.commit()
+        usuario_id = usuario.id
+
     # 1. Crear un recordatorio/dosis
     res_rec = await client.post("/api/v1/reminders/recordatorios", json={
         "paciente_id": 1,
@@ -14,11 +32,14 @@ async def test_flujo_completo_tratamiento_y_monitoreo(client: AsyncClient):
     assert res_rec.status_code == 201
 
     # 2. Consultar notificaciones del usuario
-    res_notif = await client.get("/api/v1/reminders/notificaciones/usuario/1")
+    res_notif = await client.get(
+        f"/api/v1/reminders/notificaciones/usuario/{usuario_id}",
+        headers={"Authorization": f"Bearer {create_access_token(usuario_id)}"},
+    )
     assert res_notif.status_code == 200
 
     # 3. Guardar preferencias del usuario (crear o actualizar)
-    res_pref_patch = await client.patch("/api/v1/reminders/usuarios/1/preferencias-notificacion", json={
+    res_pref_patch = await client.patch(f"/api/v1/reminders/usuarios/{usuario_id}/preferencias-notificacion", json={
         "notificar_dosis": True,
         "notificar_citas": True,
         "permitir_email": True,
@@ -27,5 +48,5 @@ async def test_flujo_completo_tratamiento_y_monitoreo(client: AsyncClient):
     assert res_pref_patch.status_code == 200
 
     # 4. Consultar preferencias recién creadas
-    res_pref_get = await client.get("/api/v1/reminders/usuarios/1/preferencias-notificacion")
+    res_pref_get = await client.get(f"/api/v1/reminders/usuarios/{usuario_id}/preferencias-notificacion")
     assert res_pref_get.status_code == 200
