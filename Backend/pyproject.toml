@@ -18,7 +18,7 @@ dependencies = [
 ]
 
 [tool.fastapi]
-entrypoint = "lumora_api.main:app"
+entrypoint = "src.lumora_api.main:app"
 
 [project.scripts]
 backend = "lumora_api:main"
