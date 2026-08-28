@@ -2,6 +2,7 @@ import pytest
 from sqlalchemy import select
 
 from lumora_api.core.security import verify_password
+from lumora_api.core.security import create_access_token
 from lumora_api.models import ContactoEmergencia, Rol, Usuario
 
 
@@ -102,7 +103,9 @@ async def test_profiles_contacts_and_soft_delete_preserve_rows(client, session_f
     ).status_code == 204
 
     assert (await client.delete(f"/api/v1/pacientes/{patient_id}")).status_code == 204
-    assert (await client.get(f"/api/v1/pacientes/{patient_id}")).status_code == 404
+    user_id = user["id"]
+    headers = {"Authorization": f"Bearer {create_access_token(user_id)}"}
+    assert (await client.get(f"/api/v1/pacientes/{patient_id}", headers=headers)).status_code == 404
     async with session_factory() as session:
         assert await session.get(ContactoEmergencia, contact_id) is not None
 

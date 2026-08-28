@@ -60,3 +60,14 @@ class PatientAccessService:
             "access_level": rel.nivel_acceso,
             "patient": {"id": rel.paciente.id, "first_names": rel.paciente.persona.nombres, "last_names": rel.paciente.persona.apellidos},
         } for rel in relationships]
+
+    @staticmethod
+    def can_enumerate(user: Usuario) -> bool:
+        roles = {role.nombre.lower() for role in user.roles}
+        if "administrador" in roles:
+            return True
+        return any(
+            role.nombre.lower() in {"profesional", "profesional de salud"}
+            and any(permission.nombre == "clinica:manage" for permission in role.permisos)
+            for role in user.roles
+        )
