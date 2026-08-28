@@ -50,6 +50,7 @@ OPENAPI_TAGS = [
     {"name": "Tipos de alerta", "description": "Catálogo de tipos de alerta."},
     {"name": "Tipos de recordatorio", "description": "Catálogo de recordatorios."},
     {"name": "Tipos de relación", "description": "Catálogo de relaciones entre pacientes."},
+    {"name": "Cuidadores", "description": "Contextos autorizados."},
 ]
 app = FastAPI(
     title=settings.app_name,

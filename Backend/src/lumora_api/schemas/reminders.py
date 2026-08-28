@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import Literal, Optional
 from pydantic import BaseModel, ConfigDict
 
 
@@ -86,6 +86,9 @@ class RelacionPacienteBase(BaseModel):
     tipo_relacion_id: int
     recibir_notificaciones: bool = True
     activo: bool = True
+    estado: Literal["pending", "active", "revoked", "inactive", "rejected"] = "active"
+    nivel_acceso: Literal["read", "write"] = "read"
+    expira_en: Optional[datetime] = None
 
 
 class RelacionPacienteCreate(RelacionPacienteBase):

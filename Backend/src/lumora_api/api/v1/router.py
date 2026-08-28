@@ -5,6 +5,7 @@ from lumora_api.api.v1 import (
     auth,
     cargos_salud,
     clinical_integration,
+    caregivers,
     conditions,
     consultations,
     diagnoses,
@@ -53,9 +54,11 @@ api_router.include_router(sexos.router)
 api_router.include_router(tipos_sangre.router)
 api_router.include_router(users.router)
 api_router.include_router(patients.router)
+api_router.include_router(patients.context_router)
 api_router.include_router(professionals.router)
 api_router.include_router(emergency_contacts.router)
 api_router.include_router(auth.router)
+api_router.include_router(caregivers.router)
 api_router.include_router(user_roles.router)
 api_router.include_router(role_permissions.router)
 api_router.include_router(mfa.router)
