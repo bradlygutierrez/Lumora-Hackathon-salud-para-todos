@@ -79,6 +79,16 @@ class HealthIndicatorsService:
         await db.refresh(rango)
         return rango
 
+    @staticmethod
+    async def get_rangos_indicador(
+        db: AsyncSession, indicador_id: UUID, active_only: bool = True
+    ) -> List[RangoIndicador]:
+        query = select(RangoIndicador).where(RangoIndicador.indicador_id == indicador_id)
+        if active_only:
+            query = query.where(RangoIndicador.activo.is_(True))
+        result = await db.execute(query)
+        return list(result.scalars().all())
+
     # --- MEDICIONES Y EVALUACIÓN DE ALERTAS ---
     @staticmethod
     async def registrar_medicion(

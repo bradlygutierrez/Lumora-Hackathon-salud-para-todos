@@ -1,9 +1,10 @@
 from typing import List
 from uuid import UUID
 
-from fastapi import APIRouter, Query, status
+from fastapi import APIRouter, Depends, Query, status
 
-from lumora_api.api.dependencies import SessionDep
+from lumora_api.api.dependencies import CurrentUser, SessionDep, require_permission
+from lumora_api.repositories.patient_access_repository import PatientAccessRepository
 from lumora_api.schemas.health_indicators import (
     AlertaClinicaResponse,
     AlertaClinicaUpdate,
@@ -15,8 +16,18 @@ from lumora_api.schemas.health_indicators import (
     RangoIndicadorResponse,
 )
 from lumora_api.services.health_indicators_service import HealthIndicatorsService
+from lumora_api.services.patient_access_service import PatientAccessService
 
 router = APIRouter(prefix="/health-indicators", tags=["Indicadores y alertas"])
+
+# Solo personal clinico define el catalogo de indicadores/rangos y atiende
+# alertas -- el paciente/cuidador los consulta y registra mediciones, pero
+# no los inventa (mismo criterio que RequireClinicalStaff en schedules.py).
+RequireClinicalStaff = Depends(require_permission("clinica:manage"))
+
+
+def _patient_access(session: SessionDep) -> PatientAccessService:
+    return PatientAccessService(PatientAccessRepository(session))
 
 
 # --- INDICADORES MÉDICOS ---
@@ -24,6 +35,7 @@ router = APIRouter(prefix="/health-indicators", tags=["Indicadores y alertas"])
     "/indicators",
     response_model=IndicadorMedicoResponse,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[RequireClinicalStaff],
 )
 async def create_indicador(
     data: IndicadorMedicoCreate, session: SessionDep
@@ -33,7 +45,9 @@ async def create_indicador(
 
 @router.get("/indicators", response_model=List[IndicadorMedicoResponse])
 async def list_indicadores(
-    session: SessionDep, active_only: bool = Query(True)
+    current_user: CurrentUser,
+    session: SessionDep,
+    active_only: bool = Query(True),
 ):
     return await HealthIndicatorsService.get_indicadores(session, active_only)
 
@@ -43,6 +57,7 @@ async def list_indicadores(
     "/indicators/{indicador_id}/ranges",
     response_model=RangoIndicadorResponse,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[RequireClinicalStaff],
 )
 async def create_rango(
     indicador_id: UUID,
@@ -50,6 +65,19 @@ async def create_rango(
     session: SessionDep,
 ):
     return await HealthIndicatorsService.create_rango(session, indicador_id, data)
+
+
+@router.get(
+    "/indicators/{indicador_id}/ranges",
+    response_model=List[RangoIndicadorResponse],
+)
+async def list_rangos(
+    indicador_id: UUID,
+    current_user: CurrentUser,
+    session: SessionDep,
+    active_only: bool = Query(True),
+):
+    return await HealthIndicatorsService.get_rangos_indicador(session, indicador_id, active_only)
 
 
 # --- MEDICIONES ---
@@ -61,8 +89,14 @@ async def create_rango(
 async def registrar_medicion(
     paciente_id: int,
     data: MedicionIndicadorCreate,
+    current_user: CurrentUser,
     session: SessionDep,
 ):
+    await _patient_access(session).require_access(current_user, paciente_id, action="write")
+    # El responsable del registro es siempre quien esta logueado, nunca un
+    # valor que mande el cliente (mismo criterio que
+    # schedules.py::create_dosis_log con responsable_id).
+    data.registrado_por_id = current_user.id
     return await HealthIndicatorsService.registrar_medicion(session, paciente_id, data)
 
 
@@ -72,13 +106,19 @@ async def registrar_medicion(
 )
 async def list_mediciones_paciente(
     paciente_id: int,
+    current_user: CurrentUser,
     session: SessionDep,
 ):
+    await _patient_access(session).require_access(current_user, paciente_id, action="read")
     return await HealthIndicatorsService.get_mediciones_paciente(session, paciente_id)
 
 
 # --- ALERTAS ---
-@router.get("/alerts", response_model=List[AlertaClinicaResponse])
+@router.get(
+    "/alerts",
+    response_model=List[AlertaClinicaResponse],
+    dependencies=[RequireClinicalStaff],
+)
 async def list_todas_alertas(
     session: SessionDep,
     solo_pendientes: bool = Query(True),
@@ -91,16 +131,28 @@ async def list_todas_alertas(
 )
 async def list_alertas_paciente(
     paciente_id: int,
+    current_user: CurrentUser,
     session: SessionDep,
     solo_pendientes: bool = Query(True),
 ):
+    await _patient_access(session).require_access(current_user, paciente_id, action="read")
     return await HealthIndicatorsService.get_alertas_paciente(
         session, paciente_id, solo_pendientes
     )
 
 
-@router.patch("/alerts/{alerta_id}/attend", response_model=AlertaClinicaResponse)
+@router.patch(
+    "/alerts/{alerta_id}/attend",
+    response_model=AlertaClinicaResponse,
+    dependencies=[RequireClinicalStaff],
+)
 async def atender_alerta(
-    alerta_id: UUID, data: AlertaClinicaUpdate, session: SessionDep
+    alerta_id: UUID,
+    data: AlertaClinicaUpdate,
+    current_user: CurrentUser,
+    session: SessionDep,
 ):
+    # Mismo criterio que registrado_por_id: quien atiende la alerta es
+    # siempre el usuario autenticado, no un valor que mande el cliente.
+    data.atendida_por_id = current_user.id
     return await HealthIndicatorsService.atender_alerta(session, alerta_id, data)
