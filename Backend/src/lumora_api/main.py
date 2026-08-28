@@ -36,6 +36,7 @@ OPENAPI_TAGS = [
     {"name": "Horarios y dosis", "description": "Horarios de medicación y registro de dosis."},
     {"name": "Indicadores y alertas", "description": "Indicadores, rangos, mediciones y alertas."},
     {"name": "Recordatorios y notificaciones", "description": "Recordatorios, notificaciones y preferencias."},
+    {"name": "Alertas de salud", "description": "Vista unificada de alertas clinicas, dosis omitidas y citas proximas para el paciente."},
     {"name": "Cargos de salud", "description": "Catálogo de cargos sanitarios."},
     {"name": "Especialidades", "description": "Catálogo de especialidades médicas."},
     {"name": "Estados de expediente", "description": "Catálogo de estados de expediente."},
