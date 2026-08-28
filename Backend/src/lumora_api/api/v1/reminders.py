@@ -3,6 +3,9 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from lumora_api.db.session import get_session as get_db
+from lumora_api.api.dependencies import CurrentUser
+from lumora_api.repositories.patient_access_repository import PatientAccessRepository
+from lumora_api.services.patient_access_service import PatientAccessService
 from lumora_api.services.reminders import ReminderService
 from lumora_api.schemas.reminders import (
     RecordatorioCreate,
@@ -58,10 +61,12 @@ async def actualizar_preferencias(usuario_id: int, data: PreferenciaNotificacion
 
 # --- CRUD /pacientes/{id}/relaciones ---
 @router.post("/pacientes/{paciente_id}/relaciones", response_model=RelacionPacienteResponse, status_code=status.HTTP_201_CREATED)
-async def crear_relacion(paciente_id: int, data: RelacionPacienteCreate, db: AsyncSession = Depends(get_db)):
+async def crear_relacion(paciente_id: int, data: RelacionPacienteCreate, current_user: CurrentUser, db: AsyncSession = Depends(get_db)):
+    await PatientAccessService(PatientAccessRepository(db)).require_relationship_management(current_user, paciente_id)
     data.paciente_id = paciente_id
     return await ReminderService(db).crear_relacion_paciente(data)
 
 @router.get("/pacientes/{paciente_id}/relaciones", response_model=List[RelacionPacienteResponse])
-async def listar_relaciones(paciente_id: int, db: AsyncSession = Depends(get_db)):
+async def listar_relaciones(paciente_id: int, current_user: CurrentUser, db: AsyncSession = Depends(get_db)):
+    await PatientAccessService(PatientAccessRepository(db)).require_access(current_user, paciente_id)
     return await ReminderService(db).obtener_relaciones_paciente(paciente_id)

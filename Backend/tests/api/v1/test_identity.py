@@ -35,7 +35,12 @@ async def create_user(client, session_factory, *, email="ana@example.com", usern
 async def grant_permissions(session_factory, user_id: int, *permission_names: str):
     async with session_factory() as session:
         user = await session.get(Usuario, user_id)
-        role = Rol(nombre=f"J08-{user_id}-{'-'.join(permission_names)}")
+        role_name = (
+            "Profesional"
+            if "clinica:manage" in permission_names
+            else f"J08-{user_id}-{'-'.join(permission_names)}"
+        )
+        role = Rol(nombre=role_name)
         role.permisos = [Permiso(nombre=name) for name in permission_names]
         user.roles.append(role)
         session.add(role)
@@ -84,14 +89,31 @@ async def test_user_password_is_private_and_email_username_are_unique(client, se
 async def test_profiles_contacts_and_soft_delete_preserve_rows(client, session_factory):
     user = (await create_user(client, session_factory)).json()
     person_id = user["persona"]["id"]
+    manager = (
+        await create_user(
+            client,
+            session_factory,
+            email="patient-manager@example.com",
+            username="patient-manager",
+        )
+    ).json()
+    await grant_permissions(
+        session_factory, manager["id"], "clinica:manage", "usuarios:editar"
+    )
+    headers = auth_headers(manager["id"])
 
-    patient = await client.post("/api/v1/pacientes", json={"persona_id": person_id})
+    patient = await client.post(
+        "/api/v1/pacientes", headers=headers, json={"persona_id": person_id}
+    )
     assert patient.status_code == 201
     patient_id = patient.json()["id"]
-    duplicate = await client.post("/api/v1/pacientes", json={"persona_id": person_id})
+    duplicate = await client.post(
+        "/api/v1/pacientes", headers=headers, json={"persona_id": person_id}
+    )
     assert duplicate.status_code == 409
     updated_patient = await client.patch(
         f"/api/v1/pacientes/{patient_id}",
+        headers=headers,
         json={"alergias": "Penicilina", "persona": {"telefono": "2222-2222"}},
     )
     assert updated_patient.json()["alergias"] == "Penicilina"
@@ -99,27 +121,36 @@ async def test_profiles_contacts_and_soft_delete_preserve_rows(client, session_f
 
     contact = await client.post(
         f"/api/v1/pacientes/{patient_id}/contactos-emergencia",
+        headers=headers,
         json={"nombre": "Carlos", "parentesco": "Padre", "telefono": "8888-8888"},
     )
     assert contact.status_code == 201
     contact_id = contact.json()["id"]
-    assert (await client.get(f"/api/v1/pacientes/{patient_id}/contactos-emergencia")).json()["total"] == 1
+    assert (
+        await client.get(
+            f"/api/v1/pacientes/{patient_id}/contactos-emergencia", headers=headers
+        )
+    ).json()["total"] == 1
     assert (
         await client.patch(
             f"/api/v1/pacientes/{patient_id}/contactos-emergencia/{contact_id}",
+            headers=headers,
             json={"telefono": "7777-7777"},
         )
     ).json()["telefono"] == "7777-7777"
     assert (
         await client.delete(
-            f"/api/v1/pacientes/{patient_id}/contactos-emergencia/{contact_id}"
+            f"/api/v1/pacientes/{patient_id}/contactos-emergencia/{contact_id}",
+            headers=headers,
         )
     ).status_code == 204
 
-    assert (await client.delete(f"/api/v1/pacientes/{patient_id}")).status_code == 204
-    user_id = user["id"]
-    headers = {"Authorization": f"Bearer {create_access_token(user_id)}"}
-    assert (await client.get(f"/api/v1/pacientes/{patient_id}", headers=headers)).status_code == 404
+    assert (
+        await client.delete(f"/api/v1/pacientes/{patient_id}", headers=headers)
+    ).status_code == 204
+    assert (
+        await client.get(f"/api/v1/pacientes/{patient_id}", headers=headers)
+    ).status_code == 404
     async with session_factory() as session:
         assert await session.get(ContactoEmergencia, contact_id) is not None
 
