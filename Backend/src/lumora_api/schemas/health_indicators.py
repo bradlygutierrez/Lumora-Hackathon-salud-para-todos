@@ -69,7 +69,10 @@ class MedicionIndicadorCreate(BaseModel):
     valor: float
     unidad_medida_id: int
     origen_registro_id: int
-    registrado_por_id: int
+    # El backend siempre lo sobreescribe con el usuario autenticado (ver
+    # health_indicators.py::registrar_medicion) -- opcional para que el
+    # cliente no tenga que (ni pueda) mandarlo.
+    registrado_por_id: Optional[int] = None
     observaciones: Optional[str] = None
 
 
@@ -108,4 +111,6 @@ class AlertaClinicaResponse(BaseModel):
 
 class AlertaClinicaUpdate(BaseModel):
     atendida: bool
-    atendida_por_id: int
+    # El backend siempre lo sobreescribe con el usuario autenticado (ver
+    # health_indicators.py::atender_alerta).
+    atendida_por_id: Optional[int] = None
