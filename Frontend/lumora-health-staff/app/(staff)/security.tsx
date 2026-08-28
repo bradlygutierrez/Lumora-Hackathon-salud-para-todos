@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { env } from '@/src/application/config/env';
-import { setupMfa } from '@/src/features/auth/api/auth.api';
+import { changeStaffPassword, setupMfa } from '@/src/features/auth/api/auth.api';
 import {
   useActiveSessions,
   useMfaMethods,
@@ -25,15 +25,44 @@ export default function SecurityCenterScreen() {
   const queryClient = useQueryClient();
   const sessions = useActiveSessions();
   const methods = useMfaMethods();
-  const { disableMfa } = useSecurityActions();
+  const { disableMfa, logoutOthers, revokeSession } = useSecurityActions();
   const [methodId, setMethodId] = useState('');
   const [setupResult, setSetupResult] = useState<string[] | null>(null);
   const [setupError, setSetupError] = useState<string | null>(null);
   const [isSettingUp, setIsSettingUp] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   async function logoutAll() {
     await signOutAll();
     await queryClient.invalidateQueries({ queryKey: queryKeys.auth.sessions });
+  }
+
+  async function logoutOtherSessions() {
+    await logoutOthers.mutateAsync();
+  }
+
+  async function updatePassword() {
+    setPasswordMessage(null);
+    setPasswordError(null);
+    setIsChangingPassword(true);
+    try {
+      const response = await changeStaffPassword({
+        current_password: currentPassword,
+        new_password: newPassword,
+      });
+      setCurrentPassword('');
+      setNewPassword('');
+      setPasswordMessage(response.message);
+      await queryClient.invalidateQueries({ queryKey: queryKeys.auth.sessions });
+    } catch (error) {
+      setPasswordError(toApiError(error).message);
+    } finally {
+      setIsChangingPassword(false);
+    }
   }
 
   async function enableMfa() {
@@ -81,16 +110,30 @@ export default function SecurityCenterScreen() {
         </View>
 
         <SectionCard icon="keypad-outline" title="Contraseña">
-          <Text style={styles.label}>Último cambio</Text>
-          <Text style={styles.value}>hace 45 días (Oct 12, 2026)</Text>
-          <View style={styles.hintRow}>
-            <Ionicons color={theme.color.primary} name="information-circle-outline" size={16} />
-            <Text style={styles.hint}>
-              Recomendamos cambiar tu contraseña cada 90 dias para optima seguridad.
-            </Text>
-          </View>
-          <Button icon="pencil" variant="secondary">
-            Cambiar Contraseña
+          <Text style={styles.description}>
+            Actualiza tu contraseña. El backend validará la contraseña actual y cerrará las demás sesiones.
+          </Text>
+          <TextField
+            label="Contraseña actual"
+            onChangeText={setCurrentPassword}
+            secureTextEntry
+            value={currentPassword}
+          />
+          <TextField
+            label="Nueva contraseña"
+            onChangeText={setNewPassword}
+            secureTextEntry
+            value={newPassword}
+          />
+          {passwordError ? <Text style={styles.error}>{passwordError}</Text> : null}
+          {passwordMessage ? <Text style={styles.hint}>{passwordMessage}</Text> : null}
+          <Button
+            icon="pencil"
+            loading={isChangingPassword}
+            onPress={updatePassword}
+            variant="secondary"
+          >
+            Cambiar contraseña
           </Button>
         </SectionCard>
 
@@ -110,8 +153,8 @@ export default function SecurityCenterScreen() {
               <View style={styles.methodRail} />
               <Ionicons color={theme.color.primary} name="phone-portrait-outline" size={22} />
               <View style={styles.methodText}>
-                <Text style={styles.methodTitle}>App de Autenticación</Text>
-                <Text style={styles.methodMeta}>{method.nombre} {method.activo ? '(Principal)' : '(Inactivo)'}</Text>
+                <Text style={styles.methodTitle}>{method.nombre}</Text>
+                <Text style={styles.methodMeta}>{method.activo ? 'Activo' : 'Inactivo'}</Text>
               </View>
               {method.activo ? (
                 <Ionicons
@@ -123,14 +166,6 @@ export default function SecurityCenterScreen() {
               ) : null}
             </View>
           ))}
-          <View style={styles.methodRow}>
-            <Ionicons color={theme.color.mutedText} name="chatbox-outline" size={22} />
-            <View style={styles.methodText}>
-              <Text style={styles.methodTitle}>Recuperación por SMS</Text>
-              <Text style={styles.methodMeta}>Termina en **** 4291</Text>
-            </View>
-            <Ionicons color={theme.color.mutedText} name="ellipsis-vertical" size={22} />
-          </View>
           <TextField
             keyboardType="number-pad"
             label="ID metodo MFA"
@@ -152,32 +187,46 @@ export default function SecurityCenterScreen() {
           {sessions.isLoading ? <LoadingState title="Cargando sesiones" /> : null}
           {sessions.isError ? <ErrorState title="No se pudieron cargar las sesiones" /> : null}
           {sessions.data?.length === 0 ? <EmptyState title="Sin sesiones activas" /> : null}
-          {sessions.data?.map((session, index) => (
-            <View key={session.id} style={[styles.sessionRow, index === 0 ? styles.currentSession : null]}>
+          {sessions.data?.map((session) => (
+            <View
+              key={session.id}
+              style={[styles.sessionRow, session.is_current ? styles.currentSession : null]}
+            >
               <Ionicons
                 color={theme.color.primary}
-                name={index === 0 ? 'desktop-outline' : 'phone-portrait-outline'}
+                name={session.is_current ? 'desktop-outline' : 'phone-portrait-outline'}
                 size={22}
               />
               <View style={styles.methodText}>
                 <View style={styles.sessionTitleRow}>
-                  <Text style={styles.methodTitle}>{session.user_agent ?? 'Dispositivo desconocido'}</Text>
-                  {index === 0 ? <Text style={styles.currentBadge}>ACTUAL</Text> : null}
+                  <Text style={styles.methodTitle}>
+                    {session.device_name || session.user_agent || 'Dispositivo desconocido'}
+                  </Text>
+                  {session.is_current ? <Text style={styles.currentBadge}>ACTUAL</Text> : null}
                 </View>
-                <Text style={styles.methodMeta}>{session.ip ?? 'IP no disponible'}</Text>
+                <Text style={styles.methodMeta}>
+                  {session.platform} · {session.ip_address ?? session.ip ?? 'IP no disponible'}
+                </Text>
               </View>
+              {!session.is_current ? (
+                <Button
+                  accessibilityLabel={`Revocar sesión ${session.id}`}
+                  onPress={() => revokeSession.mutate(session.id)}
+                  variant="ghost"
+                >
+                  Revocar
+                </Button>
+              ) : null}
             </View>
           ))}
-          <Button icon="log-out-outline" onPress={logoutAll} variant="danger">
+          <Button icon="log-out-outline" onPress={logoutOtherSessions} variant="secondary">
             Cerrar sesión en todos los demás dispositivos
+          </Button>
+          <Button icon="log-out-outline" onPress={logoutAll} variant="danger">
+            Cerrar todas las sesiones
           </Button>
         </SectionCard>
 
-        <SectionCard icon="time-outline" right={<Text style={styles.viewAll}>Ver Todo</Text>} title="Actividad de Seguridad Reciente">
-          <TimelineItem active detail="macOS - Chrome (Sesion actual)" title="Inicio de sesión exitoso" when="Today, 09:41 AM" />
-          <TimelineItem danger detail="Contraseña incorrecta. Dispositivo desconocido." title="Intento de inicio de sesión fallido" when="Yesterday, 11:20 PM" />
-          <TimelineItem detail="App de autenticación verificada" title="Método MFA añadido" when="Oct 12, 2026" />
-        </SectionCard>
       </ScrollView>
     </Screen>
   );
@@ -215,33 +264,6 @@ function StatusPill({ active }: { active: boolean }) {
     <View style={styles.statusPill}>
       <Ionicons color={theme.color.success} name="checkmark-circle-outline" size={14} />
       <Text style={styles.statusText}>{active ? 'Activo' : 'Inactivo'}</Text>
-    </View>
-  );
-}
-
-function TimelineItem({
-  active = false,
-  danger = false,
-  detail,
-  title,
-  when,
-}: {
-  active?: boolean;
-  danger?: boolean;
-  detail: string;
-  title: string;
-  when: string;
-}) {
-  return (
-    <View style={styles.timelineItem}>
-      <View style={[styles.timelineDot, active ? styles.timelineDotActive : null]} />
-      <View style={styles.timelineContent}>
-        <View style={styles.timelineHeader}>
-          <Text style={styles.timelineTitle}>{title}</Text>
-          <Text style={styles.methodMeta}>{when}</Text>
-        </View>
-        <Text style={[styles.methodMeta, danger ? styles.error : null]}>{detail}</Text>
-      </View>
     </View>
   );
 }

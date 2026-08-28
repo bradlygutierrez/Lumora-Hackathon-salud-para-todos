@@ -4,7 +4,10 @@ import { Link } from 'expo-router';
 import { Controller, useForm } from 'react-hook-form';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { verifyEmail } from '@/src/features/auth/api/auth.api';
+import {
+  resendEmailVerification,
+  verifyEmailCode,
+} from '@/src/features/auth/api/auth.api';
 import {
   verifyEmailSchema,
   type VerifyEmailFormValues,
@@ -19,17 +22,31 @@ import { theme } from '@/src/shared/constants/theme';
 export default function VerifyEmailScreen() {
   const form = useForm<VerifyEmailFormValues>({
     resolver: zodResolver(verifyEmailSchema),
-    defaultValues: { token: '' },
+    defaultValues: { email: '', code: '' },
   });
 
   const onSubmit = form.handleSubmit(async (values) => {
     try {
-      const response = await verifyEmail(values);
+      const response = await verifyEmailCode(values);
       form.setError('root', { message: response.message });
     } catch (error) {
       form.setError('root', { message: toApiError(error).message });
     }
   });
+
+  async function resendCode() {
+    const email = form.getValues('email');
+    const validEmail = await form.trigger('email');
+    if (!validEmail) {
+      return;
+    }
+    try {
+      const response = await resendEmailVerification({ email });
+      form.setError('root', { message: response.message });
+    } catch (error) {
+      form.setError('root', { message: toApiError(error).message });
+    }
+  }
 
   return (
     <Screen>
@@ -42,19 +59,35 @@ export default function VerifyEmailScreen() {
             </View>
             <Text style={styles.title}>Verifica tu identidad</Text>
             <Text style={styles.subtitle}>
-              Hemos enviado un codigo de verificacion de 6 digitos a tu correo.
+              Ingresa el código de 6 dígitos enviado a tu correo.
             </Text>
             <Controller
               control={form.control}
-              name="token"
+              name="email"
               render={({ field: { onBlur, onChange, value } }) => (
+                <TextField
+                  autoCapitalize="none"
+                  autoComplete="email"
+                  error={form.formState.errors.email?.message}
+                  keyboardType="email-address"
+                  label="Correo"
+                  onBlur={onBlur}
+                  onChangeText={onChange}
+                  value={value}
+                />
+              )}
+            />
+            <Controller
+              control={form.control}
+              name="code"
+              render={({ field: { onChange, value } }) => (
                 <>
-                  <CodeBoxes code={value.slice(0, 6)} />
+                  <CodeBoxes code={value} />
                   <TextField
-                    autoCapitalize="none"
-                    error={form.formState.errors.token?.message}
-                    label="Token completo de verificacion"
-                    onBlur={onBlur}
+                    error={form.formState.errors.code?.message}
+                    keyboardType="number-pad"
+                    label="Código de verificación"
+                    maxLength={6}
                     onChangeText={onChange}
                     value={value}
                   />
@@ -67,10 +100,9 @@ export default function VerifyEmailScreen() {
             <Button icon="arrow-forward" loading={form.formState.isSubmitting} onPress={onSubmit}>
               Verificar
             </Button>
-            <View style={styles.resendRow}>
-              <Text style={styles.helper}>¿No recibiste el codigo?</Text>
-              <Text style={styles.countdown}>Reenviar en 00:29</Text>
-            </View>
+            <Button icon="refresh-outline" onPress={resendCode} variant="ghost">
+              Reenviar código
+            </Button>
             <Link href="/(auth)/login" style={styles.link}>
               Volver
             </Link>
@@ -131,23 +163,6 @@ const styles = StyleSheet.create({
   message: {
     color: theme.color.mutedText,
     fontSize: theme.typography.caption,
-    textAlign: 'center',
-  },
-  resendRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: theme.spacing.lg,
-  },
-  helper: {
-    color: theme.color.mutedText,
-    flex: 1,
-    fontSize: theme.typography.body,
-    textAlign: 'center',
-  },
-  countdown: {
-    color: theme.color.primary,
-    flex: 1,
-    fontSize: theme.typography.body,
     textAlign: 'center',
   },
   link: {

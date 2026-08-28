@@ -8,6 +8,8 @@ import {
   listMfaMethods,
   listStaffSessions,
   logoutAllStaffSessions,
+  logoutOtherStaffSessions,
+  revokeStaffSession,
 } from '../api/auth.api';
 
 export function useActiveSessions() {
@@ -34,6 +36,24 @@ export function useSecurityActions() {
         : logoutAllStaffSessions(),
   });
 
+  const logoutOthers = useMutation({
+    mutationFn: () =>
+      env.enableUiPreview
+        ? Promise.resolve({ message: 'Sesiones remotas cerradas en preview' })
+        : logoutOtherStaffSessions(),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.auth.sessions });
+    },
+  });
+
+  const revokeSession = useMutation({
+    mutationFn: (sessionId: number) =>
+      env.enableUiPreview ? Promise.resolve() : revokeStaffSession(sessionId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.auth.sessions });
+    },
+  });
+
   const disableMfa = useMutation({
     mutationFn: (methodId: number) =>
       env.enableUiPreview ? Promise.resolve() : disableMfaMethod(methodId),
@@ -42,5 +62,5 @@ export function useSecurityActions() {
     },
   });
 
-  return { disableMfa, logoutAll };
+  return { disableMfa, logoutAll, logoutOthers, revokeSession };
 }

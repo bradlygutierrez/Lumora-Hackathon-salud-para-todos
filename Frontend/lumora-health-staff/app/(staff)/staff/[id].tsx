@@ -17,7 +17,7 @@ export default function StaffDetailScreen() {
   return (
     <Screen>
       <PermissionGate
-        anyOf={['clinica:manage', 'rbac:manage']}
+        anyOf={['clinica:manage']}
         fallback={
           <ErrorState
             title="Acceso restringido"
@@ -32,7 +32,7 @@ export default function StaffDetailScreen() {
             <AppTopBar />
             <View style={styles.header}>
               <Text style={styles.title}>Perfil del Staff</Text>
-              <Text style={styles.subtitle}>Gestionar detalles del personal y asignaciones.</Text>
+              <Text style={styles.subtitle}>Información profesional registrada en Lumora.</Text>
             </View>
 
             <View style={styles.profileCard}>
@@ -47,38 +47,11 @@ export default function StaffDetailScreen() {
                   {professional.data.persona.nombres} {professional.data.persona.apellidos}
                 </Text>
                 <Text style={styles.specialty}>{professional.data.especialidad}</Text>
-                <View style={styles.badges}>
-                  <Text style={styles.badge}>LIC-{professional.data.numero_licencia}</Text>
-                  <Text style={[styles.badge, styles.activeBadge]}>Cuenta Activa</Text>
-                </View>
-                <InfoRow label="Departamento" value={professional.data.especialidad} />
+                <Text style={styles.badge}>Licencia: {professional.data.numero_licencia}</Text>
                 <InfoRow
                   label="Contacto"
                   value={professional.data.persona.telefono ?? 'No disponible'}
                 />
-              </View>
-            </View>
-
-            <View style={styles.card}>
-              <Text style={styles.sectionTitle}>Especialidades y Certificaciones</Text>
-              <Certification
-                organization="Lumora Health"
-                progress={82}
-                title={professional.data.especialidad}
-              />
-              <Certification
-                organization="Lumora HN2026"
-                progress={48}
-                title="Atención clínica avanzada"
-              />
-            </View>
-
-            <View style={styles.card}>
-              <Text style={styles.sectionTitle}>Resumen de Pacientes Asignados</Text>
-              <View style={styles.statsRow}>
-                <Stat label="ACTIVO" value="24" />
-                <Stat danger label="CRÍTICO" value="3" />
-                <Stat label="CONSULTAS" value="8" />
               </View>
             </View>
           </ScrollView>
@@ -93,35 +66,6 @@ function InfoRow({ label, value }: { label: string; value: string }) {
     <View style={styles.infoRow}>
       <Text style={styles.label}>{label}</Text>
       <Text style={styles.value}>{value}</Text>
-    </View>
-  );
-}
-
-function Certification({
-  organization,
-  progress,
-  title,
-}: {
-  organization: string;
-  progress: number;
-  title: string;
-}) {
-  return (
-    <View style={styles.certCard}>
-      <Text style={styles.value}>{title}</Text>
-      <Text style={styles.label}>{organization}</Text>
-      <View style={styles.progressTrack}>
-        <View style={[styles.progressBar, { width: `${progress}%` }]} />
-      </View>
-    </View>
-  );
-}
-
-function Stat({ danger = false, label, value }: { danger?: boolean; label: string; value: string }) {
-  return (
-    <View style={styles.statCard}>
-      <Text style={[styles.statValue, danger ? styles.statDanger : null]}>{value}</Text>
-      <Text style={styles.label}>{label}</Text>
     </View>
   );
 }
@@ -170,22 +114,14 @@ const styles = StyleSheet.create({
     color: theme.color.primary,
     fontSize: theme.typography.body,
   },
-  badges: {
-    flexDirection: 'row',
-    gap: theme.spacing.sm,
-    marginVertical: theme.spacing.md,
-  },
   badge: {
     backgroundColor: '#EBEEF4',
     borderRadius: theme.radius.pill,
     color: theme.color.mutedText,
     fontSize: 12,
+    marginVertical: theme.spacing.md,
     paddingHorizontal: theme.spacing.sm,
     paddingVertical: theme.spacing.xs,
-  },
-  activeBadge: {
-    backgroundColor: theme.color.successSoft,
-    color: theme.color.success,
   },
   infoRow: {
     alignSelf: 'stretch',
@@ -203,59 +139,5 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     fontSize: theme.typography.body,
     textAlign: 'right',
-  },
-  card: {
-    backgroundColor: theme.color.surface,
-    borderColor: theme.color.border,
-    borderRadius: theme.radius.lg,
-    borderWidth: 1,
-    gap: theme.spacing.md,
-    padding: 24,
-  },
-  sectionTitle: {
-    color: theme.color.text,
-    fontSize: 20,
-    fontWeight: '900',
-  },
-  certCard: {
-    backgroundColor: theme.color.surfaceMuted,
-    borderColor: '#C3C6D580',
-    borderRadius: theme.radius.md,
-    borderWidth: 1,
-    gap: theme.spacing.xs,
-    padding: theme.spacing.lg,
-  },
-  progressTrack: {
-    backgroundColor: theme.color.softBorder,
-    borderRadius: theme.radius.pill,
-    height: 4,
-    overflow: 'hidden',
-  },
-  progressBar: {
-    backgroundColor: theme.color.primary,
-    borderRadius: theme.radius.pill,
-    height: 4,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    gap: theme.spacing.sm,
-  },
-  statCard: {
-    alignItems: 'center',
-    backgroundColor: theme.color.surfaceMuted,
-    borderColor: '#C3C6D54D',
-    borderRadius: theme.radius.md,
-    borderWidth: 1,
-    flex: 1,
-    gap: theme.spacing.xs,
-    paddingVertical: theme.spacing.lg,
-  },
-  statValue: {
-    color: theme.color.text,
-    fontSize: 26,
-    fontWeight: '900',
-  },
-  statDanger: {
-    color: theme.color.danger,
   },
 });

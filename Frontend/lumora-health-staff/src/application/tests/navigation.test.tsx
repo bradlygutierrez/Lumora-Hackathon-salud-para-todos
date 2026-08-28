@@ -45,7 +45,10 @@ describe('staff navigation guard', () => {
   });
 
   it('exposes staff tabs for authenticated sessions', async () => {
-    mockUseAuthSession.mockReturnValue({ status: 'authenticated' });
+    mockUseAuthSession.mockReturnValue({
+      status: 'authenticated',
+      permissions: new Set(['clinica:manage']),
+    });
 
     const screen = await render(<StaffLayout />);
 
@@ -55,4 +58,17 @@ describe('staff navigation guard', () => {
     expect(screen.getByText('Tab:security')).toBeTruthy();
     expect(screen.getByText('Tab:profile')).toBeTruthy();
   });
+
+  it('redirects authenticated users without clinical permission away from the staff app', async () => {
+    mockUseAuthSession.mockReturnValue({
+      status: 'authenticated',
+      permissions: new Set(),
+    });
+
+    const screen = await render(<StaffLayout />);
+
+    expect(screen.getByText('Redirect:/unauthorized')).toBeTruthy();
+    expect(screen.queryByText('Tab:index')).toBeNull();
+  });
+
 });

@@ -12,14 +12,45 @@ export type ResetPasswordRequest = {
   new_password: string;
 };
 
+export type ChangePasswordRequest = {
+  current_password: string;
+  new_password: string;
+};
+
 export type VerifyEmailRequest = {
   token: string;
+};
+
+export type VerifyEmailCodeRequest = {
+  email: string;
+  code: string;
+};
+
+export type ResendVerificationRequest = {
+  email: string;
 };
 
 export type TokenPairResponse = {
   access_token: string;
   refresh_token: string;
   token_type: 'bearer';
+};
+
+export type LoginTokenResponse = TokenPairResponse & {
+  mfa_required: false;
+};
+
+export type LoginMfaResponse = {
+  mfa_required: true;
+  challenge_token: string;
+  expires_in: number;
+};
+
+export type LoginResponse = LoginTokenResponse | LoginMfaResponse;
+
+export type PendingMfaChallenge = {
+  challengeToken: string;
+  expiresIn: number;
 };
 
 export type MessageResponse = {
@@ -76,6 +107,11 @@ export type SessionRead = {
   created_at: string;
   last_used_at: string;
   expires_at: string;
+  device_name: string;
+  platform: string;
+  ip_address: string | null;
+  last_activity_at: string;
+  is_current: boolean;
 };
 
 export type MfaMethod = {

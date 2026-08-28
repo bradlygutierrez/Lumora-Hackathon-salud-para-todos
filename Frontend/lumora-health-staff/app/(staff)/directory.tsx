@@ -41,7 +41,7 @@ export default function MedicalDirectoryScreen() {
   return (
     <Screen>
       <PermissionGate
-        anyOf={['clinica:manage', 'rbac:manage']}
+        anyOf={['clinica:manage']}
         fallback={
           <ErrorState
             title="Acceso restringido"
@@ -53,7 +53,7 @@ export default function MedicalDirectoryScreen() {
           <AppTopBar />
           <View style={styles.header}>
             <Text style={styles.title}>Directorio de Personal Médico</Text>
-            <Text style={styles.subtitle}>Gestiona y busca personal del hospital.</Text>
+            <Text style={styles.subtitle}>Consulta el personal clínico registrado.</Text>
           </View>
           <View style={styles.searchRow}>
             <View style={styles.searchField}>
@@ -104,15 +104,11 @@ export default function MedicalDirectoryScreen() {
                     lastName={professional.persona.apellidos}
                     size={64}
                   />
-                  <View style={styles.statusPill}>
-                    <View style={styles.statusDot} />
-                    <Text style={styles.statusText}>Activo</Text>
-                  </View>
                 </View>
                 <Text style={styles.name}>
                   {professional.persona.nombres} {professional.persona.apellidos}
                 </Text>
-                <Text style={styles.meta}>Médico de Cabecera</Text>
+                <Text style={styles.meta}>Licencia: {professional.numero_licencia}</Text>
                 <View style={styles.divider} />
                 <View style={styles.specialtyRow}>
                   <Ionicons color={theme.color.primary} name="heart-outline" size={18} />

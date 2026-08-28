@@ -1,12 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Redirect, Tabs } from 'expo-router';
+import { Redirect, Tabs, type Href } from 'expo-router';
 
 import { useAuthSession } from '@/src/features/auth/hooks/use-auth-session';
 import { LoadingState } from '@/src/shared/components/RemoteState';
 import { theme } from '@/src/shared/constants/theme';
 
 export default function StaffLayout() {
-  const { status } = useAuthSession();
+  const { permissions, status } = useAuthSession();
 
   if (status === 'restoring') {
     return <LoadingState title="Restaurando sesión clínica" />;
@@ -14,6 +14,10 @@ export default function StaffLayout() {
 
   if (status === 'anonymous') {
     return <Redirect href="/(auth)/login" />;
+  }
+
+  if (!permissions.has('clinica:manage')) {
+    return <Redirect href={'/unauthorized' as Href} />;
   }
 
   return (

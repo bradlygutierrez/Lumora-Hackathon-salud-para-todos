@@ -96,6 +96,11 @@ export const previewSessions: SessionRead[] = [
     created_at: '2026-10-12T09:41:00.000Z',
     last_used_at: '2026-10-12T09:41:00.000Z',
     expires_at: '2026-10-12T17:41:00.000Z',
+    device_name: 'MacBook Pro',
+    platform: 'macOS',
+    ip_address: '192.168.1.1',
+    last_activity_at: '2026-10-12T09:41:00.000Z',
+    is_current: true,
   },
   {
     id: 2,
@@ -104,6 +109,11 @@ export const previewSessions: SessionRead[] = [
     created_at: '2026-10-12T07:41:00.000Z',
     last_used_at: '2026-10-12T07:41:00.000Z',
     expires_at: '2026-10-12T15:41:00.000Z',
+    device_name: 'iPhone 14 Pro',
+    platform: 'iOS',
+    ip_address: '192.168.1.2',
+    last_activity_at: '2026-10-12T07:41:00.000Z',
+    is_current: false,
   },
 ];
 
