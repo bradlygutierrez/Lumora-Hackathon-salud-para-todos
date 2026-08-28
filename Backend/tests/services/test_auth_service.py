@@ -25,6 +25,52 @@ async def make_user(session) -> Usuario:
     return user
 
 
+class FakeSender:
+    def __init__(self, fail=False):
+        self.calls = []
+        self.fail = fail
+
+    def send_password_reset(self, recipient, token):
+        self.calls.append((recipient, token))
+        if self.fail:
+            raise RuntimeError("smtp unavailable")
+
+
+@pytest.mark.asyncio
+async def test_recovery_existing_user_invokes_sender_and_logs_failure(session_factory, caplog):
+    async with session_factory() as session:
+        user = await make_user(session)
+        sender = FakeSender(fail=True)
+        service = AuthService(AuthRepository(session), email_service=sender)
+        with caplog.at_level("ERROR"):
+            raw_token = await service.create_recovery(user.email)
+        assert raw_token
+        assert sender.calls and sender.calls[0][0] == user.email
+        assert "Password recovery email delivery failed" in caplog.text
+        assert raw_token not in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_recovery_unknown_user_does_not_invoke_sender(session_factory):
+    async with session_factory() as session:
+        sender = FakeSender()
+        service = AuthService(AuthRepository(session), email_service=sender)
+        assert await service.create_recovery("missing@example.com") is None
+        assert sender.calls == []
+
+
+@pytest.mark.asyncio
+async def test_recovery_success_invokes_sender_and_persists_hashed_token(session_factory):
+    async with session_factory() as session:
+        user = await make_user(session)
+        sender = FakeSender()
+        service = AuthService(AuthRepository(session), email_service=sender)
+        raw_token = await service.create_recovery(user.email)
+        assert sender.calls == [(user.email, raw_token)]
+        stored = await AuthRepository(session).recovery_by_hash(hash_token(raw_token))
+        assert stored is not None and stored.token_hash != raw_token
+
+
 @pytest.mark.asyncio
 async def test_recovery_token_is_hashed_expires_and_cannot_be_reused(session_factory):
     async with session_factory() as session:
