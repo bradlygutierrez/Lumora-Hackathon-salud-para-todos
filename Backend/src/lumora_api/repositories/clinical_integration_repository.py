@@ -452,6 +452,17 @@ class ClinicalIntegrationRepository:
         )
         items.extend(
             self._item(
+                item["fecha_medicion"],
+                "medicion",
+                f'{item["indicador_nombre"]}: {item["valor"]} {item["unidad_medida"]}',
+                item["observaciones"],
+                "mediciones_indicador",
+                item["id"],
+            )
+            for item in await self._measurements(record.paciente_id)
+        )
+        items.extend(
+            self._item(
                 item.created_at,
                 "nota",
                 "Nota clínica",
