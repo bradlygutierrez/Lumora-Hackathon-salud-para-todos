@@ -1,112 +1,230 @@
-import { create } from 'zustand';
+import {
+  create,
+} from 'zustand';
+
+import type {
+  MfaMethodName,
+} from '@/features/auth/types/auth.types';
 
 import {
   secureSession,
   type StoredSession,
 } from '@/shared/api/secure-session';
 
+/**
+ * Estado general de autenticación.
+ */
 export type AuthStatus =
   | 'bootstrapping'
   | 'authenticated'
   | 'unauthenticated';
 
 /**
- * Challenge MFA temporal.
+ * Challenge MFA pendiente.
  *
- * NO se persiste en SecureStore: si la app se reinicia, el usuario debe
- * iniciar sesión de nuevo. Así evitamos tratar un challenge corto como sesión.
+ * Se mantiene únicamente en memoria.
+ *
+ * NO debe persistirse porque:
+ * - tiene duración corta;
+ * - no representa una sesión válida;
+ * - reiniciar la app debe invalidar este flujo frontend.
  */
 export type PendingMfa = {
   challengeToken: string;
   expiresIn: number;
-};
 
-type AuthState = {
-  status: AuthStatus;
-  session: StoredSession | null;
-  pendingMfa: PendingMfa | null;
-
-  bootstrap: () => Promise<void>;
-  setSession: (session: StoredSession) => Promise<void>;
-  clearSession: () => Promise<void>;
-  setPendingMfa: (value: PendingMfa | null) => void;
+  /**
+   * Permite adaptar la UI según el factor.
+   */
+  method:
+    MfaMethodName | null;
 };
 
 /**
- * Encapsula el acceso al almacenamiento seguro.
- * Zustand se ocupa del estado reactivo; esta clase se ocupa de persistencia.
+ * Shape del store Zustand.
+ */
+type AuthState = {
+  status: AuthStatus;
+
+  session:
+    StoredSession | null;
+
+  pendingMfa:
+    PendingMfa | null;
+
+  bootstrap:
+    () => Promise<void>;
+
+  setSession:
+    (
+      session: StoredSession,
+    ) => Promise<void>;
+
+  clearSession:
+    () => Promise<void>;
+
+  setPendingMfa:
+    (
+      value:
+        PendingMfa | null,
+    ) => void;
+};
+
+/**
+ * Encapsula completamente la persistencia
+ * física de una sesión.
+ *
+ * Zustand conoce estado.
+ * Esta clase conoce SecureStore.
  */
 class AuthSessionManager {
-  public restore(): Promise<StoredSession | null> {
+  /**
+   * Recupera la sesión persistida.
+   */
+  public restore():
+    Promise<StoredSession | null> {
     return secureSession.get();
   }
 
-  public persist(session: StoredSession): Promise<void> {
-    return secureSession.set(session);
+  /**
+   * Persiste una sesión nueva.
+   */
+  public persist(
+    session: StoredSession,
+  ): Promise<void> {
+    return secureSession.set(
+      session,
+    );
   }
 
-  public clear(): Promise<void> {
+  /**
+   * Elimina completamente la sesión.
+   */
+  public clear():
+    Promise<void> {
     return secureSession.clear();
   }
 }
 
-const authSessionManager = new AuthSessionManager();
+/**
+ * Única instancia responsable de SecureStore.
+ */
+const authSessionManager =
+  new AuthSessionManager();
 
 /**
- * Estado global pequeño de autenticación.
+ * Estado global mínimo de autenticación.
  *
- * React web equivalente aproximado: `AuthContext + useReducer`.
- * Los datos provenientes de FastAPI NO deben guardarse aquí; esos pertenecen
- * a TanStack Query. Aquí solo viven sesión y estado efímero de autenticación.
+ * Los datos obtenidos mediante FastAPI
+ * NO deberían guardarse aquí.
+ *
+ * Esos datos pertenecen a React Query.
  */
-export const useAuthStore = create<AuthState>((set) => ({
-  status: 'bootstrapping',
-  session: null,
-  pendingMfa: null,
+export const useAuthStore =
+  create<AuthState>(
+    (set) => ({
+      status:
+        'bootstrapping',
 
-  bootstrap: async () => {
-    try {
-      const session = await authSessionManager.restore();
+      session:
+        null,
 
-      set({
-        session,
-        status: session ? 'authenticated' : 'unauthenticated',
-      });
-    } catch {
+      pendingMfa:
+        null,
+
       /**
-       * Durante bootstrap fallamos de forma segura a no autenticado.
-       * No intentamos escribir/borrar nuevamente si el storage nativo falló.
+       * Restaura la sesión cuando inicia Lumora.
        */
-      set({
-        session: null,
-        status: 'unauthenticated',
-      });
-    }
-  },
+      bootstrap:
+        async () => {
+          try {
+            const session =
+              await authSessionManager
+                .restore();
 
-  setSession: async (session) => {
-    await authSessionManager.persist(session);
+            set({
+              session,
 
-    set({
-      session,
-      status: 'authenticated',
-      pendingMfa: null,
-    });
-  },
+              status:
+                session
+                  ? 'authenticated'
+                  : 'unauthenticated',
+            });
+          } catch {
+            /**
+             * Si SecureStore falla, nunca asumimos
+             * que existe una sesión válida.
+             */
+            set({
+              session: null,
 
-  clearSession: async () => {
-    try {
-      await authSessionManager.clear();
-    } finally {
-      set({
-        session: null,
-        status: 'unauthenticated',
-        pendingMfa: null,
-      });
-    }
-  },
+              status:
+                'unauthenticated',
+            });
+          }
+        },
 
-  setPendingMfa: (pendingMfa) => {
-    set({ pendingMfa });
-  },
-}));
+      /**
+       * Persiste una sesión válida y actualiza
+       * inmediatamente el estado global.
+       */
+      setSession:
+        async (
+          session,
+        ) => {
+          await authSessionManager
+            .persist(
+              session,
+            );
+
+          set({
+            session,
+
+            status:
+              'authenticated',
+
+            /**
+             * Ya completamos MFA.
+             * El challenge deja de ser necesario.
+             */
+            pendingMfa:
+              null,
+          });
+        },
+
+      /**
+       * Borra la sesión incluso si SecureStore
+       * produce una excepción.
+       */
+      clearSession:
+        async () => {
+          try {
+            await authSessionManager
+              .clear();
+          } finally {
+            set({
+              session:
+                null,
+
+              status:
+                'unauthenticated',
+
+              pendingMfa:
+                null,
+            });
+          }
+        },
+
+      /**
+       * Actualiza el challenge MFA temporal.
+       */
+      setPendingMfa:
+        (
+          pendingMfa,
+        ) => {
+          set({
+            pendingMfa,
+          });
+        },
+    }),
+  );
