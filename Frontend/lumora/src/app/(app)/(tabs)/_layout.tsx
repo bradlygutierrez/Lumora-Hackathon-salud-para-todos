@@ -26,8 +26,6 @@ export default function TabsLayout() {
     (state) => state.role,
   );
 
-  console.log('B09 ROLE:', role);
-
   const healthLabel =
     role === 'caregiver'
       ? 'Paciente'
