@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 
 
 class RoleSummary(BaseModel):
@@ -14,7 +14,7 @@ class PersonSummary(BaseModel):
 
 class CurrentUserRead(BaseModel):
     id: int
-    email: EmailStr
+    email: str
     username: str
     activo: bool
     email_verificado: bool
