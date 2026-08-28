@@ -35,8 +35,15 @@ class AppointmentUpdate(BaseModel):
     notas: str | None = Field(default=None, max_length=4000)
 
 
+class ProfessionalSummary(BaseModel):
+    id: int
+    full_name: str
+    specialty: str
+
+
 class AppointmentRead(AppointmentBase):
     id: int
     created_at: datetime
     updated_at: datetime
+    professional: ProfessionalSummary | None = None
     model_config = ConfigDict(from_attributes=True)

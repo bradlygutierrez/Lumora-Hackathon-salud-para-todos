@@ -75,6 +75,14 @@ class ProfesionalSalud(SoftDeleteMixin, Base):
     numero_licencia: Mapped[str] = mapped_column(String(100), unique=True, index=True)
     persona: Mapped[Persona] = relationship(back_populates="profesional", lazy="selectin")
 
+    @property
+    def full_name(self) -> str:
+        return " ".join(filter(None, (self.persona.nombres, self.persona.apellidos)))
+
+    @property
+    def specialty(self) -> str:
+        return self.especialidad
+
 
 class ContactoEmergencia(SoftDeleteMixin, Base):
     __tablename__ = "contactos_emergencia"
