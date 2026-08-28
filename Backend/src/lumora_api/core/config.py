@@ -25,6 +25,8 @@ class Settings(BaseSettings):
     smtp_username: str = ""
     smtp_app_password: SecretStr = SecretStr("")
     email_from: str = ""
+    password_reset_deep_link: str = "lumora://reset-password"
+    password_reset_deep_link: str = "lumora://reset-password"
     mfa_challenge_minutes: int = 5
     mfa_max_attempts: int = 5
     mfa_recovery_codes: int = 10
