@@ -38,3 +38,9 @@ Se conservan `/auth/token`, `/auth/mfa/challenge`, setup, recovery y disable par
 - 422: validación Pydantic.
 - 429: reenvío demasiado frecuente.
 - 500: error inesperado con mensaje genérico.
+
+### MFA B08 actualizado
+
+Los únicos métodos soportados son `email` (Email OTP) y `totp` (Authenticator App); SMS no está implementado. `POST /auth/mfa/setup` nunca activa un método: para TOTP devuelve `method_id`, `secret` y `provisioning_uri`; para email envía un OTP de 6 dígitos y devuelve `challenge_token`/`expires_in`. Confirmar con `POST /auth/mfa/setup/confirm` usando `method_id` y `code`; solo entonces se activa el método y se muestran recovery codes una única vez.
+
+El login indica `method` junto con `mfa_required:true`. Email OTP y TOTP usan el mismo `POST /auth/mfa/verify`; los OTP se almacenan como hashes, expiran, limitan intentos y se consumen tras uso. Deshabilitar un método consume sus challenges y elimina sus recovery codes.

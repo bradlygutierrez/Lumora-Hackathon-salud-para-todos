@@ -12,6 +12,9 @@ class EmailService:
     def send_verification_code(self, recipient: str, code: str) -> None:
         self._send(recipient, "Código de verificación de Lumora", f"Tu código de verificación es: {code}\n")
 
+    def send_mfa_code(self, recipient: str, code: str) -> None:
+        self._send(recipient, "CÃ³digo de autenticaciÃ³n de Lumora", f"Tu cÃ³digo de autenticaciÃ³n es: {code}\\n")
+
     def send_password_reset(self, recipient: str, token: str) -> None:
         link = f"{self.settings.password_reset_web_url}?{urlencode(dict(token=token))}"
         plain = ("Solicitaste restablecer tu contraseña de Lumora.\n\n"

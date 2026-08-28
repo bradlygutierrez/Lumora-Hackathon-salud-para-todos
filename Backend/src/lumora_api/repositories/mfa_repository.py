@@ -62,6 +62,9 @@ class MfaRepository:
     async def catalog_method(self, method_id: int) -> MetodoMfa | None:
         return await self.session.get(MetodoMfa, method_id)
 
+    async def latest_open_challenge(self, configured_id: int) -> DesafioAutenticacion | None:
+        return await self.session.scalar(select(DesafioAutenticacion).where(DesafioAutenticacion.usuario_metodo_id == configured_id, DesafioAutenticacion.consumed_at.is_(None)).order_by(DesafioAutenticacion.created_at.desc()).limit(1))
+
     async def challenge(self, challenge_hash: str) -> DesafioAutenticacion | None:
         return await self.session.scalar(
             select(DesafioAutenticacion)

@@ -29,7 +29,13 @@ async def register_and_setup(client, session_factory):
         json={"metodo_id": method_id},
         headers={"Authorization": f"Bearer {login.json()['access_token']}"},
     )
-    return user.json(), setup.json(), login.json()["access_token"]
+    confirmed = await client.post(
+        "/api/v1/auth/mfa/setup/confirm",
+        json={"method_id": setup.json()["method_id"], "code": pyotp.TOTP(setup.json()["secret"]).now()},
+        headers={"Authorization": f"Bearer {login.json()['access_token']}"},
+    )
+    setup_data = {**setup.json(), **confirmed.json()}
+    return user.json(), setup_data, login.json()["access_token"]
 
 
 async def challenge(client):
