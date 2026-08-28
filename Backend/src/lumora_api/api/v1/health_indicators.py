@@ -67,6 +67,19 @@ async def create_rango(
     return await HealthIndicatorsService.create_rango(session, indicador_id, data)
 
 
+@router.get(
+    "/indicators/{indicador_id}/ranges",
+    response_model=List[RangoIndicadorResponse],
+)
+async def list_rangos(
+    indicador_id: UUID,
+    current_user: CurrentUser,
+    session: SessionDep,
+    active_only: bool = Query(True),
+):
+    return await HealthIndicatorsService.get_rangos_indicador(session, indicador_id, active_only)
+
+
 # --- MEDICIONES ---
 @router.post(
     "/patients/{paciente_id}/measurements",
