@@ -28,6 +28,7 @@ class LoginMfaResponse(BaseModel):
     mfa_required: Literal[True] = True
     challenge_token: str
     expires_in: int
+    method: str | None = None
 
 
 class RefreshRequest(BaseModel):

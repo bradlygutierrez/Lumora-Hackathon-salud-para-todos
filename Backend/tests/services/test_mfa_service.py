@@ -22,6 +22,7 @@ async def configured_user(session):
     session.add_all([method, user])
     await session.commit()
     setup = await MfaService(MfaRepository(session)).setup(user, method.id)
+    await MfaService(MfaRepository(session)).confirm_setup(user.id, setup["method_id"], pyotp.TOTP(setup["secret"]).now())
     return user, setup
 
 

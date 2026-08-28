@@ -85,13 +85,8 @@ from lumora_api.schemas.identity import (
     UserUpdate,
 )
 from lumora_api.schemas.mfa import (
-    MfaChallengeRequest,
-    MfaChallengeResponse,
-    MfaMethodRead,
-    MfaRecoveryRequest,
-    MfaSetupRequest,
-    MfaSetupResponse,
-    MfaVerifyRequest,
+    MfaChallengeRequest, MfaChallengeResponse, MfaMethodRead, MfaRecoveryRequest,
+    MfaSetupRequest, MfaSetupResponse, MfaSetupConfirmRequest, MfaActivationResponse, MfaVerifyRequest,
 )
 from lumora_api.schemas.prescriptions import (
     DetalleRecetaCreate,
@@ -200,7 +195,7 @@ __all__ = [
     "MfaMethodRead",
     "MfaRecoveryRequest",
     "MfaSetupRequest",
-    "MfaSetupResponse",
+    "MfaSetupResponse",    "MfaSetupConfirmRequest",    "MfaActivationResponse",
     "MfaVerifyRequest",
     "AppointmentCreate",
     "AppointmentRead",
