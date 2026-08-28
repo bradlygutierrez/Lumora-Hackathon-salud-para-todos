@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
@@ -25,6 +25,7 @@ class PersonCreate(BaseModel):
     apellidos: ShortText
     fecha_nacimiento: date | None = None
     telefono: str | None = Field(default=None, max_length=30)
+    email: EmailStr | None = None
     sexo_id: int | None = None
     direcciones: list[AddressCreate] = Field(default_factory=list)
 
@@ -34,6 +35,7 @@ class PersonUpdate(BaseModel):
     apellidos: ShortText | None = None
     fecha_nacimiento: date | None = None
     telefono: str | None = Field(default=None, max_length=30)
+    email: EmailStr | None = None
     sexo_id: int | None = None
 
 
@@ -43,6 +45,7 @@ class PersonRead(BaseModel):
     apellidos: str
     fecha_nacimiento: date | None
     telefono: str | None
+    email: EmailStr | None = None
     sexo_id: int | None
     direcciones: list[AddressRead] = Field(default_factory=list)
     model_config = ConfigDict(from_attributes=True)
@@ -137,3 +140,37 @@ class EmergencyContactRead(EmergencyContactCreate):
 from lumora_api.schemas.catalogs import RoleRead
 
 UserRead.model_rebuild()
+
+
+class StaffPatientPersonCreate(BaseModel):
+    nombres: ShortText
+    apellidos: ShortText
+    email: EmailStr | None = None
+    fecha_nacimiento: date
+    telefono: Annotated[str, Field(min_length=5, max_length=30)]
+    sexo_id: int
+    direccion: AddressCreate
+
+
+class StaffPatientRegistrationCreate(BaseModel):
+    persona: StaffPatientPersonCreate
+    tipo_sangre_id: int | None = None
+    alergias: str | None = Field(default=None, max_length=2000)
+    contacto_emergencia: EmergencyContactCreate
+
+
+class PatientDetailRead(PatientRead):
+    contactos_emergencia: list[EmergencyContactRead] = Field(default_factory=list)
+
+
+class PatientFamilyRead(BaseModel):
+    id: int
+    usuario_relacionado_id: int
+    nombres: str
+    apellidos: str
+    tipo_relacion_id: int
+    tipo_relacion: str
+    recibir_notificaciones: bool
+    estado: str
+    nivel_acceso: str
+    expira_en: datetime | None = None

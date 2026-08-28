@@ -59,6 +59,16 @@ class PatientAccessService:
                 return
         raise ResourceNotFoundError("Paciente no encontrado")
 
+
+    async def require_relationship_management(self, user: Usuario, patient_id: int) -> None:
+        roles = {role.nombre.lower() for role in user.roles}
+        if "administrador" in roles:
+            return
+        own = await self.repository.patient_for_user(user.id)
+        if own is not None and own.id == patient_id:
+            return
+        raise ResourceNotFoundError("Paciente no encontrado")
+
     async def linked_patients(self, user: Usuario) -> list[dict]:
         if not any(role.nombre.lower() == "cuidador" for role in user.roles):
             raise PermissionDeniedError("El usuario no es cuidador")
