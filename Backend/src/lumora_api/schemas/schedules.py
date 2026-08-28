@@ -44,8 +44,13 @@ class DosisAdministradaBase(BaseModel):
 
 
 class DosisAdministradaCreate(DosisAdministradaBase):
-    horario_id: UUID
-    responsable_id: int
+    # horario_id y responsable_id son opcionales aca porque el endpoint
+    # (schedules.py::create_dosis_log) siempre los sobrescribe con el
+    # path param y el usuario autenticado respectivamente -- si se dejan
+    # obligatorios, FastAPI rechaza con 422 cualquier request que
+    # (correctamente) no los mande en el body.
+    horario_id: Optional[UUID] = None
+    responsable_id: Optional[int] = None
     origen_registro_id: int
 
 
