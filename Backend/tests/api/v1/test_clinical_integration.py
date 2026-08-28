@@ -202,6 +202,7 @@ async def _setup(session_factory, user_id: int):
             profesional_id=professional.id,
             consulta_id=consultation.id,
             estado_id=prescription_state.id,
+            titulo="Plan metabólico",
             fecha_emision=now.replace(hour=10),
             observaciones="Plan nutricional indicado",
         )
@@ -279,6 +280,8 @@ async def test_clinical_summary_timeline_and_search(client, session_factory):
     )
     assert summary.status_code == 200
     payload = summary.json()
+    assert payload["paciente"]["nombres"] == "Paciente"
+    assert payload["paciente"]["apellidos"] == "J05"
     assert payload["expediente"]["id"] == setup["record_id"]
     assert payload["antecedentes"][0]["descripcion"] == "Diabetes familiar"
     assert payload["alergias"][0]["nombre"] == "Penicilina"
@@ -288,6 +291,14 @@ async def test_clinical_summary_timeline_and_search(client, session_factory):
     assert payload["consultas"][0]["signos_vitales"][0]["glucosa_mg_dl"] == 145
     assert payload["consultas"][0]["notas"][0]["contenido"] == "Ajustar alimentación"
     assert payload["consultas"][0]["diagnosticos"][0]["descripcion"] == "Prediabetes"
+    assert payload["recetas"][0]["titulo"] == "Plan metabólico"
+    assert payload["recetas"][0]["consulta_id"] == setup["consultation_id"]
+    assert payload["mediciones"][0]["indicador_nombre"] == "Glucosa"
+    assert payload["mediciones"][0]["unidad_medida"] == "mg/dL"
+    assert payload["mediciones"][0]["valor"] == 145
+    assert payload["alertas"][0]["mensaje"] == "Glucosa por encima del objetivo"
+    assert payload["alertas"][0]["nivel_severidad"] == "Alta"
+    assert payload["alertas"][0]["tipo_alerta"] == "Clínica"
     assert "deleted_at" not in payload["consultas"][0]["notas"][0]
     assert all(
         note["contenido"] != "No debe aparecer"
@@ -305,10 +316,18 @@ async def test_clinical_summary_timeline_and_search(client, session_factory):
     assert {"consulta", "signos_vitales", "nota", "diagnostico", "condicion"}.issubset(
         types
     )
-    assert {"receta", "alerta", "auditoria"}.issubset(types)
+    assert {"receta", "alerta", "auditoria", "medicion"}.issubset(types)
     assert [item["occurred_at"] for item in timeline_payload["items"]] == sorted(
         item["occurred_at"] for item in timeline_payload["items"]
     )
+
+    measurement_timeline = await client.get(
+        f"/api/v1/expedientes/{setup['record_id']}/timeline",
+        params={"tipo": "medicion"},
+        headers=headers,
+    )
+    assert measurement_timeline.status_code == 200
+    assert measurement_timeline.json()["items"][0]["titulo"] == "Glucosa: 145.0 mg/dL"
 
     filtered_timeline = await client.get(
         f"/api/v1/expedientes/{setup['record_id']}/timeline",

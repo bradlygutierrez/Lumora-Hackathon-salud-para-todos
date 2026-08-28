@@ -1,5 +1,6 @@
 from datetime import date, datetime
 from typing import Annotated
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -278,14 +279,63 @@ class ConsultationClinicalSummary(BaseModel):
     diagnosticos: list[DiagnosisRead]
 
 
+class ClinicalPatientIdentitySummary(BaseModel):
+    id: int
+    nombres: str
+    apellidos: str
+    fecha_nacimiento: date | None
+    sexo_id: int | None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ClinicalPrescriptionSummary(BaseModel):
+    id: str
+    profesional_id: int
+    consulta_id: int | None
+    estado_id: int
+    titulo: str | None
+    fecha_emision: datetime
+    vigencia_hasta: datetime | None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ClinicalMeasurementSummary(BaseModel):
+    id: UUID
+    indicador_id: UUID
+    indicador_nombre: str
+    valor: float
+    unidad_medida_id: int
+    unidad_medida: str
+    origen_registro_id: int
+    fecha_medicion: datetime
+    observaciones: str | None = None
+
+
+class ClinicalAlertSummary(BaseModel):
+    id: UUID
+    medicion_id: UUID
+    nivel_severidad_id: int
+    nivel_severidad: str
+    tipo_alerta_id: int
+    tipo_alerta: str
+    mensaje: str
+    atendida: bool
+    fecha_alerta: datetime
+    fecha_atencion: datetime | None = None
+
+
 class PatientClinicalSummary(BaseModel):
     paciente_id: int
+    paciente: ClinicalPatientIdentitySummary
     expediente: MedicalRecordRead | None
     antecedentes: list[MedicalHistoryRead]
     alergias: list[AllergyRead]
     discapacidades: list[DisabilityRead]
     condiciones: list[ConditionRead]
     consultas: list[ConsultationClinicalSummary]
+    recetas: list[ClinicalPrescriptionSummary]
+    mediciones: list[ClinicalMeasurementSummary]
+    alertas: list[ClinicalAlertSummary]
 
 
 class ClinicalTimelineItem(BaseModel):

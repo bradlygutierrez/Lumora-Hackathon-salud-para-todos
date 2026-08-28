@@ -19,6 +19,12 @@ from lumora_api.schemas import (
     PatientClinicalSummary,
     VitalSignsRead,
 )
+from lumora_api.schemas.clinical import (
+    ClinicalAlertSummary,
+    ClinicalMeasurementSummary,
+    ClinicalPatientIdentitySummary,
+    ClinicalPrescriptionSummary,
+)
 
 
 class ClinicalIntegrationService:
@@ -33,17 +39,22 @@ class ClinicalIntegrationService:
         if record is None:
             return PatientClinicalSummary(
                 paciente_id=patient_id,
+                paciente=ClinicalPatientIdentitySummary.model_validate(patient.persona),
                 expediente=None,
                 antecedentes=[],
                 alergias=[],
                 discapacidades=[],
                 condiciones=[],
                 consultas=[],
+                recetas=[],
+                mediciones=[],
+                alertas=[],
             )
 
         payload = await self.repository.summary_payload(record)
         return PatientClinicalSummary(
             paciente_id=patient_id,
+            paciente=ClinicalPatientIdentitySummary.model_validate(patient.persona),
             expediente=MedicalRecordRead.model_validate(payload["record"]),
             antecedentes=[
                 MedicalHistoryRead.model_validate(item) for item in payload["histories"]
@@ -56,6 +67,17 @@ class ClinicalIntegrationService:
                 ConditionRead.model_validate(item) for item in payload["conditions"]
             ],
             consultas=self._consultation_summaries(payload),
+            recetas=[
+                ClinicalPrescriptionSummary.model_validate(item)
+                for item in payload["prescriptions"]
+            ],
+            mediciones=[
+                ClinicalMeasurementSummary.model_validate(item)
+                for item in payload["measurements"]
+            ],
+            alertas=[
+                ClinicalAlertSummary.model_validate(item) for item in payload["alerts"]
+            ],
         )
 
     async def timeline(

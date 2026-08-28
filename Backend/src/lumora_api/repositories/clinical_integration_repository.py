@@ -18,10 +18,15 @@ from lumora_api.models import (
     EventoAuditoria,
     Expediente,
     HistorialCondicion,
+    IndicadorMedico,
+    MedicionIndicador,
+    NivelSeveridad,
     NotaClinica,
     Paciente,
     Receta,
     SignoVital,
+    TipoAlerta,
+    UnidadMedida,
 )
 
 
@@ -83,6 +88,9 @@ class ClinicalIntegrationRepository:
             "vital_signs": await self._vital_signs(consultation_ids),
             "notes": await self._notes(consultation_ids),
             "diagnoses": await self._diagnoses(consultation_ids),
+            "prescriptions": await self._prescriptions(record.paciente_id, consultation_ids),
+            "measurements": await self._measurements(record.paciente_id, limit=5),
+            "alerts": await self._active_alerts(record.paciente_id),
         }
 
     async def timeline_items(
@@ -282,6 +290,71 @@ class ClinicalIntegrationRepository:
             )
         )
 
+    async def _measurements(
+        self, patient_id: int, *, limit: int | None = None
+    ) -> list[dict[str, Any]]:
+        query = (
+            select(
+                MedicionIndicador,
+                IndicadorMedico.nombre.label("indicador_nombre"),
+                UnidadMedida.nombre.label("unidad_medida"),
+            )
+            .join(IndicadorMedico, IndicadorMedico.id == MedicionIndicador.indicador_id)
+            .join(UnidadMedida, UnidadMedida.id == MedicionIndicador.unidad_medida_id)
+            .where(MedicionIndicador.paciente_id == patient_id)
+            .order_by(MedicionIndicador.fecha_medicion.desc(), MedicionIndicador.id.desc())
+        )
+        if limit is not None:
+            query = query.limit(limit)
+        rows = (await self.session.execute(query)).all()
+        return [
+            {
+                "id": measurement.id,
+                "indicador_id": measurement.indicador_id,
+                "indicador_nombre": indicator_name,
+                "valor": measurement.valor,
+                "unidad_medida_id": measurement.unidad_medida_id,
+                "unidad_medida": unit_name,
+                "origen_registro_id": measurement.origen_registro_id,
+                "fecha_medicion": measurement.fecha_medicion,
+                "observaciones": measurement.observaciones,
+            }
+            for measurement, indicator_name, unit_name in rows
+        ]
+
+    async def _active_alerts(self, patient_id: int) -> list[dict[str, Any]]:
+        rows = (
+            await self.session.execute(
+                select(
+                    AlertaClinica,
+                    NivelSeveridad.nombre.label("nivel_severidad"),
+                    TipoAlerta.nombre.label("tipo_alerta"),
+                )
+                .join(NivelSeveridad, NivelSeveridad.id == AlertaClinica.nivel_severidad_id)
+                .join(TipoAlerta, TipoAlerta.id == AlertaClinica.tipo_alerta_id)
+                .where(
+                    AlertaClinica.paciente_id == patient_id,
+                    AlertaClinica.atendida.is_(False),
+                )
+                .order_by(AlertaClinica.fecha_alerta.desc(), AlertaClinica.id.desc())
+            )
+        ).all()
+        return [
+            {
+                "id": alert.id,
+                "medicion_id": alert.medicion_id,
+                "nivel_severidad_id": alert.nivel_severidad_id,
+                "nivel_severidad": severity_name,
+                "tipo_alerta_id": alert.tipo_alerta_id,
+                "tipo_alerta": alert_type_name,
+                "mensaje": alert.mensaje,
+                "atendida": alert.atendida,
+                "fecha_alerta": alert.fecha_alerta,
+                "fecha_atencion": alert.fecha_atencion,
+            }
+            for alert, severity_name, alert_type_name in rows
+        ]
+
     async def _audits(
         self,
         record_id: int,
@@ -376,6 +449,17 @@ class ClinicalIntegrationRepository:
                 item.id,
             )
             for item in await self._vital_signs(consultation_ids)
+        )
+        items.extend(
+            self._item(
+                item["fecha_medicion"],
+                "medicion",
+                f'{item["indicador_nombre"]}: {item["valor"]} {item["unidad_medida"]}',
+                item["observaciones"],
+                "mediciones_indicador",
+                item["id"],
+            )
+            for item in await self._measurements(record.paciente_id)
         )
         items.extend(
             self._item(

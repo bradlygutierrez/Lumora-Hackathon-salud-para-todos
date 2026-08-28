@@ -1,0 +1,107 @@
+import { fireEvent, render } from '@testing-library/react-native';
+
+import { MedicalTimelineScreen } from '../screens/MedicalTimelineScreen';
+
+const mockUseMedicalRecordTimeline = jest.fn();
+const mockUseAuthSession = jest.fn();
+const mockPush = jest.fn();
+const mockBack = jest.fn();
+const mockFetchNextPage = jest.fn();
+
+jest.mock('../hooks/use-medical-record', () => ({
+  useMedicalRecordTimeline: (...args: unknown[]) => mockUseMedicalRecordTimeline(...args),
+}));
+
+jest.mock('@/src/features/auth/hooks/use-auth-session', () => ({
+  useAuthSession: () => mockUseAuthSession(),
+}));
+
+jest.mock('expo-router', () => ({
+  useRouter: () => ({ push: mockPush, back: mockBack }),
+}));
+
+jest.mock('@expo/vector-icons', () => ({ Ionicons: () => null }));
+
+jest.mock('@/src/shared/components/Screen', () => {
+  const React = jest.requireActual('react');
+  return {
+    Screen: ({ children }: { children: React.ReactNode }) =>
+      React.createElement(React.Fragment, null, children),
+  };
+});
+
+const pages = [
+  {
+    items: [
+      {
+        occurred_at: '2026-08-24T15:40:00Z',
+        tipo: 'diagnostico',
+        titulo: 'Diagnóstico',
+        detalle: 'Hipertensión primaria',
+        entidad: 'diagnosticos',
+        entidad_id: '4',
+      },
+      {
+        occurred_at: '2026-08-24T15:45:00Z',
+        tipo: 'receta',
+        titulo: 'Receta emitida',
+        detalle: 'Control antihipertensivo',
+        entidad: 'recetas',
+        entidad_id: 'rx-1',
+      },
+    ],
+    total: 3,
+    limit: 2,
+    offset: 0,
+  },
+];
+
+describe('MedicalTimelineScreen', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockUseAuthSession.mockReturnValue({ permissions: new Set(['clinica:manage']) });
+    mockUseMedicalRecordTimeline.mockReturnValue({
+      data: { pages },
+      isLoading: false,
+      isError: false,
+      hasNextPage: true,
+      isFetchingNextPage: false,
+      fetchNextPage: mockFetchNextPage,
+    });
+  });
+
+  it('renders chronological clinical events from the paginated endpoint', async () => {
+    const screen = await render(<MedicalTimelineScreen patientId={9} recordId={17} />);
+    expect(screen.getByText('Hipertensión primaria')).toBeTruthy();
+    expect(screen.getByText('Control antihipertensivo')).toBeTruthy();
+  });
+
+  it('filters the timeline by backend event type', async () => {
+    const screen = await render(<MedicalTimelineScreen patientId={9} recordId={17} />);
+    await fireEvent.press(screen.getByLabelText('Filtrar timeline por Diagnósticos'));
+    expect(mockUseMedicalRecordTimeline).toHaveBeenLastCalledWith(17, {
+      limit: 10,
+      tipo: 'diagnostico',
+    });
+  });
+
+  it('navigates a diagnosis event to the diagnosis section of the record', async () => {
+    const screen = await render(<MedicalTimelineScreen patientId={9} recordId={17} />);
+    await fireEvent.press(screen.getByLabelText('Abrir evento Diagnóstico'));
+    expect(mockPush).toHaveBeenCalledWith(
+      '/(staff)/patients/9/record?section=diagnosticos',
+    );
+  });
+
+  it('loads the next backend page when more events exist', async () => {
+    const screen = await render(<MedicalTimelineScreen patientId={9} recordId={17} />);
+    await fireEvent.press(screen.getByLabelText('Cargar más eventos clínicos'));
+    expect(mockFetchNextPage).toHaveBeenCalledTimes(1);
+  });
+
+  it('blocks users without clinical permission', async () => {
+    mockUseAuthSession.mockReturnValue({ permissions: new Set() });
+    const screen = await render(<MedicalTimelineScreen patientId={9} recordId={17} />);
+    expect(screen.getByText('Acceso restringido')).toBeTruthy();
+  });
+});
