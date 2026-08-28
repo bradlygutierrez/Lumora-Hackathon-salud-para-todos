@@ -1,17 +1,42 @@
 from uuid import UUID
-from fastapi import HTTPException, status
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from lumora_api.core.exceptions import ResourceNotFoundError
+from lumora_api.models.identity import Usuario
+from lumora_api.models.prescriptions import DetalleReceta, Receta
 from lumora_api.models.schedules import DosisAdministrada, HorarioMedicamento
 from lumora_api.schemas.schedules import (
     DosisAdministradaCreate,
     HorarioMedicamentoCreate,
     HorarioMedicamentoUpdate,
 )
+from lumora_api.services.authorization import ensure_can_access_patient_data
 
 
 class ScheduleService:
+    # --- Apoyo para autorización: a quién pertenece cada recurso ---
+    @staticmethod
+    async def _paciente_id_for_detalle(db: AsyncSession, detalle_receta_id: str) -> int | None:
+        query = (
+            select(Receta.paciente_id)
+            .join(DetalleReceta, DetalleReceta.receta_id == Receta.id)
+            .where(DetalleReceta.id == detalle_receta_id)
+        )
+        return await db.scalar(query)
+
+    @staticmethod
+    async def _paciente_id_for_horario(db: AsyncSession, horario_id: UUID) -> int | None:
+        query = (
+            select(Receta.paciente_id)
+            .join(DetalleReceta, DetalleReceta.receta_id == Receta.id)
+            .join(HorarioMedicamento, HorarioMedicamento.detalle_receta_id == DetalleReceta.id)
+            .where(HorarioMedicamento.id == horario_id)
+        )
+        return await db.scalar(query)
+
+    # --- HORARIOS ---
     @staticmethod
     async def create_horario(
         db: AsyncSession, horario_in: HorarioMedicamentoCreate
@@ -24,8 +49,10 @@ class ScheduleService:
 
     @staticmethod
     async def get_horarios_by_detalle(
-        db: AsyncSession, detalle_receta_id: str
+        db: AsyncSession, current_user: Usuario, detalle_receta_id: str
     ) -> list[HorarioMedicamento]:
+        paciente_id = await ScheduleService._paciente_id_for_detalle(db, detalle_receta_id)
+        await ensure_can_access_patient_data(db, current_user, paciente_id)
         query = select(HorarioMedicamento).where(
             HorarioMedicamento.detalle_receta_id == detalle_receta_id
         )
@@ -36,15 +63,9 @@ class ScheduleService:
     async def update_horario(
         db: AsyncSession, horario_id: UUID, horario_in: HorarioMedicamentoUpdate
     ) -> HorarioMedicamento:
-        query = select(HorarioMedicamento).where(HorarioMedicamento.id == horario_id)
-        result = await db.execute(query)
-        db_horario = result.scalar_one_or_none()
-
+        db_horario = await db.get(HorarioMedicamento, horario_id)
         if not db_horario:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Horario de medicamento no encontrado",
-            )
+            raise ResourceNotFoundError("Horario de medicamento no encontrado")
 
         update_data = horario_in.model_dump(exclude_unset=True)
         for field, value in update_data.items():
@@ -56,23 +77,22 @@ class ScheduleService:
 
     @staticmethod
     async def delete_horario(db: AsyncSession, horario_id: UUID) -> None:
-        query = select(HorarioMedicamento).where(HorarioMedicamento.id == horario_id)
-        result = await db.execute(query)
-        db_horario = result.scalar_one_or_none()
-
+        db_horario = await db.get(HorarioMedicamento, horario_id)
         if not db_horario:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Horario de medicamento no encontrado",
-            )
+            raise ResourceNotFoundError("Horario de medicamento no encontrado")
 
         await db.delete(db_horario)
         await db.commit()
 
+    # --- DOSIS ---
     @staticmethod
     async def create_dosis_log(
-        db: AsyncSession, dosis_in: DosisAdministradaCreate
+        db: AsyncSession, current_user: Usuario, dosis_in: DosisAdministradaCreate
     ) -> DosisAdministrada:
+        paciente_id = await ScheduleService._paciente_id_for_horario(db, dosis_in.horario_id)
+        if paciente_id is None:
+            raise ResourceNotFoundError("Horario de medicamento no encontrado")
+        await ensure_can_access_patient_data(db, current_user, paciente_id)
         db_dosis = DosisAdministrada(**dosis_in.model_dump())
         db.add(db_dosis)
         await db.commit()
@@ -81,8 +101,10 @@ class ScheduleService:
 
     @staticmethod
     async def get_dosis_logs_by_horario(
-        db: AsyncSession, horario_id: UUID
+        db: AsyncSession, current_user: Usuario, horario_id: UUID
     ) -> list[DosisAdministrada]:
+        paciente_id = await ScheduleService._paciente_id_for_horario(db, horario_id)
+        await ensure_can_access_patient_data(db, current_user, paciente_id)
         query = select(DosisAdministrada).where(
             DosisAdministrada.horario_id == horario_id
         )
@@ -91,17 +113,18 @@ class ScheduleService:
 
     @staticmethod
     async def update_dosis_log(
-        db: AsyncSession, dosis_id: UUID, estado_dosis_id: int, observaciones: str | None = None
+        db: AsyncSession,
+        current_user: Usuario,
+        dosis_id: UUID,
+        estado_dosis_id: int,
+        observaciones: str | None = None,
     ) -> DosisAdministrada:
-        query = select(DosisAdministrada).where(DosisAdministrada.id == dosis_id)
-        result = await db.execute(query)
-        db_dosis = result.scalar_one_or_none()
-
+        db_dosis = await db.get(DosisAdministrada, dosis_id)
         if not db_dosis:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Registro de dosis no encontrado",
-            )
+            raise ResourceNotFoundError("Registro de dosis no encontrado")
+
+        paciente_id = await ScheduleService._paciente_id_for_horario(db, db_dosis.horario_id)
+        await ensure_can_access_patient_data(db, current_user, paciente_id)
 
         db_dosis.estado_dosis_id = estado_dosis_id
         if observaciones is not None:
