@@ -22,9 +22,9 @@ class MfaService:
         return [{"id":configured[m.id].id if m.id in configured else None,"metodo_id":m.id,"nombre":m.nombre,"activo":configured[m.id].activo if m.id in configured else False} for m in await self.repository.supported_methods()]
     async def setup(self,user,method_id):
         method=await self.repository.catalog_method(method_id)
-        if method is None or method.nombre not in ("totp","email"): raise ResourceNotFoundError("MÃ©todo MFA no disponible")
+        if method is None or method.nombre not in ("totp","email"): raise ResourceNotFoundError("Método MFA no disponible")
         configured=await self.repository.by_catalog_method(user.id,method_id)
-        if configured and configured.activo: raise ResourceConflictError("El mÃ©todo MFA ya estÃ¡ activo")
+        if configured and configured.activo: raise ResourceConflictError("El método MFA ya está activo")
         if method.nombre=="email":
             if not user.email_verificado: raise ResourceConflictError("El correo debe estar verificado")
             configured=configured or UsuarioMetodoMfa(usuario_id=user.id,metodo_id=method_id,secreto_cifrado="",activo=False)
@@ -44,14 +44,14 @@ class MfaService:
         return {"method_id":configured.id,"secret":secret,"provisioning_uri":pyotp.TOTP(secret).provisioning_uri(name=user.email,issuer_name="Lumora")}
     async def confirm_setup(self,user_id,method_id,code):
         configured=await self.repository.configured_method(user_id,method_id)
-        if configured is None or configured.activo or configured.metodo.nombre not in ("totp","email"): raise ResourceNotFoundError("ConfiguraciÃ³n MFA no encontrada")
+        if configured is None or configured.activo or configured.metodo.nombre not in ("totp","email"): raise ResourceNotFoundError("Configuración MFA no encontrada")
         if configured.metodo.nombre=="totp":
             valid=pyotp.TOTP(decrypt_mfa_secret(configured.secreto_cifrado)).verify(code,valid_window=1)
         else:
             challenge=await self.repository.latest_open_challenge(configured.id)
             valid=challenge is not None and not _expired(challenge.expires_at) and challenge.codigo_hash==hash_token(code)
             if valid: challenge.consumed_at=datetime.now(timezone.utc)
-        if not valid: raise InvalidMfaCodeError("CÃ³digo MFA incorrecto")
+        if not valid: raise InvalidMfaCodeError("Código MFA incorrecto")
         configured.activo=True; configured.disabled_at=None; await self.repository.delete_recovery_codes(configured.id)
         raw=_codes(); self.repository.session.add_all([CodigoRecuperacionMfa(usuario_metodo_id=configured.id,codigo_hash=hash_token(c)) for c in raw]); await self.repository.session.commit()
         return {"method_id":configured.id,"recovery_codes":raw}
@@ -68,13 +68,13 @@ class MfaService:
         self.repository.session.add(DesafioAutenticacion(**values)); await self.repository.session.commit(); return {"challenge_token":raw,"expires_in":mins*60,"method":configured.metodo.nombre}
     async def _open_challenge(self,raw):
         c=await self.repository.challenge(hash_token(raw))
-        if c is None or c.consumed_at is not None or c.intentos>=c.max_intentos: raise InvalidTokenError("DesafÃ­o invÃ¡lido o consumido")
-        if _expired(c.expires_at): c.consumed_at=datetime.now(timezone.utc); await self.repository.session.commit(); raise InvalidTokenError("DesafÃ­o expirado")
+        if c is None or c.consumed_at is not None or c.intentos>=c.max_intentos: raise InvalidTokenError("Desafío inválido o consumido")
+        if _expired(c.expires_at): c.consumed_at=datetime.now(timezone.utc); await self.repository.session.commit(); raise InvalidTokenError("Desafío expirado")
         return c
     async def _failed(self,c):
         c.intentos+=1
         if c.intentos>=c.max_intentos: c.consumed_at=datetime.now(timezone.utc)
-        await self.repository.session.commit(); raise InvalidMfaCodeError("CÃ³digo MFA incorrecto")
+        await self.repository.session.commit(); raise InvalidMfaCodeError("Código MFA incorrecto")
     async def verify(self,raw,code,ip=None,user_agent=None):
         c=await self._open_challenge(raw)
         valid=(c.usuario_metodo.metodo.nombre=="email" and c.codigo_hash==hash_token(code)) if c.usuario_metodo.metodo.nombre=="email" else pyotp.TOTP(decrypt_mfa_secret(c.usuario_metodo.secreto_cifrado)).verify(code,valid_window=1)
@@ -86,5 +86,5 @@ class MfaService:
         now=datetime.now(timezone.utc); rc.used_at=now; c.consumed_at=now; await self.repository.session.commit(); return await AuthService(AuthRepository(self.repository.session)).create_session(c.usuario_id,ip,user_agent)
     async def disable(self,user_id,configured_id):
         c=await self.repository.configured_method(user_id,configured_id)
-        if c is None or not c.activo: raise ResourceNotFoundError("MÃ©todo MFA no encontrado")
+        if c is None or not c.activo: raise ResourceNotFoundError("Método MFA no encontrado")
         c.activo=False; c.disabled_at=datetime.now(timezone.utc); await self.repository.consume_open_challenges(c.id); await self.repository.delete_recovery_codes(c.id); await self.repository.session.commit()

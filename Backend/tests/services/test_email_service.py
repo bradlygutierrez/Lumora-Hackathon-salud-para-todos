@@ -30,6 +30,21 @@ def test_verification_email_uses_tls_and_contains_code_only_for_recipient():
     assert "app-password" not in smtp.message.as_string()
 
 
+def test_mfa_email_preserves_spanish_accents():
+    instances = []
+
+    def factory(*args, **kwargs):
+        instances.append(FakeSmtp(*args, **kwargs))
+        return instances[-1]
+
+    settings = Settings(database_url="sqlite+aiosqlite://", smtp_username="sender@gmail.com", smtp_app_password="app-password", email_from="sender@gmail.com")
+    EmailService(settings, factory).send_mfa_code("patient@example.com", "123456")
+
+    message = instances[0].message
+    assert message["Subject"] == "Código de autenticación de Lumora"
+    assert "Tu código de autenticación es: 123456" in message.get_content()
+
+
 def test_password_reset_email_contains_encoded_deep_link_and_html_button():
     instances = []
     def factory(*args, **kwargs):

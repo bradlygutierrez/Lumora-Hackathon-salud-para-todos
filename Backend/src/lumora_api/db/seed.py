@@ -180,9 +180,9 @@ async def seed() -> None:
         await session.flush()
         await seed_health_indicators(session)
         professionals = list(await session.scalars(select(ProfesionalSalud).where(ProfesionalSalud.deleted_at.is_(None))))
-        location = await session.scalar(select(UbicacionAtencion).where(UbicacionAtencion.nombre == "Cl?nica Lumora"))
+        location = await session.scalar(select(UbicacionAtencion).where(UbicacionAtencion.nombre == "Clínica Lumora"))
         if professionals and location is None:
-            location = UbicacionAtencion(nombre="Cl?nica Lumora", direccion="Managua, Nicaragua", consultorio="Consultorio 1")
+            location = UbicacionAtencion(nombre="Clínica Lumora", direccion="Managua, Nicaragua", consultorio="Consultorio 1")
             session.add(location)
             await session.flush()
         if professionals:
