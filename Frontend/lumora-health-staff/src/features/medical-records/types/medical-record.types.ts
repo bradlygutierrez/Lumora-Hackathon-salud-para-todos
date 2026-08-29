@@ -1,7 +1,6 @@
 import type {
   ClinicalNote as SharedClinicalNote,
   Consultation as SharedConsultation,
-  Page,
   VitalSigns as SharedVitalSigns,
 } from '@/src/shared/types/clinical';
 

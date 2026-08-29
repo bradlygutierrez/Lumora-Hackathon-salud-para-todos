@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { type Href, useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -104,10 +104,10 @@ export function ConsultationDetailScreen({ patientId, consultationId }: { patien
     setNoteOffset(0);
   });
 
-  const detailRows = useMemo(() => [
+  const detailRows = [
     ['Motivo', item.motivo], ['Síntomas', item.sintomas], ['Evaluación', item.evaluacion],
     ['Indicaciones', item.indicaciones], ['Observaciones', item.observaciones],
-  ] as const, [item]);
+  ] as const;
 
   return (
     <Screen>
