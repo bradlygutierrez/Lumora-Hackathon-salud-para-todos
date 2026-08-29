@@ -164,6 +164,7 @@ function SummarySection({
     4,
   );
   const nextAppointment = homeHealthPresenter.nextAppointment(data.appointments);
+  const alerts = homeHealthPresenter.pendingAlerts(data.alerts);
 
   return (
     <View className="gap-4">
@@ -176,6 +177,25 @@ function SummarySection({
             `Tienes una alergia activa registrada a ${allergy.name}. Mantén esta información visible para cualquier profesional de salud.`
           }
         />
+      ) : null}
+
+      {alerts.map((alert) => (
+        <ClinicalAlertCard
+          key={alert.id}
+          title="Indicador fuera de rango"
+          message={alert.mensaje}
+        />
+      ))}
+
+      {alerts.length > 0 ? (
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push('/(app)/health-alerts')}
+        >
+          <Text className="text-center text-sm font-semibold text-[#4A86B6]">
+            Ver todas las alertas de salud
+          </Text>
+        </Pressable>
       ) : null}
 
       <SurfaceCard>

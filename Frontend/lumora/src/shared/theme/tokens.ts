@@ -38,6 +38,11 @@ export const palette = {
     soft: '#FFEBC0',
   },
 
+  mint: {
+    soft: '#DDF5EA',
+    medium: '#C5ECDD',
+  },
+
   /**
    * COAL
    *
@@ -84,6 +89,8 @@ export const theme = {
 
     accent: palette.warm.strong,
     accentSoft: palette.warm.soft,
+    mintSoft: palette.mint.soft,
+    mintMedium: palette.mint.medium,
 
     background: palette.bone.light,
     surface: palette.bone.medium,

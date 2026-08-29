@@ -199,6 +199,17 @@ export class HomeHealthPresenter {
     )[0];
   }
 
+  /** Conserva todas las alertas pendientes, ordenadas de la más reciente. */
+  public pendingAlerts(alerts: AlertaClinicaResponse[]): AlertaClinicaResponse[] {
+    return alerts
+      .filter((alert) => !alert.atendida)
+      .sort(
+        (a, b) =>
+          new Date(b.fecha_alerta).getTime() -
+          new Date(a.fecha_alerta).getTime(),
+      );
+  }
+
   /** Condiciones ya vienen filtradas como activas desde el backend B10. */
   public activeConditions(
     conditions: ActiveConditionSummary[],

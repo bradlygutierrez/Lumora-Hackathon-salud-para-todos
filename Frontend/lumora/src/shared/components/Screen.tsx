@@ -4,12 +4,15 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  StyleSheet,
   View,
 } from 'react-native';
 
 import {
   SafeAreaView,
 } from 'react-native-safe-area-context';
+
+import { theme } from '@/shared/theme/tokens';
 
 type ScreenProps = PropsWithChildren<{
   /**
@@ -92,7 +95,40 @@ export function Screen({
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-bone-100">
+    <SafeAreaView className="relative flex-1 overflow-hidden bg-bone-100">
+      <View
+        pointerEvents="none"
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        style={StyleSheet.absoluteFill}
+      >
+        <View
+          style={{
+            position: 'absolute',
+            width: 210,
+            height: 120,
+            borderRadius: 80,
+            backgroundColor: theme.colors.primary,
+            opacity: 0.32,
+            top: -54,
+            right: -72,
+            transform: [{ rotate: '-18deg' }],
+          }}
+        />
+        <View
+          style={{
+            position: 'absolute',
+            width: 180,
+            height: 104,
+            borderRadius: 72,
+            backgroundColor: theme.colors.mintSoft,
+            opacity: 0.5,
+            bottom: 48,
+            left: -88,
+            transform: [{ rotate: '24deg' }],
+          }}
+        />
+      </View>
       {keyboardAvoiding ? (
         <KeyboardAvoidingView
           className="flex-1"
