@@ -21,6 +21,27 @@ describe('AccountApiService', () => {
     expect(mockedClient.get).toHaveBeenCalledWith('/account/me');
   });
 
+  it('falls back to the authenticated identity when the rich profile fails', async () => {
+    mockedClient.get
+      .mockRejectedValueOnce(new Error('profile unavailable'))
+      .mockResolvedValueOnce({
+        id: 5,
+        username: 'caregiver',
+        email: 'caregiver@example.com',
+        email_verificado: true,
+        activo: true,
+        persona: { id: 8, nombres: 'Carlos', apellidos: 'Cuidador' },
+        roles: [{ id: 2, nombre: 'Cuidador' }],
+      });
+
+    const profile = await accountApi.getMe();
+
+    expect(mockedClient.get).toHaveBeenNthCalledWith(1, '/account/me');
+    expect(mockedClient.get).toHaveBeenNthCalledWith(2, '/auth/me');
+    expect(profile.person.first_names).toBe('Carlos');
+    expect(profile.roles).toEqual([{ id: 2, name: 'Cuidador' }]);
+  });
+
   it('uses patient-scoped emergency contacts', async () => {
     mockedClient.get.mockResolvedValue({ items: [] });
     await accountApi.getEmergencyContacts(7);

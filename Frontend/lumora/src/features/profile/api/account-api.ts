@@ -6,11 +6,35 @@ import type {
   EmergencyContactUpdate,
   ProfileImageResponse,
 } from '@/features/profile/types/account.types';
+import type { CurrentUser } from '@/features/shell/types/shell.types';
 import { httpClient } from '@/shared/api/http-client';
 
 export class AccountApiService {
-  public getMe(): Promise<AccountProfile> {
-    return httpClient.get('/account/me');
+  public async getMe(): Promise<AccountProfile> {
+    try {
+      return await httpClient.get('/account/me');
+    } catch {
+      const user = await httpClient.get<CurrentUser>('/auth/me');
+
+      return {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        email_verified: user.email_verificado,
+        profile_image_url: null,
+        person: {
+          id: user.persona.id,
+          first_names: user.persona.nombres,
+          last_names: user.persona.apellidos,
+          birth_date: null,
+          phone: null,
+          email: user.email,
+          sex_id: null,
+          addresses: [],
+        },
+        roles: user.roles.map((role) => ({ id: role.id, name: role.nombre })),
+      };
+    }
   }
 
   public updateMe(data: AccountUpdateRequest): Promise<AccountProfile> {

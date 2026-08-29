@@ -15,7 +15,11 @@ jest.mock('@/features/shell/hooks/useShellContext', () => ({
 import { renderHook, waitFor } from '@testing-library/react-native';
 
 import { healthIndicatorsApi } from '@/features/health-indicators/api/health-indicators-api';
-import { useRegisterMeasurement } from '@/features/health-indicators/hooks/useRegisterMeasurement';
+import {
+  registerMeasurementErrorMessage,
+  useRegisterMeasurement,
+} from '@/features/health-indicators/hooks/useRegisterMeasurement';
+import { ApiError } from '@/shared/api/api-error';
 import {
   createQueryWrapper,
   createTestQueryClient,
@@ -24,6 +28,13 @@ import { useRecordOriginCatalog } from '@/features/prescriptions/hooks/useCatalo
 import { useShellContext } from '@/features/shell/hooks/useShellContext';
 
 describe('useRegisterMeasurement', () => {
+  it('explains when a caregiver lacks write permission', () => {
+    expect(
+      registerMeasurementErrorMessage(
+        new ApiError('FORBIDDEN', 403, 'Forbidden'),
+      ),
+    ).toBe('No tienes permiso para registrar mediciones de este paciente.');
+  });
   beforeEach(() => {
     jest.clearAllMocks();
 

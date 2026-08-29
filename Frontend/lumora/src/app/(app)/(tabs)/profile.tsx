@@ -17,12 +17,12 @@ import { Screen } from '@/shared/components/Screen';
 
 export default function ProfileRoute() {
   const profile = useAccountProfile();
-  const { activePatient } = useShellContext();
+  const { activePatient, role } = useShellContext();
   const clearSession = useAuthStore((state) => state.clearSession);
   const emergency = useQuery({
     queryKey: ['profile', 'emergency', activePatient?.patientId],
     queryFn: () => accountApi.getEmergencyContacts(activePatient!.patientId),
-    enabled: activePatient !== null,
+    enabled: activePatient !== null && role !== 'caregiver',
   });
   const logout = useMutation({
     mutationFn: () => authApi.logout(),
@@ -89,18 +89,20 @@ export default function ProfileRoute() {
           />
         </ProfileSection>
 
-        <ProfileSection title="Contacto de emergencia">
-          {emergency.isPending ? (
-            <Text className="text-sm text-coal-500">Cargando contacto...</Text>
-          ) : contact ? (
-            <>
-              <ProfileRow label="Nombre" value={`${contact.nombre} (${contact.parentesco})`} />
-              <ProfileRow label="Teléfono" value={contact.telefono} />
-            </>
-          ) : (
-            <Text className="text-sm text-coal-500">No hay un contacto registrado.</Text>
-          )}
-        </ProfileSection>
+        {role !== 'caregiver' ? (
+          <ProfileSection title="Contacto de emergencia">
+            {emergency.isPending ? (
+              <Text className="text-sm text-coal-500">Cargando contacto...</Text>
+            ) : contact ? (
+              <>
+                <ProfileRow label="Nombre" value={`${contact.nombre} (${contact.parentesco})`} />
+                <ProfileRow label="Teléfono" value={contact.telefono} />
+              </>
+            ) : (
+              <Text className="text-sm text-coal-500">No hay un contacto registrado.</Text>
+            )}
+          </ProfileSection>
+        ) : null}
 
         <ProfileSection title="Seguridad">
           <ActionRow label="Contraseña" href="/(app)/security/change-password" />
