@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { type QueryClient, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useAuthSession } from '@/src/features/auth/hooks/use-auth-session';
 import { queryKeys } from '@/src/shared/api/query-keys';
@@ -30,6 +30,7 @@ import type {
   ClinicalNoteCreate,
   ClinicalNoteListParams,
   ClinicalNoteUpdate,
+  Consultation,
   ConsultationCreate,
   ConsultationListParams,
   ConsultationReasonListParams,
@@ -39,6 +40,27 @@ import type {
   VitalSignsCreate,
   VitalSignsListParams,
 } from '../types/consultation.types';
+
+
+async function invalidateClinicalViews(queryClient: QueryClient, consultation: Consultation) {
+  await Promise.all([
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.clinical.patientSummary(consultation.paciente_id),
+    }),
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.clinical.patientsDirectory.clinicalSummary(consultation.paciente_id),
+    }),
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.clinical.medicalRecordTimeline(consultation.expediente_id),
+    }),
+  ]);
+}
+
+function cachedConsultation(queryClient: QueryClient, consultationId: number) {
+  return queryClient.getQueryData<Consultation>(
+    queryKeys.clinical.consultations.detail(consultationId),
+  );
+}
 
 function pageFromItems<T>(items: T[], limit: number, offset: number): Page<T> {
   return {
@@ -236,6 +258,7 @@ export function useCreateConsultation() {
         queryKeys.clinical.consultations.detail(consultation.id),
         consultation,
       );
+      await invalidateClinicalViews(queryClient, consultation);
     },
   });
 }
@@ -257,6 +280,7 @@ export function useUpdateConsultation(consultationId: number) {
       await queryClient.invalidateQueries({
         queryKey: queryKeys.clinical.consultations.all(),
       });
+      await invalidateClinicalViews(queryClient, consultation);
     },
   });
 }
@@ -287,6 +311,8 @@ export function useCreateVitalSigns(consultationId: number) {
       await queryClient.invalidateQueries({
         queryKey: [...queryKeys.clinical.consultations.detail(consultationId), 'vital-signs'],
       });
+      const consultation = cachedConsultation(queryClient, consultationId);
+      if (consultation) await invalidateClinicalViews(queryClient, consultation);
     },
   });
 }
@@ -303,6 +329,8 @@ export function useCreateClinicalNote(consultationId: number) {
       await queryClient.invalidateQueries({
         queryKey: [...queryKeys.clinical.consultations.detail(consultationId), 'notes'],
       });
+      const consultation = cachedConsultation(queryClient, consultationId);
+      if (consultation) await invalidateClinicalViews(queryClient, consultation);
     },
   });
 }
@@ -319,6 +347,8 @@ export function useUpdateClinicalNote(consultationId: number, noteId: number) {
       await queryClient.invalidateQueries({
         queryKey: [...queryKeys.clinical.consultations.detail(consultationId), 'notes'],
       });
+      const consultation = cachedConsultation(queryClient, consultationId);
+      if (consultation) await invalidateClinicalViews(queryClient, consultation);
     },
   });
 }

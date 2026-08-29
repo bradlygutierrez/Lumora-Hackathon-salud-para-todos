@@ -55,21 +55,21 @@ describe('consultations preview hooks', () => {
       { wrapper: createWrapper() },
     );
     await waitFor(() => expect(consultations.result.current.isSuccess).toBe(true));
-    expect(consultations.result.current.data?.items[0]?.id).toBe(5001);
+    expect(consultations.result.current.data?.items[0]?.id).toBe(3401);
 
-    const detail = await renderHook(() => useConsultation(5001), {
+    const detail = await renderHook(() => useConsultation(3401), {
       wrapper: createWrapper(),
     });
     await waitFor(() => expect(detail.result.current.isSuccess).toBe(true));
     expect(detail.result.current.data?.profesional_id).toBe(101);
 
-    const vitalSigns = await renderHook(() => useVitalSigns(5001), {
+    const vitalSigns = await renderHook(() => useVitalSigns(3401), {
       wrapper: createWrapper(),
     });
     await waitFor(() => expect(vitalSigns.result.current.isSuccess).toBe(true));
     expect(vitalSigns.result.current.data?.items[0]?.saturacion_oxigeno).toBe(98);
 
-    const notes = await renderHook(() => useClinicalNotes(5001, { activo: true }), {
+    const notes = await renderHook(() => useClinicalNotes(3401, { activo: true }), {
       wrapper: createWrapper(),
     });
     await waitFor(() => expect(notes.result.current.isSuccess).toBe(true));

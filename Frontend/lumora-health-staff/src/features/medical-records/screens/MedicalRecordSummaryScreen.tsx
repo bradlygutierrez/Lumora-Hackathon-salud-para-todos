@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { type Href, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useAuthSession } from '@/src/features/auth/hooks/use-auth-session';
 import { Button } from '@/src/shared/components/Button';
@@ -154,18 +154,32 @@ export function MedicalRecordSummaryScreen({ patientId, initialSection }: Props)
             <Text style={styles.eyebrow}>EXPEDIENTE MÉDICO</Text>
             <Text style={styles.recordNumber}>{record.numero_expediente}</Text>
           </View>
-          <Button
-            accessibilityLabel="Abrir línea de tiempo médica"
-            icon="time-outline"
-            onPress={() =>
-              router.push(
-                `/(staff)/patients/${patientId}/record/timeline?recordId=${record.id}` as Href,
-              )
-            }
-            variant="secondary"
-          >
-            Línea de tiempo
-          </Button>
+          <View style={styles.recordActions}>
+            <Button
+              accessibilityLabel="Abrir consultas del expediente"
+              icon="medkit-outline"
+              onPress={() =>
+                router.push(
+                  `/(staff)/patients/${patientId}/record/consultations?recordId=${record.id}` as Href,
+                )
+              }
+              variant="secondary"
+            >
+              Consultas
+            </Button>
+            <Button
+              accessibilityLabel="Abrir línea de tiempo médica"
+              icon="time-outline"
+              onPress={() =>
+                router.push(
+                  `/(staff)/patients/${patientId}/record/timeline?recordId=${record.id}` as Href,
+                )
+              }
+              variant="secondary"
+            >
+              Línea de tiempo
+            </Button>
+          </View>
         </View>
 
         {summary.alertas.length > 0 ? (
@@ -211,7 +225,30 @@ export function MedicalRecordSummaryScreen({ patientId, initialSection }: Props)
               <Text style={styles.detailTitle}>{selectedTitle}</Text>
               <Text style={styles.detailCount}>{selectedItems.length}</Text>
             </View>
-            {selectedItems.length > 0 ? (
+            {selectedSection === 'consultas' && summary.consultas.length > 0 ? (
+              summary.consultas.map((entry) => (
+                <Pressable
+                  accessibilityLabel={`Abrir consulta ${entry.consulta.id}`}
+                  accessibilityRole="button"
+                  key={entry.consulta.id}
+                  onPress={() =>
+                    router.push(
+                      `/(staff)/patients/${patientId}/record/consultations/${entry.consulta.id}` as Href,
+                    )
+                  }
+                  style={({ pressed }) => [styles.consultationRow, pressed ? styles.pressed : null]}
+                >
+                  <View style={styles.dot} />
+                  <View style={styles.consultationCopy}>
+                    <Text style={styles.detailText}>{entry.consulta.motivo ?? 'Consulta médica'}</Text>
+                    <Text style={styles.consultationMeta}>
+                      {formatDate(entry.consulta.fecha_consulta)} · {entry.signos_vitales.length} signo(s) · {entry.notas.length} nota(s)
+                    </Text>
+                  </View>
+                  <Ionicons color={theme.color.primaryPressed} name="chevron-forward" size={18} />
+                </Pressable>
+              ))
+            ) : selectedItems.length > 0 ? (
               selectedItems.map((item, index) => (
                 <View key={`${selectedSection}-${index}`} style={styles.detailRow}>
                   <View style={styles.dot} />
@@ -314,6 +351,11 @@ const styles = StyleSheet.create({
   dot: { backgroundColor: theme.color.primary, borderRadius: 4, height: 7, marginTop: 7, width: 7 },
   detailText: { color: theme.color.text, flex: 1, fontSize: 14, lineHeight: 21 },
   emptyText: { color: theme.color.mutedText, fontSize: 14 },
+  recordActions: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm },
+  consultationRow: { alignItems: 'center', flexDirection: 'row', gap: theme.spacing.sm, paddingVertical: theme.spacing.sm },
+  consultationCopy: { flex: 1, gap: 2 },
+  consultationMeta: { color: theme.color.subtleText, fontSize: 11 },
+  pressed: { opacity: 0.72 },
   notesCard: {
     backgroundColor: theme.color.surfaceMuted,
     borderRadius: theme.radius.lg,

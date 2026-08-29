@@ -90,6 +90,18 @@ describe('MedicalRecordSummaryScreen', () => {
     expect(mockPush).not.toHaveBeenCalled();
   });
 
+
+  it('opens the consultation history and individual consultations from the clinical summary', async () => {
+    const screen = await render(<MedicalRecordSummaryScreen patientId={9} />);
+
+    await fireEvent.press(screen.getByLabelText('Abrir consultas del expediente'));
+    expect(mockPush).toHaveBeenCalledWith('/(staff)/patients/9/record/consultations?recordId=17');
+
+    await fireEvent.press(screen.getByLabelText('Abrir sección Consultas'));
+    await fireEvent.press(screen.getByLabelText('Abrir consulta 5'));
+    expect(mockPush).toHaveBeenCalledWith('/(staff)/patients/9/record/consultations/5');
+  });
+
   it('navigates to the medical timeline for the current record', async () => {
     const screen = await render(<MedicalRecordSummaryScreen patientId={9} />);
 

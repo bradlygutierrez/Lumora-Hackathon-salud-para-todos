@@ -1,63 +1,29 @@
+import {
+  previewMedicalRecordSummaries,
+  previewMedicalTimeline,
+} from '@/src/features/medical-records/preview/medical-record-preview';
 import type {
   ClinicalNote,
   Consultation,
-  ConsultationUpdate,
   ConsultationReason,
+  ConsultationUpdate,
   Page,
   VitalSigns,
 } from '../types/consultation.types';
 
+const baseSummary = previewMedicalRecordSummaries[101];
+
 export const previewConsultationsByRecord: Record<number, Consultation[]> = {
-  7001: [
-    {
-      id: 5001,
-      expediente_id: 7001,
-      paciente_id: 101,
-      profesional_id: 101,
-      motivo_consulta_id: 1,
-      fecha_consulta: '2026-08-28T15:30:00.000Z',
-      motivo: 'Control de seguimiento',
-      sintomas: 'Sin síntomas agudos.',
-      evaluacion: 'Evolución estable.',
-      indicaciones: 'Continuar seguimiento habitual.',
-      observaciones: null,
-      activo: true,
-    },
-  ],
+  7001: baseSummary.consultas.map((item) => item.consulta),
 };
 
-export const previewVitalSignsByConsultation: Record<number, VitalSigns[]> = {
-  5001: [
-    {
-      id: 6001,
-      consulta_id: 5001,
-      temperatura_c: 36.7,
-      frecuencia_cardiaca: 72,
-      frecuencia_respiratoria: 16,
-      presion_sistolica: 118,
-      presion_diastolica: 76,
-      saturacion_oxigeno: 98,
-      peso_kg: 68.4,
-      talla_cm: 165,
-      glucosa_mg_dl: null,
-      registrado_at: '2026-08-28T15:35:00.000Z',
-    },
-  ],
-};
+export const previewVitalSignsByConsultation: Record<number, VitalSigns[]> = Object.fromEntries(
+  baseSummary.consultas.map((item) => [item.consulta.id, item.signos_vitales]),
+);
 
-export const previewClinicalNotesByConsultation: Record<number, ClinicalNote[]> = {
-  5001: [
-    {
-      id: 6101,
-      consulta_id: 5001,
-      autor_id: 9001,
-      contenido: 'Paciente estable durante el control de seguimiento.',
-      created_at: '2026-08-28T15:40:00.000Z',
-      updated_at: '2026-08-28T15:40:00.000Z',
-      activo: true,
-    },
-  ],
-};
+export const previewClinicalNotesByConsultation: Record<number, ClinicalNote[]> = Object.fromEntries(
+  baseSummary.consultas.map((item) => [item.consulta.id, item.notas]),
+);
 
 export const previewConsultationReasons: Page<ConsultationReason> = {
   items: [
@@ -68,6 +34,34 @@ export const previewConsultationReasons: Page<ConsultationReason> = {
   limit: 100,
   offset: 0,
 };
+
+function sortPreviewTimeline(recordId: number) {
+  previewMedicalTimeline[recordId]?.sort((a, b) => a.occurred_at.localeCompare(b.occurred_at));
+}
+
+function findSummaryBundle(consultationId: number) {
+  for (const summary of Object.values(previewMedicalRecordSummaries)) {
+    const bundle = summary.consultas.find((item) => item.consulta.id === consultationId);
+    if (bundle) return { summary, bundle };
+  }
+  return null;
+}
+
+function ensureSummaryBundle(consultation: Consultation) {
+  const summary = previewMedicalRecordSummaries[consultation.paciente_id];
+  if (!summary) return null;
+  let bundle = summary.consultas.find((item) => item.consulta.id === consultation.id);
+  if (!bundle) {
+    bundle = {
+      consulta: consultation,
+      signos_vitales: previewVitalSignsByConsultation[consultation.id] ?? [],
+      notas: (previewClinicalNotesByConsultation[consultation.id] ?? []).filter((note) => note.activo),
+      diagnosticos: [],
+    };
+    summary.consultas.unshift(bundle);
+  }
+  return { summary, bundle };
+}
 
 let nextConsultationId = 9000;
 
@@ -80,8 +74,27 @@ export function createPreviewConsultation(
     id: nextConsultationId,
     fecha_consulta: data.fecha_consulta || new Date().toISOString(),
   };
-  const items = previewConsultationsByRecord[data.expediente_id] ?? [];
-  previewConsultationsByRecord[data.expediente_id] = [created, ...items];
+  previewConsultationsByRecord[data.expediente_id] = [
+    created,
+    ...(previewConsultationsByRecord[data.expediente_id] ?? []),
+  ];
+  previewVitalSignsByConsultation[created.id] = [];
+  previewClinicalNotesByConsultation[created.id] = [];
+  if (created.activo) {
+    ensureSummaryBundle(created);
+    previewMedicalTimeline[data.expediente_id] = [
+      ...(previewMedicalTimeline[data.expediente_id] ?? []),
+      {
+        occurred_at: created.fecha_consulta,
+        tipo: 'consulta',
+        titulo: created.motivo || 'Consulta médica',
+        detalle: created.evaluacion,
+        entidad: 'consultas_medicas',
+        entidad_id: String(created.id),
+      },
+    ];
+    sortPreviewTimeline(data.expediente_id);
+  }
   return created;
 }
 
@@ -89,15 +102,67 @@ export function updatePreviewConsultation(
   consultationId: number,
   changes: ConsultationUpdate,
 ): Consultation {
-  for (const items of Object.values(previewConsultationsByRecord)) {
+  for (const [recordKey, items] of Object.entries(previewConsultationsByRecord)) {
     const index = items.findIndex((item) => item.id === consultationId);
-    if (index >= 0) {
-      const normalized = Object.fromEntries(
-        Object.entries(changes).filter(([, value]) => value !== null && value !== undefined),
-      );
-      items[index] = { ...items[index], ...normalized };
-      return items[index];
+    if (index < 0) continue;
+
+    const normalized = Object.fromEntries(
+      Object.entries(changes).filter(([, value]) => value !== null && value !== undefined),
+    );
+    items[index] = { ...items[index], ...normalized };
+    const updated = items[index];
+    const recordId = Number(recordKey);
+    const summary = previewMedicalRecordSummaries[updated.paciente_id];
+    if (summary) {
+      summary.consultas = summary.consultas.filter((entry) => entry.consulta.id !== consultationId);
+      if (updated.activo) ensureSummaryBundle(updated);
     }
+
+    const vitalSignIds = new Set(
+      (previewVitalSignsByConsultation[consultationId] ?? []).map((item) => String(item.id)),
+    );
+    const noteIds = new Set(
+      (previewClinicalNotesByConsultation[consultationId] ?? []).map((item) => String(item.id)),
+    );
+    const timeline = previewMedicalTimeline[recordId] ?? [];
+    previewMedicalTimeline[recordId] = timeline.filter((event) => {
+      if (event.tipo === 'consulta' && event.entidad_id === String(consultationId)) return false;
+      if (event.tipo === 'signos_vitales' && vitalSignIds.has(event.entidad_id)) return false;
+      if (event.tipo === 'nota' && noteIds.has(event.entidad_id)) return false;
+      return true;
+    });
+    if (updated.activo) {
+      previewMedicalTimeline[recordId].push({
+        occurred_at: updated.fecha_consulta,
+        tipo: 'consulta',
+        titulo: updated.motivo || 'Consulta médica',
+        detalle: updated.evaluacion,
+        entidad: 'consultas_medicas',
+        entidad_id: String(updated.id),
+      });
+      previewMedicalTimeline[recordId].push(
+        ...(previewVitalSignsByConsultation[consultationId] ?? []).map((item) => ({
+          occurred_at: item.registrado_at,
+          tipo: 'signos_vitales',
+          titulo: 'Signos vitales registrados',
+          detalle: null,
+          entidad: 'signos_vitales',
+          entidad_id: String(item.id),
+        })),
+        ...(previewClinicalNotesByConsultation[consultationId] ?? [])
+          .filter((item) => item.activo)
+          .map((item) => ({
+            occurred_at: item.created_at,
+            tipo: 'nota',
+            titulo: 'Nota clínica',
+            detalle: item.contenido,
+            entidad: 'notas_clinicas',
+            entidad_id: String(item.id),
+          })),
+      );
+      sortPreviewTimeline(recordId);
+    }
+    return updated;
   }
   throw new Error('Consulta preview no encontrada');
 }
@@ -120,6 +185,23 @@ export function createPreviewVitalSigns(
     created,
     ...(previewVitalSignsByConsultation[consultationId] ?? []),
   ];
+  const match = findSummaryBundle(consultationId);
+  if (match) {
+    match.bundle.signos_vitales = previewVitalSignsByConsultation[consultationId];
+    const recordId = match.bundle.consulta.expediente_id;
+    previewMedicalTimeline[recordId] = [
+      ...(previewMedicalTimeline[recordId] ?? []),
+      {
+        occurred_at: created.registrado_at,
+        tipo: 'signos_vitales',
+        titulo: 'Signos vitales registrados',
+        detalle: null,
+        entidad: 'signos_vitales',
+        entidad_id: String(created.id),
+      },
+    ];
+    sortPreviewTimeline(recordId);
+  }
   return created;
 }
 
@@ -143,6 +225,23 @@ export function createPreviewClinicalNote(
     created,
     ...(previewClinicalNotesByConsultation[consultationId] ?? []),
   ];
+  const match = findSummaryBundle(consultationId);
+  if (match && created.activo) {
+    match.bundle.notas = previewClinicalNotesByConsultation[consultationId].filter((note) => note.activo);
+    const recordId = match.bundle.consulta.expediente_id;
+    previewMedicalTimeline[recordId] = [
+      ...(previewMedicalTimeline[recordId] ?? []),
+      {
+        occurred_at: created.created_at,
+        tipo: 'nota',
+        titulo: 'Nota clínica',
+        detalle: created.contenido,
+        entidad: 'notas_clinicas',
+        entidad_id: String(created.id),
+      },
+    ];
+    sortPreviewTimeline(recordId);
+  }
   return created;
 }
 
@@ -158,5 +257,26 @@ export function updatePreviewClinicalNote(
     Object.entries(data).filter(([, value]) => value !== null && value !== undefined),
   );
   items[index] = { ...items[index], ...changes, updated_at: new Date().toISOString() };
-  return items[index];
+  const updated = items[index];
+  const match = findSummaryBundle(consultationId);
+  if (match) {
+    match.bundle.notas = items.filter((note) => note.activo);
+    const recordId = match.bundle.consulta.expediente_id;
+    const timeline = previewMedicalTimeline[recordId] ?? [];
+    previewMedicalTimeline[recordId] = timeline.filter(
+      (event) => !(event.tipo === 'nota' && event.entidad_id === String(noteId)),
+    );
+    if (updated.activo) {
+      previewMedicalTimeline[recordId].push({
+        occurred_at: updated.created_at,
+        tipo: 'nota',
+        titulo: 'Nota clínica',
+        detalle: updated.contenido,
+        entidad: 'notas_clinicas',
+        entidad_id: String(updated.id),
+      });
+      sortPreviewTimeline(recordId);
+    }
+  }
+  return updated;
 }
