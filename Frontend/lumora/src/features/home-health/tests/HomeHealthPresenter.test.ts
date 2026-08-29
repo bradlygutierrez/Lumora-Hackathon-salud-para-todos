@@ -273,8 +273,34 @@ describe(
         );
       },
     );
+
+    it('keeps every pending clinical alert ordered newest-first', () => {
+      const alerts = presenter.pendingAlerts([
+        alert('old', '2026-08-28T08:00:00Z'),
+        alert('new', '2026-08-29T08:00:00Z'),
+        { ...alert('attended', '2026-08-30T08:00:00Z'), atendida: true },
+      ]);
+
+      expect(alerts.map((item) => item.id)).toEqual(['new', 'old']);
+    });
   },
 );
+
+function alert(id: string, date: string): AlertaClinicaResponse {
+  return {
+    id,
+    paciente_id: 7,
+    medicion_id: `measurement-${id}`,
+    nivel_severidad_id: 1,
+    tipo_alerta_id: 1,
+    origen_registro_id: 1,
+    mensaje: 'Indicador fuera de rango',
+    atendida: false,
+    atendida_por_id: null,
+    fecha_alerta: date,
+    fecha_atencion: null,
+  };
+}
 
 /**
  * Factory de citas utilizada por los tests.

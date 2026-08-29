@@ -3,10 +3,6 @@ import {
 } from '@/shared/api/http-client';
 
 import {
-  secureSession,
-} from '@/shared/api/secure-session';
-
-import {
   resolveLumoraRole,
 } from '@/features/shell/navigation/shell-route-guard';
 
@@ -16,10 +12,6 @@ import type {
   PatientContext,
   ShellIdentity,
 } from '@/features/shell/types/shell.types';
-
-type JwtPayload = {
-  sub?: string;
-};
 
 /**
  * Respuesta del endpoint seguro:
@@ -72,17 +64,9 @@ export class ShellContextService {
    */
   public async loadIdentity():
     Promise<ShellIdentity> {
-    const userId =
-      await this.currentUserId();
-
-    /**
-     * B08/B09:
-     * Obtenemos el usuario actual usando el ID
-     * almacenado dentro del JWT.
-     */
     const user =
       await httpClient.get<CurrentUser>(
-        `/usuarios/${userId}`,
+        '/auth/me',
       );
 
     const role =
@@ -140,47 +124,6 @@ export class ShellContextService {
       role,
       availablePatients: [],
     };
-  }
-
-  /**
-   * Obtiene el ID de usuario desde el JWT
-   * almacenado en SecureStore.
-   */
-  private async currentUserId():
-    Promise<number> {
-    const session =
-      await secureSession.get();
-
-    if (
-      !session?.accessToken
-    ) {
-      throw new Error(
-        'No existe una sesión autenticada.',
-      );
-    }
-
-    const payload =
-      this.decodeJwtPayload(
-        session.accessToken,
-      );
-
-    const userId =
-      Number(
-        payload.sub,
-      );
-
-    if (
-      !Number.isInteger(
-        userId,
-      ) ||
-      userId <= 0
-    ) {
-      throw new Error(
-        'El access token no contiene un usuario válido.',
-      );
-    }
-
-    return userId;
   }
 
   /**
@@ -300,68 +243,6 @@ export class ShellContextService {
     }
   }
 
-  /**
-   * Decodifica únicamente el payload del JWT.
-   *
-   * No intenta validar criptográficamente el token.
-   * Esa validación pertenece al backend.
-   *
-   * Aquí solo necesitamos leer `sub` para obtener
-   * el ID del usuario autenticado.
-   */
-  private decodeJwtPayload(
-    token: string,
-  ): JwtPayload {
-    const parts =
-      token.split('.');
-
-    if (
-      parts.length < 2
-    ) {
-      throw new Error(
-        'Access token inválido.',
-      );
-    }
-
-    /**
-     * JWT usa Base64 URL-safe.
-     *
-     * Convertimos:
-     * - "-" -> "+"
-     * - "_" -> "/"
-     */
-    const payload =
-      parts[1]
-        .replace(
-          /-/g,
-          '+',
-        )
-        .replace(
-          /_/g,
-          '/',
-        );
-
-    /**
-     * Base64 requiere longitud múltiplo de 4.
-     */
-    const padded =
-      payload.padEnd(
-        Math.ceil(
-          payload.length /
-            4,
-        ) * 4,
-        '=',
-      );
-
-    const decoded =
-      globalThis.atob(
-        padded,
-      );
-
-    return JSON.parse(
-      decoded,
-    ) as JwtPayload;
-  }
 }
 
 /**

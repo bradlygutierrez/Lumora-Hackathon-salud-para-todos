@@ -128,6 +128,13 @@ export class HttpClientManager {
   /** Añade el access token antes de enviar cada request autenticada. */
   private configureRequestInterceptor(): void {
     this.client.interceptors.request.use(async (config) => {
+      if (
+        typeof FormData !== 'undefined' &&
+        config.data instanceof FormData
+      ) {
+        config.headers.delete('Content-Type');
+      }
+
       const session = await secureSession.get();
 
       if (session?.accessToken) {
