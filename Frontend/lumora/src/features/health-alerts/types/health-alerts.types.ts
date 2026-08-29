@@ -23,6 +23,7 @@ export type HealthAlertResponse = {
   atendida: boolean;
   alerta_id: string | null;
   medicion_id: string | null;
+  indicador_id: string | null;
   horario_id: string | null;
   cita_id: number | null;
 };

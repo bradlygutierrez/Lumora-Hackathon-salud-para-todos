@@ -6,6 +6,7 @@ import type { HealthAlertResponse } from '@/features/health-alerts/types/health-
 import {
   actionForAlert,
   HEALTH_ALERT_CATEGORY_VARIANTS,
+  secondaryActionForAlert,
 } from '@/features/health-alerts/utils/health-alert-variants';
 import { theme } from '@/shared/theme/tokens';
 
@@ -28,6 +29,7 @@ type HealthAlertCardProps = {
 export function HealthAlertCard({ alert }: HealthAlertCardProps) {
   const variant = HEALTH_ALERT_CATEGORY_VARIANTS[alert.categoria];
   const action = actionForAlert(alert);
+  const secondaryAction = secondaryActionForAlert(alert);
 
   return (
     <View className="gap-3 rounded-2xl border border-bone-500 bg-bone-300 p-4">
@@ -42,15 +44,31 @@ export function HealthAlertCard({ alert }: HealthAlertCardProps) {
       <Text className="text-sm text-coal-500">{alert.mensaje}</Text>
       <Text className="text-xs text-coal-500">{formatDateTime(alert.fecha)}</Text>
 
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={action.label}
-        onPress={() => router.push(action.href)}
-        className="mt-1 flex-row items-center justify-center gap-1 self-start rounded-full bg-lumen-500 px-4 py-2 active:opacity-75"
-      >
-        <Text className="text-sm font-semibold text-coal-900">{action.label}</Text>
-        <Ionicons name="chevron-forward" size={16} color={theme.colors.textPrimary} />
-      </Pressable>
+      <View className="mt-1 flex-row flex-wrap items-center gap-2">
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={action.label}
+          onPress={() => router.push(action.href)}
+          className="flex-row items-center justify-center gap-1 self-start rounded-full bg-lumen-500 px-4 py-2 active:opacity-75"
+        >
+          <Text className="text-sm font-semibold text-coal-900">{action.label}</Text>
+          <Ionicons name="chevron-forward" size={16} color={theme.colors.textPrimary} />
+        </Pressable>
+
+        {secondaryAction ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={secondaryAction.label}
+            accessibilityState={{ disabled: secondaryAction.disabled }}
+            disabled={secondaryAction.disabled}
+            className="flex-row items-center justify-center gap-1 self-start rounded-full border border-bone-500 bg-bone-300 px-4 py-2 opacity-50"
+          >
+            <Text className="text-sm font-semibold text-coal-500">
+              {secondaryAction.label}
+            </Text>
+          </Pressable>
+        ) : null}
+      </View>
     </View>
   );
 }
