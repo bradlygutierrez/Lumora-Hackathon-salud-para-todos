@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from lumora_api.models.reminders import (
     Recordatorio,
+    RecordatorioHorario,
     Notificacion,
     PreferenciaNotificacion,
     RelacionPaciente,
@@ -39,6 +40,36 @@ class ReminderRepository:
 
     async def delete_recordatorio(self, recordatorio: Recordatorio) -> None:
         await self.session.delete(recordatorio)
+        await self.session.commit()
+
+    # --- HORARIOS DE RECORDATORIO ---
+    async def get_recordatorio_horarios(self, recordatorio_id: int) -> Sequence[RecordatorioHorario]:
+        stmt = (
+            select(RecordatorioHorario)
+            .where(RecordatorioHorario.recordatorio_id == recordatorio_id)
+            .order_by(RecordatorioHorario.hora)
+        )
+        res = await self.session.execute(stmt)
+        return res.scalars().all()
+
+    async def get_recordatorio_horario_by_id(self, horario_id: int) -> Optional[RecordatorioHorario]:
+        stmt = select(RecordatorioHorario).where(RecordatorioHorario.id == horario_id)
+        res = await self.session.execute(stmt)
+        return res.scalar_one_or_none()
+
+    async def create_recordatorio_horario(self, horario: RecordatorioHorario) -> RecordatorioHorario:
+        self.session.add(horario)
+        await self.session.commit()
+        await self.session.refresh(horario)
+        return horario
+
+    async def update_recordatorio_horario(self, horario: RecordatorioHorario) -> RecordatorioHorario:
+        await self.session.commit()
+        await self.session.refresh(horario)
+        return horario
+
+    async def delete_recordatorio_horario(self, horario: RecordatorioHorario) -> None:
+        await self.session.delete(horario)
         await self.session.commit()
 
     # --- NOTIFICACIONES ---

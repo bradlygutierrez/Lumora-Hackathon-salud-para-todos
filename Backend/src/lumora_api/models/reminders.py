@@ -1,7 +1,7 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, time
 from typing import TYPE_CHECKING, Optional
-from sqlalchemy import String, ForeignKey, Boolean, DateTime, Text, Float
+from sqlalchemy import String, ForeignKey, Boolean, DateTime, Text, Float, Time
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from lumora_api.db.base import Base
@@ -38,6 +38,13 @@ class Recordatorio(Base):
     activo: Mapped[bool] = mapped_column(Boolean, default=True)
     creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
+    # Estado del recordatorio: pendiente -> pospuesto/completado/omitido.
+    # Ver POST /recordatorios/{id}/posponer y /recordatorios/{id}/omitir
+    # (botones "Posponer"/"Omitir" de la pantalla de Recordatorios).
+    estado: Mapped[str] = mapped_column(
+        String(20), default="pendiente", server_default="pendiente", nullable=False
+    )
+
     # A10: solo se usan cuando tipo_recordatorio es "Seguimiento" (sin
     # horario_medicamento_id/cita_id/alerta_id) -- p.ej. "Beber Agua" con
     # objetivo_cantidad=2.0, unidad="Litros", progreso_actual empezando en
@@ -45,6 +52,33 @@ class Recordatorio(Base):
     objetivo_cantidad: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     progreso_actual: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     unidad: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
+
+    # Horas del dia elegidas por quien crea el recordatorio para repartir
+    # objetivo_cantidad (ej. "Beber Agua": 2 Litros repartidos en
+    # 08:00/12:00/16:00/20:00, ver RecordatorioHorario mas abajo).
+    horarios: Mapped[list["RecordatorioHorario"]] = relationship(
+        back_populates="recordatorio",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+        order_by="RecordatorioHorario.hora",
+    )
+
+
+class RecordatorioHorario(Base):
+    __tablename__ = "recordatorio_horarios"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    recordatorio_id: Mapped[int] = mapped_column(
+        ForeignKey("recordatorios.id", ondelete="CASCADE"), nullable=False
+    )
+    hora: Mapped[time] = mapped_column(Time, nullable=False)
+    # Porcion del objetivo_cantidad del recordatorio que corresponde a
+    # este horario puntual. Si es None, se reparte en partes iguales
+    # entre los horarios activos (calculado en ReminderService).
+    cantidad_objetivo: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    activo: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    recordatorio: Mapped["Recordatorio"] = relationship(back_populates="horarios")
 
 
 class Notificacion(Base):
