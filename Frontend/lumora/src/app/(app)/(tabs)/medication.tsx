@@ -113,13 +113,18 @@ export default function MedicationRoute() {
           </Link>
         ) : null}
 
-        {/* Entrada provisional a Indicadores de Salud (A08): la entrada
-            "oficial" del Figma es desde "Mi Salud" (B10, todavía sin
-            construir), así que mientras esa pantalla no exista se deja este
-            acceso acá para que la feature sea alcanzable y se pueda probar.
-            Quitar esta línea cuando B10 conecte su propio enlace. */}
-        <Link href="/(app)/health-indicators" asChild>
-          <AppButton title="Ver mis indicadores de salud" variant="ghost" />
+        {/* Entrada provisional a Alertas de Salud (A09): la entrada
+            "oficial" del Figma es desde el dashboard de "Mi Salud" que un
+            compañero está construyendo aparte, así que mientras esa
+            pantalla no la conecte se deja este acceso acá para poder
+            probar la feature. Quitar esta línea cuando "Mi Salud" conecte
+            su propio enlace.
+
+            (Reemplaza el acceso provisional a Indicadores de Salud (A08):
+            ese ya no hace falta, "Mi Salud" ya tiene su propio tab
+            "Indicadores" -- ver app/(app)/(tabs)/health.tsx.) */}
+        <Link href="/(app)/health-alerts" asChild>
+          <AppButton title="Ver alertas de salud" variant="ghost" />
         </Link>
       </View>
     </Screen>

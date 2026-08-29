@@ -2,6 +2,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { schedulesApi } from '@/features/prescriptions/api/schedules-api';
 import { useDoseStatusCatalog } from '@/features/prescriptions/hooks/useCatalog';
+import { useShellContext } from '@/features/shell/hooks/useShellContext';
+import { patientQueryKeys } from '@/features/shell/query/patient-query-keys';
 
 type CancelDoseInput = {
   dosisId: string;
@@ -18,6 +20,7 @@ type CancelDoseInput = {
 export function useCancelDose() {
   const queryClient = useQueryClient();
   const doseStatusCatalog = useDoseStatusCatalog();
+  const { activePatient } = useShellContext();
 
   const pendienteId = doseStatusCatalog.idByName('Pendiente');
 
@@ -31,10 +34,14 @@ export function useCancelDose() {
 
       return schedulesApi.updateDosisLog(dosisId, pendienteId);
     },
-    onSuccess: (_data, variables) => {
-      void queryClient.invalidateQueries({
-        queryKey: ['dosis-logs', variables.horarioId],
-      });
+    onSuccess: () => {
+      // Mismo fix que useRegisterDose: invalidar el prefijo real de
+      // medicación de este paciente, no una clave que nunca matcheaba.
+      if (activePatient?.patientId !== undefined) {
+        void queryClient.invalidateQueries({
+          queryKey: patientQueryKeys.medication(activePatient.patientId),
+        });
+      }
     },
   });
 }

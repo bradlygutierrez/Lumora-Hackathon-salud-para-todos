@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from lumora_api.models.appointments import Cita
-from lumora_api.models.catalogs import EstadoCita, EstadoReceta
+from lumora_api.models.catalogs import EstadoCita, EstadoDosis, EstadoReceta
 from lumora_api.models.health_indicators import (
     AlertaClinica,
     IndicadorMedico,
@@ -95,9 +95,20 @@ class HealthAlertsService:
             return []
 
         horario_ids = [horario.id for horario, _, _ in horarios]
-        dosis_query = select(DosisAdministrada).where(
-            DosisAdministrada.horario_id.in_(horario_ids),
-            DosisAdministrada.fecha_programada >= ventana_inicio,
+        # Solo una dosis marcada "Tomada" cuenta como "ya registrada" y
+        # apaga la alerta de esa ocurrencia. Un registro en estado
+        # "Pendiente" (ej. el usuario presiono "Registrar dosis" y luego
+        # "Cancelar") sigue siendo una dosis sin tomar -- si contara igual,
+        # la alerta desaparecia para siempre aunque el paciente nunca
+        # haya tomado el medicamento.
+        dosis_query = (
+            select(DosisAdministrada)
+            .join(EstadoDosis, DosisAdministrada.estado_dosis_id == EstadoDosis.id)
+            .where(
+                DosisAdministrada.horario_id.in_(horario_ids),
+                DosisAdministrada.fecha_programada >= ventana_inicio,
+                EstadoDosis.nombre == "Tomada",
+            )
         )
         registradas = (await db.execute(dosis_query)).scalars().all()
         registradas_por_dia = {
