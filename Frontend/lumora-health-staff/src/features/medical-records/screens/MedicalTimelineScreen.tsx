@@ -8,6 +8,7 @@ import { Button } from '@/src/shared/components/Button';
 import { EmptyState, ErrorState, LoadingState } from '@/src/shared/components/RemoteState';
 import { Screen } from '@/src/shared/components/Screen';
 import { theme } from '@/src/shared/constants/theme';
+import { structuredHistoryPathForTimelineEvent } from '../components/structured-history.navigation';
 import { useMedicalRecordTimeline } from '../hooks/use-medical-record';
 import type {
   ClinicalSectionId,
@@ -80,6 +81,10 @@ function destinationForEvent(patientId: number, recordId: number, event: Clinica
   }
   if (event.tipo === 'signos_vitales' || event.tipo === 'nota') {
     return `/(staff)/patients/${patientId}/record/consultations?recordId=${recordId}` as Href;
+  }
+  const structuredPath = structuredHistoryPathForTimelineEvent(patientId, recordId, event.tipo);
+  if (structuredPath) {
+    return structuredPath as Href;
   }
   const section = sectionByEventType[event.tipo];
   const path = section

@@ -93,6 +93,32 @@ describe('MedicalTimelineScreen', () => {
     );
   });
 
+  it('routes J12 condition and medical-history timeline events to their real management screens', async () => {
+    mockUseMedicalRecordTimeline.mockReturnValue({
+      data: {
+        pages: [{
+          items: [
+            { occurred_at: '2026-08-24T15:30:00Z', tipo: 'condicion', titulo: 'Hipertensión', detalle: null, entidad: 'condiciones_medicas', entidad_id: '31' },
+            { occurred_at: '2026-08-24T15:31:00Z', tipo: 'historial_condicion', titulo: 'CAMBIO_ESTADO', detalle: 'Seguimiento', entidad: 'historial_condiciones', entidad_id: '32' },
+            { occurred_at: '2026-08-24T15:32:00Z', tipo: 'antecedente', titulo: 'Antecedente médico', detalle: 'Familiar', entidad: 'antecedentes_medicos', entidad_id: '33' },
+          ],
+          total: 3, limit: 10, offset: 0,
+        }],
+      },
+      isLoading: false, isError: false, hasNextPage: false, isFetchingNextPage: false, fetchNextPage: mockFetchNextPage,
+    });
+    const screen = await render(<MedicalTimelineScreen patientId={9} recordId={17} />);
+
+    await fireEvent.press(screen.getByLabelText('Abrir evento Hipertensión'));
+    expect(mockPush).toHaveBeenCalledWith('/(staff)/patients/9/record/conditions?recordId=17');
+
+    await fireEvent.press(screen.getByLabelText('Abrir evento CAMBIO_ESTADO'));
+    expect(mockPush).toHaveBeenCalledWith('/(staff)/patients/9/record/conditions?recordId=17');
+
+    await fireEvent.press(screen.getByLabelText('Abrir evento Antecedente médico'));
+    expect(mockPush).toHaveBeenCalledWith('/(staff)/patients/9/record/history?recordId=17');
+  });
+
 
   it('navigates consultation events directly and child clinical events to consultation history', async () => {
     mockUseMedicalRecordTimeline.mockReturnValue({

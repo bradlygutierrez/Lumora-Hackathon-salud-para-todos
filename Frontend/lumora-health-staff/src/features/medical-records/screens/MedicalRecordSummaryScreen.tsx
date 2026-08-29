@@ -9,6 +9,7 @@ import { EmptyState, ErrorState, LoadingState } from '@/src/shared/components/Re
 import { Screen } from '@/src/shared/components/Screen';
 import { theme } from '@/src/shared/constants/theme';
 import { ClinicalSectionCard } from '../components/ClinicalSectionCard';
+import { structuredHistoryPathForSection } from '../components/structured-history.navigation';
 import { useMedicalRecordSummary } from '../hooks/use-medical-record';
 import type {
   ClinicalSectionId,
@@ -211,7 +212,15 @@ export function MedicalRecordSummaryScreen({ patientId, initialSection }: Props)
                 count={section.count(summary)}
                 icon={section.icon}
                 id={section.id}
-                onPress={setSelectedSection}
+                onPress={(sectionId) => {
+                  const structuredPath = structuredHistoryPathForSection(
+                    patientId,
+                    record.id,
+                    sectionId,
+                  );
+                  if (structuredPath) return router.push(structuredPath as Href);
+                  setSelectedSection(sectionId);
+                }}
                 selected={selectedSection === section.id}
                 title={section.title}
               />
