@@ -2,7 +2,7 @@ import pytest
 from httpx import AsyncClient
 
 from lumora_api.core.security import create_access_token, hash_password
-from lumora_api.models import Persona, Usuario
+from lumora_api.models import Paciente, Persona, Rol, Usuario
 
 
 @pytest.mark.asyncio
@@ -16,19 +16,31 @@ async def test_flujo_completo_tratamiento_y_monitoreo(client: AsyncClient, sessi
             email="flujo.integracion@example.com",
             username="flujointegracion",
             password_hash=hash_password("Safe123!"),
+            roles=[Rol(nombre="Paciente")],
         )
         s.add(usuario)
+        await s.flush()
+        paciente = Paciente(persona_id=usuario.persona_id)
+        s.add(paciente)
         await s.commit()
         usuario_id = usuario.id
+        paciente_id = paciente.id
 
     # 1. Crear un recordatorio/dosis
-    res_rec = await client.post("/api/v1/reminders/recordatorios", json={
-        "paciente_id": 1,
-        "tipo_recordatorio_id": 1,
-        "titulo": "Tomar Medicamento",
-        "mensaje": "1 pastilla cada 8 horas",
-        "fecha_programada": "2026-08-25T10:00:00"
-    })
+    # A10: /recordatorios ahora tambien exige sesion y verifica acceso al
+    # paciente (mismo bug de "sin control de acceso" que notificaciones
+    # tenia en A09) -- se autentica con el usuario dueno del paciente.
+    res_rec = await client.post(
+        "/api/v1/reminders/recordatorios",
+        json={
+            "paciente_id": paciente_id,
+            "tipo_recordatorio_id": 1,
+            "titulo": "Tomar Medicamento",
+            "mensaje": "1 pastilla cada 8 horas",
+            "fecha_programada": "2026-08-25T10:00:00",
+        },
+        headers={"Authorization": f"Bearer {create_access_token(usuario_id)}"},
+    )
     assert res_rec.status_code == 201
 
     # 2. Consultar notificaciones del usuario

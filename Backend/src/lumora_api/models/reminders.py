@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import TYPE_CHECKING, Optional
-from sqlalchemy import String, ForeignKey, Boolean, DateTime, Text
+from sqlalchemy import String, ForeignKey, Boolean, DateTime, Text, Float
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from lumora_api.db.base import Base
 
@@ -26,6 +26,14 @@ class Recordatorio(Base):
     fecha_programada: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     activo: Mapped[bool] = mapped_column(Boolean, default=True)
     creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    # A10: solo se usan cuando tipo_recordatorio es "Seguimiento" (sin
+    # horario_medicamento_id/cita_id/alerta_id) -- p.ej. "Beber Agua" con
+    # objetivo_cantidad=2.0, unidad="Litros", progreso_actual empezando en
+    # 0.0 e incrementandose via PATCH /recordatorios/{id}.
+    objetivo_cantidad: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    progreso_actual: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    unidad: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
 
 
 class Notificacion(Base):

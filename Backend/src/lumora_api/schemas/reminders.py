@@ -14,6 +14,11 @@ class RecordatorioBase(BaseModel):
     mensaje: str
     fecha_programada: datetime
     activo: bool = True
+    # A10: solo aplican a recordatorios "Seguimiento" (sin origen de
+    # dosis/cita/alerta) -- ver Recordatorio en models/reminders.py.
+    objetivo_cantidad: Optional[float] = None
+    progreso_actual: Optional[float] = None
+    unidad: Optional[str] = None
 
 
 class RecordatorioCreate(RecordatorioBase):
@@ -25,6 +30,10 @@ class RecordatorioUpdate(BaseModel):
     mensaje: Optional[str] = None
     fecha_programada: Optional[datetime] = None
     activo: Optional[bool] = None
+    # A10: para registrar avance de un recordatorio de seguimiento (p.ej.
+    # sumar litros bebidos). El frontend manda el valor total nuevo, no un
+    # delta -- el backend no calcula sumas.
+    progreso_actual: Optional[float] = None
 
 
 class RecordatorioResponse(RecordatorioBase):

@@ -26,25 +26,60 @@ def _patient_access(db: AsyncSession) -> PatientAccessService:
 
 
 # --- CRUD /recordatorios ---
+# A10: estos 5 endpoints no exigian autenticacion ni verificaban acceso
+# al paciente (bug preexistente) -- se agrega el mismo criterio ya usado
+# en /notificaciones (paciente ve/edita lo propio, cuidador con relacion
+# activa autorizada, "write" para crear/editar/eliminar).
 @router.post("/recordatorios", response_model=RecordatorioResponse, status_code=status.HTTP_201_CREATED)
-async def crear_recordatorio(data: RecordatorioCreate, db: AsyncSession = Depends(get_db)):
+async def crear_recordatorio(
+    data: RecordatorioCreate,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+):
+    await _patient_access(db).require_access(current_user, data.paciente_id, action="write")
     return await ReminderService(db).crear_recordatorio(data)
 
 @router.get("/recordatorios/paciente/{paciente_id}", response_model=List[RecordatorioResponse])
-async def listar_recordatorios(paciente_id: int, db: AsyncSession = Depends(get_db)):
+async def listar_recordatorios(
+    paciente_id: int,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+):
+    await _patient_access(db).require_access(current_user, paciente_id, action="read")
     return await ReminderService(db).obtener_recordatorios_paciente(paciente_id)
 
 @router.get("/recordatorios/{id}", response_model=RecordatorioResponse)
-async def obtener_recordatorio(id: int, db: AsyncSession = Depends(get_db)):
-    return await ReminderService(db).obtener_recordatorio_por_id(id)
+async def obtener_recordatorio(
+    id: int,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+):
+    recordatorio = await ReminderService(db).obtener_recordatorio_por_id(id)
+    await _patient_access(db).require_access(current_user, recordatorio.paciente_id, action="read")
+    return recordatorio
 
 @router.patch("/recordatorios/{id}", response_model=RecordatorioResponse)
-async def actualizar_recordatorio(id: int, data: RecordatorioUpdate, db: AsyncSession = Depends(get_db)):
-    return await ReminderService(db).actualizar_recordatorio(id, data)
+async def actualizar_recordatorio(
+    id: int,
+    data: RecordatorioUpdate,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+):
+    service = ReminderService(db)
+    recordatorio = await service.obtener_recordatorio_por_id(id)
+    await _patient_access(db).require_access(current_user, recordatorio.paciente_id, action="write")
+    return await service.actualizar_recordatorio(id, data)
 
 @router.delete("/recordatorios/{id}", status_code=status.HTTP_204_NO_CONTENT)
-async def eliminar_recordatorio(id: int, db: AsyncSession = Depends(get_db)):
-    await ReminderService(db).eliminar_recordatorio(id)
+async def eliminar_recordatorio(
+    id: int,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+):
+    service = ReminderService(db)
+    recordatorio = await service.obtener_recordatorio_por_id(id)
+    await _patient_access(db).require_access(current_user, recordatorio.paciente_id, action="write")
+    await service.eliminar_recordatorio(id)
 
 # --- GET/PATCH /notificaciones ---
 @router.get("/notificaciones/usuario/{usuario_id}", response_model=List[NotificacionResponse])
