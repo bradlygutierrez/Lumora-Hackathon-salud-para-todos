@@ -85,14 +85,15 @@ export function ConsultationFormScreen({ patientId, recordId, consultationId }: 
   const onSubmit = handleSubmit(async (values) => {
     if (isEditing && detail.data) {
       const payload: ConsultationUpdate = {
-        profesional_id: professionalId,
-        motivo_consulta_id: values.motivo_consulta_id ?? null,
-        fecha_consulta: values.fecha_consulta || null,
+        ...(values.motivo_consulta_id !== undefined
+          ? { motivo_consulta_id: values.motivo_consulta_id }
+          : {}),
+        ...(values.fecha_consulta ? { fecha_consulta: values.fecha_consulta } : {}),
         motivo: values.motivo,
-        sintomas: nullable(values.sintomas),
-        evaluacion: nullable(values.evaluacion),
-        indicaciones: nullable(values.indicaciones),
-        observaciones: nullable(values.observaciones),
+        sintomas: values.sintomas ?? '',
+        evaluacion: values.evaluacion ?? '',
+        indicaciones: values.indicaciones ?? '',
+        observaciones: values.observaciones ?? '',
         activo: values.activo,
       };
       const saved = await update.mutateAsync(payload);
@@ -125,12 +126,21 @@ export function ConsultationFormScreen({ patientId, recordId, consultationId }: 
         <Button icon="arrow-back" onPress={() => router.back()} variant="ghost">Volver</Button>
         <View style={styles.headerCopy}>
           <Text style={styles.title}>{isEditing ? 'Editar consulta' : 'Nueva consulta'}</Text>
-          <Text style={styles.subtitle}>Expediente #{recordId} · Profesional #{professionalId}</Text>
+          <Text style={styles.subtitle}>
+            Expediente #{recordId} · Profesional #{isEditing ? detail.data?.profesional_id : professionalId}
+          </Text>
         </View>
       </View>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <Controller control={control} name="motivo_consulta_id" render={({ field }) => (
-          <ChoiceField clearLabel="Sin catálogo" items={reasons.data?.items ?? []} label="Motivo catalogado" onChange={field.onChange} optional value={field.value} />
+          <ChoiceField
+            clearLabel="Sin catálogo"
+            items={reasons.data?.items ?? []}
+            label="Motivo catalogado"
+            onChange={field.onChange}
+            optional={!isEditing || detail.data?.motivo_consulta_id === null}
+            value={field.value}
+          />
         )} />
         <Controller control={control} name="motivo" render={({ field }) => (
           <TextField accessibilityLabel="Motivo de consulta" error={errors.motivo?.message} label="Motivo de consulta *" multiline onBlur={field.onBlur} onChangeText={field.onChange} placeholder="Describí el motivo principal" value={field.value} />

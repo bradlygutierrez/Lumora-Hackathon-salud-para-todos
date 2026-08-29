@@ -63,6 +63,52 @@ describe('ConsultationFormScreen', () => {
     expect(mockReplace).toHaveBeenCalledWith('/(staff)/patients/3/record/consultations/88');
   });
 
+  it('preserves consultation attribution and clears optional text safely when editing', async () => {
+    const update = mutation();
+    update.mutateAsync.mockResolvedValue({ id: 41 });
+    mockUseUpdateConsultation.mockReturnValue(update);
+    mockUseConsultation.mockReturnValue({
+      data: {
+        id: 41,
+        expediente_id: 7,
+        paciente_id: 3,
+        profesional_id: 9,
+        motivo_consulta_id: 5,
+        fecha_consulta: '2026-08-28T10:00:00.000Z',
+        motivo: 'Control',
+        sintomas: 'Cefalea',
+        evaluacion: 'Estable',
+        indicaciones: 'Reposo',
+        observaciones: 'Seguimiento',
+        activo: true,
+      },
+      isLoading: false,
+      isError: false,
+    });
+
+    const screen = await render(
+      <ConsultationFormScreen consultationId={41} patientId={3} recordId={7} />,
+    );
+    await waitFor(() => expect(screen.getByLabelText('Síntomas').props.value).toBe('Cefalea'));
+    expect(screen.getByText(/Profesional #9/)).toBeTruthy();
+    expect(screen.queryByText('Sin catálogo')).toBeNull();
+
+    await fireEvent.changeText(screen.getByLabelText('Fecha de consulta'), '');
+    await fireEvent.changeText(screen.getByLabelText('Síntomas'), '');
+    await fireEvent.changeText(screen.getByLabelText('Evaluación'), '');
+    await fireEvent.changeText(screen.getByLabelText('Indicaciones'), '');
+    await fireEvent.changeText(screen.getByLabelText('Observaciones'), '');
+    await fireEvent.press(screen.getByText('Guardar cambios'));
+
+    await waitFor(() => expect(update.mutateAsync).toHaveBeenCalledTimes(1));
+    const payload = update.mutateAsync.mock.calls[0][0];
+    expect(payload).not.toHaveProperty('profesional_id');
+    expect(payload).not.toHaveProperty('fecha_consulta');
+    expect(payload).toEqual(expect.objectContaining({
+      motivo_consulta_id: 5, sintomas: '', evaluacion: '', indicaciones: '', observaciones: '',
+    }));
+  });
+
   it.each([
     [new ApiError('forbidden', 'forbidden', 403), 'No tenés permiso para guardar consultas clínicas.'],
     [new ApiError('not found', 'not_found', 404), 'El expediente, paciente, profesional o motivo seleccionado ya no está disponible.'],
