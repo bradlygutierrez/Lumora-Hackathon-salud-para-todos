@@ -6,6 +6,8 @@ import {
   useRecordOriginCatalog,
 } from '@/features/prescriptions/hooks/useCatalog';
 import { todayAtHora } from '@/features/prescriptions/utils/time-of-day';
+import { useShellContext } from '@/features/shell/hooks/useShellContext';
+import { patientQueryKeys } from '@/features/shell/query/patient-query-keys';
 
 type RegisterDoseInput = {
   horarioId: string;
@@ -29,6 +31,7 @@ export function useRegisterDose() {
   const queryClient = useQueryClient();
   const doseStatusCatalog = useDoseStatusCatalog();
   const recordOriginCatalog = useRecordOriginCatalog();
+  const { activePatient } = useShellContext();
 
   const tomadaId = doseStatusCatalog.idByName('Tomada');
   const manualId = recordOriginCatalog.idByName('Manual');
@@ -47,12 +50,22 @@ export function useRegisterDose() {
         fecha_programada: todayAtHora(hora).toISOString(),
       });
     },
-    onSuccess: (_data, variables) => {
-      // Refresca el log de dosis de este horario para que el "Plan de
-      // Hoy" recalcule el estado (Pendiente -> Tomada) y el contador.
-      void queryClient.invalidateQueries({
-        queryKey: ['dosis-logs', variables.horarioId],
-      });
+    onSuccess: () => {
+      /**
+       * `useTodayMedicationPlan` guarda sus queries de horarios/dosis bajo
+       * `patientQueryKeys.medication(pacienteId)` (ver
+       * features/shell/query/patient-query-keys.ts), NO bajo
+       * `['dosis-logs', horarioId]` a secas -- invalidar esa clave corta
+       * nunca matcheaba nada (React Query invalida por PREFIJO), así que
+       * "Plan de Hoy" se quedaba mostrando "Pendiente" hasta que algo más
+       * forzara un refetch. Invalidar el prefijo completo de medicación
+       * refresca recetas + horarios + dosis de una vez.
+       */
+      if (activePatient?.patientId !== undefined) {
+        void queryClient.invalidateQueries({
+          queryKey: patientQueryKeys.medication(activePatient.patientId),
+        });
+      }
     },
   });
 }
