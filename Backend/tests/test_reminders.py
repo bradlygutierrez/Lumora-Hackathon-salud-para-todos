@@ -1,27 +1,10 @@
 import pytest
 from httpx import AsyncClient
 
-@pytest.mark.asyncio
-async def test_crear_y_listar_recordatorio(client: AsyncClient):
-    payload = {
-        "paciente_id": 1,
-        "tipo_recordatorio_id": 1,
-        "titulo": "Tomar Paracetamol",
-        "mensaje": "Tomar 1 pastilla cada 8 horas",
-        "fecha_programada": "2026-08-25T08:00:00"
-    }
-    
-    # Crear recordatorio
-    response = await client.post("/api/v1/reminders/recordatorios", json=payload)
-    assert response.status_code == 201
-    data = response.json()
-    assert data["titulo"] == "Tomar Paracetamol"
-    assert "id" in data
-
-    # Listar recordatorios del paciente
-    response_list = await client.get("/api/v1/reminders/recordatorios/paciente/1")
-    assert response_list.status_code == 200
-    assert len(response_list.json()) > 0
+# A10: el caso de "crear y listar un recordatorio" ahora exige
+# autenticacion y verifica acceso al paciente -- se movio, ya cubierto
+# (junto con permisos de cuidador/tercero) en
+# tests/api/v1/test_reminders_recordatorios.py.
 
 
 @pytest.mark.asyncio

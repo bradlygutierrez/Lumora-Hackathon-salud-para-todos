@@ -56,7 +56,7 @@ CATALOGS = {
     OrigenRegistro: ["Manual", "Dispositivo", "Profesional"],
     NivelSeveridad: ["Baja", "Media", "Alta", "Crítica"],
     TipoAlerta: ["Interacción", "Dosis Olvidada", "Reabastecimiento", "Efecto Secundario", "Medición Fuera de Rango"],
-    TipoRecordatorio: ["Medicación", "Cita", "Medición"],
+    TipoRecordatorio: ["Medicación", "Cita", "Medición", "Seguimiento"],
     TipoRelacion: ["Padre/Madre", "Hijo/a", "Cónyuge", "Tutor Legal", "Otro"],
 }
 
