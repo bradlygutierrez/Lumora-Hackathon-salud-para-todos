@@ -90,6 +90,24 @@ describe('MedicalRecordSummaryScreen', () => {
     expect(mockPush).not.toHaveBeenCalled();
   });
 
+  it('opens J12 structured history management from the clinical summary', async () => {
+    const screen = await render(<MedicalRecordSummaryScreen patientId={9} />);
+
+    await fireEvent.press(screen.getByLabelText('Abrir sección Condiciones'));
+    expect(mockPush).toHaveBeenCalledWith('/(staff)/patients/9/record/conditions?recordId=17');
+
+    await fireEvent.press(screen.getByLabelText('Abrir sección Alergias'));
+    expect(mockPush).toHaveBeenCalledWith('/(staff)/patients/9/record/allergies?recordId=17');
+
+    await fireEvent.press(screen.getByLabelText('Abrir sección Discapacidades'));
+    expect(mockPush).toHaveBeenCalledWith(
+      '/(staff)/patients/9/record/disabilities?recordId=17',
+    );
+
+    await fireEvent.press(screen.getByLabelText('Abrir sección Historial médico'));
+    expect(mockPush).toHaveBeenCalledWith('/(staff)/patients/9/record/history?recordId=17');
+  });
+
 
   it('opens the consultation history and individual consultations from the clinical summary', async () => {
     const screen = await render(<MedicalRecordSummaryScreen patientId={9} />);
