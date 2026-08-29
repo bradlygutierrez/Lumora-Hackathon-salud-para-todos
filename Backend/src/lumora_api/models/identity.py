@@ -21,6 +21,7 @@ class Persona(SoftDeleteMixin, Base):
     fecha_nacimiento: Mapped[date | None] = mapped_column(Date, nullable=True)
     telefono: Mapped[str | None] = mapped_column(String(30), nullable=True)
     email: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
+    profile_image_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     sexo_id: Mapped[int | None] = mapped_column(ForeignKey("sexos.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
