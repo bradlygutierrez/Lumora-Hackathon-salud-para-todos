@@ -1,6 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
-import { Pressable, Text, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { Animated, Pressable, Text, View } from 'react-native';
 
 import type { NotificationResponse } from '@/features/notifications/types/notifications.types';
 import { formatRelativeTime } from '@/features/notifications/utils/format-relative-time';
@@ -15,15 +17,37 @@ type NotificationCardProps = {
   onMarkAsRead: (id: number) => void;
 };
 
-/** Tarjeta de una notificacion en "Notificaciones" (A09). */
+const FADE_MS = 220;
+
+/**
+ * Tarjeta de una notificacion en "Notificaciones" (A09).
+ *
+ * Tocar una tarjeta no leida la marca como leida. Para que no se sienta
+ * "aburrido" (se iba de la lista de golpe en cuanto llegaba la
+ * respuesta del backend), el toque dispara: (1) un golpecito haptico
+ * inmediato via expo-haptics, y (2) el icono cambia a un check y la
+ * tarjeta se desvanece con un fade -- recien ahi se llama a
+ * onMarkAsRead, para que la desaparicion de la lista coincida con el
+ * fin de la animacion en vez de adelantarsele.
+ */
 export function NotificationCard({ notification, onMarkAsRead }: NotificationCardProps) {
   const variant = NOTIFICATION_TIPO_VARIANTS[notification.tipo];
   const actions = actionsForNotification(notification);
+  const [justRead, setJustRead] = useState(false);
+  const opacity = useRef(new Animated.Value(1)).current;
 
   function handleCardPress() {
-    if (!notification.leido) {
+    if (notification.leido || justRead) return;
+
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setJustRead(true);
+    Animated.timing(opacity, {
+      toValue: 0,
+      duration: FADE_MS,
+      useNativeDriver: true,
+    }).start(() => {
       onMarkAsRead(notification.id);
-    }
+    });
   }
 
   function handleActionPress(action: ReturnType<typeof actionsForNotification>[number]) {
@@ -37,66 +61,72 @@ export function NotificationCard({ notification, onMarkAsRead }: NotificationCar
   }
 
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`Notificación: ${notification.titulo}`}
-      onPress={handleCardPress}
-      className={`flex-row gap-3 rounded-2xl border-l-4 p-4 ${variant.accentBorderClass} ${
-        notification.leido ? 'bg-bone-500' : 'bg-bone-300'
-      } active:opacity-90`}
-    >
-      <View
-        className={`h-10 w-10 items-center justify-center rounded-full ${variant.iconBgClass}`}
+    <Animated.View style={{ opacity }}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Notificación: ${notification.titulo}`}
+        onPress={handleCardPress}
+        className={`flex-row gap-3 rounded-2xl border-l-4 p-4 ${variant.accentBorderClass} ${
+          notification.leido ? 'bg-bone-500' : 'bg-bone-300'
+        } active:opacity-90`}
       >
-        <Ionicons name={variant.icon} size={18} color={theme.colors.textPrimary} />
-      </View>
-
-      <View className="flex-1 gap-2">
-        <View className="flex-row items-start justify-between gap-2">
-          <Text
-            className={`flex-1 text-base text-coal-900 ${
-              notification.leido ? 'font-semibold' : 'font-bold'
-            }`}
-          >
-            {notification.titulo}
-          </Text>
-          <Text className="text-xs text-coal-500">
-            {formatRelativeTime(notification.creado_en)}
-          </Text>
+        <View
+          className={`h-10 w-10 items-center justify-center rounded-full ${variant.iconBgClass}`}
+        >
+          <Ionicons
+            name={justRead ? 'checkmark-circle' : variant.icon}
+            size={18}
+            color={theme.colors.textPrimary}
+          />
         </View>
 
-        <Text className="text-sm text-coal-500">{notification.mensaje}</Text>
+        <View className="flex-1 gap-2">
+          <View className="flex-row items-start justify-between gap-2">
+            <Text
+              className={`flex-1 text-base text-coal-900 ${
+                notification.leido ? 'font-semibold' : 'font-bold'
+              }`}
+            >
+              {notification.titulo}
+            </Text>
+            <Text className="text-xs text-coal-500">
+              {formatRelativeTime(notification.creado_en)}
+            </Text>
+          </View>
 
-        {actions.length > 0 ? (
-          <View className="mt-1 flex-row flex-wrap gap-2">
-            {actions.map((action) => (
-              <Pressable
-                key={action.label}
-                accessibilityRole="button"
-                accessibilityLabel={action.label}
-                accessibilityState={{ disabled: action.disabled }}
-                disabled={action.disabled}
-                onPress={() => handleActionPress(action)}
-                className={`self-start rounded-full px-4 py-2 ${
-                  action.disabled
-                    ? 'border border-bone-500 bg-bone-300 opacity-50'
-                    : action.variant === 'primary'
-                      ? 'bg-lumen-500'
-                      : 'border border-bone-500 bg-bone-300'
-                }`}
-              >
-                <Text
-                  className={`text-sm font-semibold ${
-                    action.disabled ? 'text-coal-500' : 'text-coal-900'
+          <Text className="text-sm text-coal-500">{notification.mensaje}</Text>
+
+          {actions.length > 0 ? (
+            <View className="mt-1 flex-row flex-wrap gap-2">
+              {actions.map((action) => (
+                <Pressable
+                  key={action.label}
+                  accessibilityRole="button"
+                  accessibilityLabel={action.label}
+                  accessibilityState={{ disabled: action.disabled }}
+                  disabled={action.disabled}
+                  onPress={() => handleActionPress(action)}
+                  className={`self-start rounded-full px-4 py-2 ${
+                    action.disabled
+                      ? 'border border-bone-500 bg-bone-300 opacity-50'
+                      : action.variant === 'primary'
+                        ? 'bg-lumen-500'
+                        : 'border border-bone-500 bg-bone-300'
                   }`}
                 >
-                  {action.label}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        ) : null}
-      </View>
-    </Pressable>
+                  <Text
+                    className={`text-sm font-semibold ${
+                      action.disabled ? 'text-coal-500' : 'text-coal-900'
+                    }`}
+                  >
+                    {action.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
+        </View>
+      </Pressable>
+    </Animated.View>
   );
 }
