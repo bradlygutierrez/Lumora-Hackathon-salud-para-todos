@@ -87,14 +87,14 @@ describe('ConditionsScreen J12', () => {
       true,
     );
 
-    fireEvent.press(screen.getByText('Todos'));
+    await fireEvent.press(screen.getByText('Todos'));
     expect(mockUseConditions).toHaveBeenLastCalledWith(
       7,
       expect.objectContaining({ activo: undefined, offset: 0 }),
       true,
     );
 
-    fireEvent.press(screen.getByText('Siguiente'));
+    await fireEvent.press(screen.getByText('Siguiente'));
     expect(mockUseConditions).toHaveBeenLastCalledWith(
       7,
       expect.objectContaining({ offset: 20 }),
@@ -105,17 +105,17 @@ describe('ConditionsScreen J12', () => {
   it('navigates to create, edit and condition history routes', async () => {
     const screen = await render(<ConditionsScreen patientId={3} recordId={7} />);
 
-    fireEvent.press(screen.getByLabelText('Añadir condición médica'));
+    await fireEvent.press(screen.getByLabelText('Añadir condición médica'));
     expect(mockPush).toHaveBeenCalledWith(
       '/(staff)/patients/3/record/conditions/new?recordId=7',
     );
 
-    fireEvent.press(screen.getByLabelText('Editar Hipertensión'));
+    await fireEvent.press(screen.getByLabelText('Editar Hipertensión'));
     expect(mockPush).toHaveBeenCalledWith(
       '/(staff)/patients/3/record/conditions/21/edit?recordId=7',
     );
 
-    fireEvent.press(screen.getByLabelText('Ver historial de Hipertensión'));
+    await fireEvent.press(screen.getByLabelText('Ver historial de Hipertensión'));
     expect(mockPush).toHaveBeenCalledWith(
       '/(staff)/patients/3/record/conditions/21/history?recordId=7',
     );
@@ -125,7 +125,7 @@ describe('ConditionsScreen J12', () => {
     const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
     const screen = await render(<ConditionsScreen patientId={3} recordId={7} />);
 
-    fireEvent.press(screen.getByLabelText('Eliminar Hipertensión'));
+    await fireEvent.press(screen.getByLabelText('Eliminar Hipertensión'));
     expect(alert).toHaveBeenCalledWith(
       'Confirmar borrado lógico',
       expect.stringContaining('DELETE con borrado lógico de J04'),
