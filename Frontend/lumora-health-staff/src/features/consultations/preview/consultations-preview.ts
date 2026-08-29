@@ -1,6 +1,7 @@
 import type {
   ClinicalNote,
   Consultation,
+  ConsultationUpdate,
   ConsultationReason,
   Page,
   VitalSigns,
@@ -67,3 +68,36 @@ export const previewConsultationReasons: Page<ConsultationReason> = {
   limit: 100,
   offset: 0,
 };
+
+let nextConsultationId = 9000;
+
+export function createPreviewConsultation(
+  data: Omit<Consultation, 'id' | 'fecha_consulta'> & { fecha_consulta?: string | null },
+): Consultation {
+  nextConsultationId += 1;
+  const created: Consultation = {
+    ...data,
+    id: nextConsultationId,
+    fecha_consulta: data.fecha_consulta || new Date().toISOString(),
+  };
+  const items = previewConsultationsByRecord[data.expediente_id] ?? [];
+  previewConsultationsByRecord[data.expediente_id] = [created, ...items];
+  return created;
+}
+
+export function updatePreviewConsultation(
+  consultationId: number,
+  changes: ConsultationUpdate,
+): Consultation {
+  for (const items of Object.values(previewConsultationsByRecord)) {
+    const index = items.findIndex((item) => item.id === consultationId);
+    if (index >= 0) {
+      const normalized = Object.fromEntries(
+        Object.entries(changes).filter(([, value]) => value !== null && value !== undefined),
+      );
+      items[index] = { ...items[index], ...normalized };
+      return items[index];
+    }
+  }
+  throw new Error('Consulta preview no encontrada');
+}

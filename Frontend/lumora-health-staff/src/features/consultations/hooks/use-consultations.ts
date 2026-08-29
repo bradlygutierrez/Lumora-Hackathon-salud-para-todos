@@ -1,25 +1,31 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useAuthSession } from '@/src/features/auth/hooks/use-auth-session';
 import { queryKeys } from '@/src/shared/api/query-keys';
 import {
+  createConsultation,
   getConsultation,
   listClinicalNotes,
   listConsultations,
   listConsultationReasons,
   listRecordConsultations,
   listVitalSigns,
+  updateConsultation,
 } from '../api/consultations.api';
 import {
+  createPreviewConsultation,
   previewClinicalNotesByConsultation,
   previewConsultationReasons,
   previewConsultationsByRecord,
   previewVitalSignsByConsultation,
+  updatePreviewConsultation,
 } from '../preview/consultations-preview';
 import type {
   ClinicalNoteListParams,
+  ConsultationCreate,
   ConsultationListParams,
   ConsultationReasonListParams,
+  ConsultationUpdate,
   Page,
   RecordConsultationListParams,
   VitalSignsListParams,
@@ -187,6 +193,61 @@ export function useConsultationReasons(params: ConsultationReasonListParams = {}
         return Promise.resolve(pageFromItems(filtered, normalized.limit, normalized.offset));
       }
       return listConsultationReasons(normalized);
+    },
+  });
+}
+
+
+export function useCreateConsultation() {
+  const { session } = useAuthSession();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: ConsultationCreate) =>
+      session?.isPreview
+        ? Promise.resolve(
+            createPreviewConsultation({
+              ...data,
+              fecha_consulta: data.fecha_consulta,
+              motivo_consulta_id: data.motivo_consulta_id ?? null,
+              motivo: data.motivo ?? null,
+              sintomas: data.sintomas ?? null,
+              evaluacion: data.evaluacion ?? null,
+              indicaciones: data.indicaciones ?? null,
+              observaciones: data.observaciones ?? null,
+              activo: data.activo ?? true,
+            }),
+          )
+        : createConsultation(data),
+    onSuccess: async (consultation) => {
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.clinical.consultations.all(),
+      });
+      queryClient.setQueryData(
+        queryKeys.clinical.consultations.detail(consultation.id),
+        consultation,
+      );
+    },
+  });
+}
+
+export function useUpdateConsultation(consultationId: number) {
+  const { session } = useAuthSession();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: ConsultationUpdate) =>
+      session?.isPreview
+        ? Promise.resolve(updatePreviewConsultation(consultationId, data))
+        : updateConsultation(consultationId, data),
+    onSuccess: async (consultation) => {
+      queryClient.setQueryData(
+        queryKeys.clinical.consultations.detail(consultationId),
+        consultation,
+      );
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.clinical.consultations.all(),
+      });
     },
   });
 }
