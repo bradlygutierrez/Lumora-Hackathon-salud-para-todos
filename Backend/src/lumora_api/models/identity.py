@@ -84,6 +84,10 @@ class ProfesionalSalud(SoftDeleteMixin, Base):
     def specialty(self) -> str:
         return self.especialidad
 
+    @property
+    def profile_image_url(self) -> str | None:
+        return self.persona.profile_image_url if self.persona else None
+
 
 class ContactoEmergencia(SoftDeleteMixin, Base):
     __tablename__ = "contactos_emergencia"

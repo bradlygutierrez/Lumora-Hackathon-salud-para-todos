@@ -1,4 +1,5 @@
 import asyncio
+from datetime import time
 
 from sqlalchemy import select
 
@@ -26,6 +27,7 @@ from lumora_api.models import (
     TipoSangre,
     UnidadMedida,
     ViaAdministracion,
+    ProfesionalSalud, HorarioProfesional, UbicacionAtencion,
 )
 from lumora_api.models.health_indicators import IndicadorMedico, RangoIndicador
 
@@ -177,6 +179,21 @@ async def seed() -> None:
         roles["Administrador"].permisos = list(await session.scalars(select(Permiso)))
         await session.flush()
         await seed_health_indicators(session)
+        professionals = list(await session.scalars(select(ProfesionalSalud).where(ProfesionalSalud.deleted_at.is_(None))))
+        location = await session.scalar(select(UbicacionAtencion).where(UbicacionAtencion.nombre == "Cl?nica Lumora"))
+        if professionals and location is None:
+            location = UbicacionAtencion(nombre="Cl?nica Lumora", direccion="Managua, Nicaragua", consultorio="Consultorio 1")
+            session.add(location)
+            await session.flush()
+        if professionals:
+            for professional in professionals:
+                exists = await session.scalar(select(HorarioProfesional.id).where(HorarioProfesional.profesional_id == professional.id))
+                if exists is None:
+                    session.add(HorarioProfesional(profesional_id=professional.id, dia_semana=0, hora_inicio=time(8), hora_fin=time(17)))
+                    session.add(HorarioProfesional(profesional_id=professional.id, dia_semana=1, hora_inicio=time(8), hora_fin=time(17)))
+                    session.add(HorarioProfesional(profesional_id=professional.id, dia_semana=2, hora_inicio=time(8), hora_fin=time(17)))
+                    session.add(HorarioProfesional(profesional_id=professional.id, dia_semana=3, hora_inicio=time(8), hora_fin=time(17)))
+                    session.add(HorarioProfesional(profesional_id=professional.id, dia_semana=4, hora_inicio=time(8), hora_fin=time(17)))
         await session.commit()
 
 

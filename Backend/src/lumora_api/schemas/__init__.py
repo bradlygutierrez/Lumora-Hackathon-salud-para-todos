@@ -1,6 +1,8 @@
 from lumora_api.schemas.appointments import (
     AppointmentCreate,
     AppointmentRead,
+    AppointmentReschedule,
+    AppointmentCancellation,
     AppointmentUpdate,
 )
 from lumora_api.schemas.auth import (
@@ -203,6 +205,7 @@ __all__ = [
     "MfaVerifyRequest",
     "AppointmentCreate",
     "AppointmentRead",
+    "AppointmentReschedule",
     "AppointmentUpdate",
     "MedicamentoCreate",
     "MedicamentoUpdate",
