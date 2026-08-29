@@ -1,6 +1,6 @@
 from sqlalchemy.exc import IntegrityError
 
-from lumora_api.core.exceptions import ResourceConflictError, ResourceNotFoundError
+from lumora_api.core.exceptions import ResourceConflictError, ResourceNotFoundError, ValidationError
 from lumora_api.models import Usuario
 from lumora_api.repositories.account_repository import AccountRepository
 from lumora_api.services.profile_image_storage import ProfileImageStorage
@@ -43,13 +43,14 @@ class AccountService:
                 user.persona.telefono = person.pop("phone")
             if "sex_id" in person:
                 if person["sex_id"] is not None and not await self.repository.sex_exists(person["sex_id"]):
-                    raise ResourceNotFoundError("Sexo no existe")
+                    raise ValidationError("Sexo no existe")
                 user.persona.sexo_id = person.pop("sex_id")
         try:
             await self.repository.session.commit()
         except IntegrityError as error:
             await self.repository.session.rollback()
             raise ResourceConflictError("El correo o nombre de usuario ya existe") from error
+        await self.repository.session.refresh(user.persona)
         return await self.get(user_id)
 
     async def set_image(self, user_id: int, content: bytes, extension: str) -> Usuario:

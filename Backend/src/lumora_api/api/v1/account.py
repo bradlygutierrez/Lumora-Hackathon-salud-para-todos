@@ -44,7 +44,11 @@ async def upload_profile_image(
     content = await file.read(MAX_IMAGE_SIZE + 1)
     if len(content) > MAX_IMAGE_SIZE:
         raise ValidationError("La imagen no puede superar 5 MB")
-    signatures = {"jpg": content.startswith(b"\\xff\\xd8\\xff"), "png": content.startswith(b"\\x89PNG\\r\\n\\x1a\\n"), "webp": content.startswith(b"RIFF") and content[8:12] == b"WEBP"}
+    signatures = {
+        "jpg": content.startswith(bytes.fromhex("ffd8ff")),
+        "png": content.startswith(bytes.fromhex("89504e470d0a1a0a")),
+        "webp": content.startswith(b"RIFF") and content[8:12] == b"WEBP",
+    }
     if not signatures[extension]:
         raise ValidationError("El contenido no coincide con el tipo de imagen")
     user = await service(session).set_image(current_user.id, content, extension)

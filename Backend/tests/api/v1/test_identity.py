@@ -73,16 +73,27 @@ async def test_user_password_is_private_and_email_username_are_unique(client, se
     assert duplicate_email.status_code == duplicate_username.status_code == 409
 
     user_id = payload["id"]
+    manager = (
+        await create_user(
+            client,
+            session_factory,
+            email="manager@example.com",
+            username="manager",
+        )
+    ).json()
+    await grant_permissions(session_factory, manager["id"], "usuarios:editar")
+    headers = auth_headers(manager["id"])
     updated = await client.patch(
         f"/api/v1/usuarios/{user_id}",
         json={"username": "ana.actualizada", "password": "new-safe-password"},
+        headers=headers,
     )
     assert updated.status_code == 200
     assert updated.json()["username"] == "ana.actualizada"
-    assert (await client.get("/api/v1/usuarios")).json()["total"] == 1
-    assert (await client.get(f"/api/v1/usuarios/{user_id}")).status_code == 200
-    assert (await client.delete(f"/api/v1/usuarios/{user_id}")).status_code == 204
-    assert (await client.get(f"/api/v1/usuarios/{user_id}")).status_code == 404
+    assert (await client.get("/api/v1/usuarios", headers=headers)).json()["total"] == 2
+    assert (await client.get(f"/api/v1/usuarios/{user_id}", headers=headers)).status_code == 200
+    assert (await client.delete(f"/api/v1/usuarios/{user_id}", headers=headers)).status_code == 204
+    assert (await client.get(f"/api/v1/usuarios/{user_id}", headers=headers)).status_code == 404
 
 
 @pytest.mark.asyncio

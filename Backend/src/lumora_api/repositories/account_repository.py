@@ -1,8 +1,8 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import selectinload, with_loader_criteria
 
-from lumora_api.models import Sexo, Usuario
+from lumora_api.models import Direccion, Sexo, Usuario
 
 
 class AccountRepository:
@@ -15,7 +15,9 @@ class AccountRepository:
             .options(
                 selectinload(Usuario.persona).selectinload(Usuario.persona.property.mapper.class_.direcciones),
                 selectinload(Usuario.roles),
+                with_loader_criteria(Direccion, Direccion.deleted_at.is_(None)),
             )
+            .execution_options(populate_existing=True)
             .where(Usuario.id == user_id, Usuario.activo.is_(True), Usuario.deleted_at.is_(None))
         )
 

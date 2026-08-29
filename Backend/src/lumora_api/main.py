@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from urllib.parse import urlencode
 from html import escape
 
@@ -14,6 +15,7 @@ OPENAPI_TAGS = [
     {"name": "Autenticación", "description": "Login, sesiones y recuperación de cuenta."},
     {"name": "Autenticación MFA", "description": "Segundo factor y recuperación."},
     {"name": "Usuarios", "description": "Usuarios y perfiles de acceso."},
+    {"name": "Cuenta", "description": "Perfil propio de la cuenta autenticada."},
     {"name": "Pacientes", "description": "Perfiles clínicos de pacientes."},
     {"name": "Profesionales de salud", "description": "Profesionales y licencias."},
     {"name": "Citas", "description": "Agenda clínica."},
@@ -68,6 +70,11 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+)
+app.mount(
+    settings.profile_image_base_url,
+    StaticFiles(directory=settings.profile_image_dir, check_dir=False),
+    name="profile-images",
 )
 app.include_router(api_router, prefix=settings.api_v1_prefix)
 
