@@ -3,31 +3,40 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuthSession } from '@/src/features/auth/hooks/use-auth-session';
 import { queryKeys } from '@/src/shared/api/query-keys';
 import {
+  createClinicalNote,
   createConsultation,
+  createVitalSigns,
   getConsultation,
   listClinicalNotes,
   listConsultations,
   listConsultationReasons,
   listRecordConsultations,
   listVitalSigns,
+  updateClinicalNote,
   updateConsultation,
 } from '../api/consultations.api';
 import {
+  createPreviewClinicalNote,
   createPreviewConsultation,
+  createPreviewVitalSigns,
   previewClinicalNotesByConsultation,
   previewConsultationReasons,
   previewConsultationsByRecord,
   previewVitalSignsByConsultation,
+  updatePreviewClinicalNote,
   updatePreviewConsultation,
 } from '../preview/consultations-preview';
 import type {
+  ClinicalNoteCreate,
   ClinicalNoteListParams,
+  ClinicalNoteUpdate,
   ConsultationCreate,
   ConsultationListParams,
   ConsultationReasonListParams,
   ConsultationUpdate,
   Page,
   RecordConsultationListParams,
+  VitalSignsCreate,
   VitalSignsListParams,
 } from '../types/consultation.types';
 
@@ -247,6 +256,68 @@ export function useUpdateConsultation(consultationId: number) {
       );
       await queryClient.invalidateQueries({
         queryKey: queryKeys.clinical.consultations.all(),
+      });
+    },
+  });
+}
+
+
+export function useCreateVitalSigns(consultationId: number) {
+  const { session } = useAuthSession();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: VitalSignsCreate) =>
+      session?.isPreview
+        ? Promise.resolve(
+            createPreviewVitalSigns(consultationId, {
+              temperatura_c: data.temperatura_c ?? null,
+              frecuencia_cardiaca: data.frecuencia_cardiaca ?? null,
+              frecuencia_respiratoria: data.frecuencia_respiratoria ?? null,
+              presion_sistolica: data.presion_sistolica ?? null,
+              presion_diastolica: data.presion_diastolica ?? null,
+              saturacion_oxigeno: data.saturacion_oxigeno ?? null,
+              peso_kg: data.peso_kg ?? null,
+              talla_cm: data.talla_cm ?? null,
+              glucosa_mg_dl: data.glucosa_mg_dl ?? null,
+              registrado_at: data.registrado_at,
+            }),
+          )
+        : createVitalSigns(consultationId, data),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: [...queryKeys.clinical.consultations.detail(consultationId), 'vital-signs'],
+      });
+    },
+  });
+}
+
+export function useCreateClinicalNote(consultationId: number) {
+  const { session } = useAuthSession();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: ClinicalNoteCreate) =>
+      session?.isPreview
+        ? Promise.resolve(createPreviewClinicalNote(consultationId, session.user?.id ?? 9001, data))
+        : createClinicalNote(consultationId, data),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: [...queryKeys.clinical.consultations.detail(consultationId), 'notes'],
+      });
+    },
+  });
+}
+
+export function useUpdateClinicalNote(consultationId: number, noteId: number) {
+  const { session } = useAuthSession();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: ClinicalNoteUpdate) =>
+      session?.isPreview
+        ? Promise.resolve(updatePreviewClinicalNote(consultationId, noteId, data))
+        : updateClinicalNote(consultationId, noteId, data),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: [...queryKeys.clinical.consultations.detail(consultationId), 'notes'],
       });
     },
   });

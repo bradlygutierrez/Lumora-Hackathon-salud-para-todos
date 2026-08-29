@@ -101,3 +101,62 @@ export function updatePreviewConsultation(
   }
   throw new Error('Consulta preview no encontrada');
 }
+
+let nextVitalSignsId = 9200;
+let nextClinicalNoteId = 9300;
+
+export function createPreviewVitalSigns(
+  consultationId: number,
+  data: Omit<VitalSigns, 'id' | 'consulta_id' | 'registrado_at'> & { registrado_at?: string | null },
+): VitalSigns {
+  nextVitalSignsId += 1;
+  const created: VitalSigns = {
+    ...data,
+    id: nextVitalSignsId,
+    consulta_id: consultationId,
+    registrado_at: data.registrado_at || new Date().toISOString(),
+  };
+  previewVitalSignsByConsultation[consultationId] = [
+    created,
+    ...(previewVitalSignsByConsultation[consultationId] ?? []),
+  ];
+  return created;
+}
+
+export function createPreviewClinicalNote(
+  consultationId: number,
+  authorId: number,
+  data: { contenido: string; activo?: boolean },
+): ClinicalNote {
+  nextClinicalNoteId += 1;
+  const now = new Date().toISOString();
+  const created: ClinicalNote = {
+    id: nextClinicalNoteId,
+    consulta_id: consultationId,
+    autor_id: authorId,
+    contenido: data.contenido,
+    created_at: now,
+    updated_at: now,
+    activo: data.activo ?? true,
+  };
+  previewClinicalNotesByConsultation[consultationId] = [
+    created,
+    ...(previewClinicalNotesByConsultation[consultationId] ?? []),
+  ];
+  return created;
+}
+
+export function updatePreviewClinicalNote(
+  consultationId: number,
+  noteId: number,
+  data: { contenido?: string | null; activo?: boolean | null },
+): ClinicalNote {
+  const items = previewClinicalNotesByConsultation[consultationId] ?? [];
+  const index = items.findIndex((item) => item.id === noteId);
+  if (index < 0) throw new Error('Nota clínica preview no encontrada');
+  const changes = Object.fromEntries(
+    Object.entries(data).filter(([, value]) => value !== null && value !== undefined),
+  );
+  items[index] = { ...items[index], ...changes, updated_at: new Date().toISOString() };
+  return items[index];
+}
