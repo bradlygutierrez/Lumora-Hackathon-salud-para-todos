@@ -67,9 +67,9 @@ describe('ConditionsScreen J12', () => {
     });
   });
 
-  it('blocks direct access without clinica:manage and disables the query', () => {
+  it('blocks direct access without clinica:manage and disables the query', async () => {
     mockUseAuthSession.mockReturnValue({ permissions: new Set() });
-    const screen = render(<ConditionsScreen patientId={3} recordId={7} />);
+    const screen = await render(<ConditionsScreen patientId={3} recordId={7} />);
 
     expect(screen.getByText('Acceso restringido')).toBeTruthy();
     expect(mockUseConditions).toHaveBeenCalledWith(
@@ -79,8 +79,8 @@ describe('ConditionsScreen J12', () => {
     );
   });
 
-  it('applies active filters and backend pagination', () => {
-    const screen = render(<ConditionsScreen patientId={3} recordId={7} />);
+  it('applies active filters and backend pagination', async () => {
+    const screen = await render(<ConditionsScreen patientId={3} recordId={7} />);
     expect(mockUseConditions).toHaveBeenLastCalledWith(
       7,
       expect.objectContaining({ activo: true, offset: 0, limit: 20 }),
@@ -102,8 +102,8 @@ describe('ConditionsScreen J12', () => {
     );
   });
 
-  it('navigates to create, edit and condition history routes', () => {
-    const screen = render(<ConditionsScreen patientId={3} recordId={7} />);
+  it('navigates to create, edit and condition history routes', async () => {
+    const screen = await render(<ConditionsScreen patientId={3} recordId={7} />);
 
     fireEvent.press(screen.getByLabelText('Añadir condición médica'));
     expect(mockPush).toHaveBeenCalledWith(
@@ -123,7 +123,7 @@ describe('ConditionsScreen J12', () => {
 
   it('requires confirmation before J04 soft delete', async () => {
     const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
-    const screen = render(<ConditionsScreen patientId={3} recordId={7} />);
+    const screen = await render(<ConditionsScreen patientId={3} recordId={7} />);
 
     fireEvent.press(screen.getByLabelText('Eliminar Hipertensión'));
     expect(alert).toHaveBeenCalledWith(
