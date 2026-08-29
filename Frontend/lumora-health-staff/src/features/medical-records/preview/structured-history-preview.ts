@@ -123,14 +123,23 @@ function findSummaryByRecord(recordId: number) {
 function syncSummary(patientId: number, recordId: number) {
   const summary = previewMedicalRecordSummaries[patientId] ?? findSummaryByRecord(recordId);
   if (!summary) return;
-  summary.condiciones = (previewConditionsByRecord[recordId] ?? []).filter((item) => item.activo);
-  summary.alergias = (previewAllergiesByPatient[patientId] ?? []).filter((item) => item.activo);
-  summary.discapacidades = (previewDisabilitiesByPatient[patientId] ?? []).filter(
-    (item) => item.activo,
-  );
-  summary.antecedentes = (previewMedicalHistoryByRecord[recordId] ?? []).filter(
-    (item) => item.activo,
-  );
+
+  // React Query compara referencias al publicar el resultado de una refetch.
+  // Si mutamos el mismo objeto que ya esta en cache, la pantalla de resumen
+  // puede no renderizar de nuevo al volver desde una seccion estructurada.
+  // Reemplazamos el summary completo para que los observers reciban una
+  // referencia nueva, igual que ocurriria con una respuesta real de FastAPI.
+  previewMedicalRecordSummaries[summary.paciente_id] = {
+    ...summary,
+    condiciones: (previewConditionsByRecord[recordId] ?? []).filter((item) => item.activo),
+    alergias: (previewAllergiesByPatient[patientId] ?? []).filter((item) => item.activo),
+    discapacidades: (previewDisabilitiesByPatient[patientId] ?? []).filter(
+      (item) => item.activo,
+    ),
+    antecedentes: (previewMedicalHistoryByRecord[recordId] ?? []).filter(
+      (item) => item.activo,
+    ),
+  };
 }
 
 function sortTimeline(recordId: number) {

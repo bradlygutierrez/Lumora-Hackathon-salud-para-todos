@@ -109,6 +109,19 @@ describe('J12 structured history preview integration', () => {
     );
   });
 
+  it('publishes a new preview summary reference so record counters rerender', () => {
+    const previousSummary = previewMedicalRecordSummaries[101];
+    const condition = createPreviewCondition(7001, 101, {
+      nombre: 'Condición refresco resumen J12',
+      estado_condicion_id: 1,
+    });
+
+    expect(previewMedicalRecordSummaries[101]).not.toBe(previousSummary);
+    expect(previewMedicalRecordSummaries[101].condiciones).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: condition.id })]),
+    );
+  });
+
   it('removes a soft-deleted condition from summary and timeline', () => {
     const condition = createPreviewCondition(7001, 101, {
       nombre: 'Condición borrado preview J12',
