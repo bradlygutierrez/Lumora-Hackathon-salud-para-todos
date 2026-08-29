@@ -77,7 +77,7 @@ async def test_challenge_stops_at_max_attempts(session_factory):
         valid = pyotp.TOTP(setup["secret"]).now()
         invalid = f"{(int(valid) + 1) % 1_000_000:06d}"
         for _ in range(2):
-            with pytest.raises(InvalidMfaCodeError):
+            with pytest.raises(InvalidMfaCodeError, match="Código MFA incorrecto"):
                 await service.verify(challenge_data["challenge_token"], invalid)
         with pytest.raises(InvalidTokenError):
             await service.verify(challenge_data["challenge_token"], invalid)
