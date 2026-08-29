@@ -132,7 +132,17 @@ class HealthAlertsService:
 
             if ocurrencia < ventana_inicio:
                 continue
-            if (horario.id, dia) in registradas_por_dia:
+
+            # `horario.hora` no lleva zona horaria y el registro de dosis
+            # (POST .../horarios/{id}/dosis) arma `fecha_programada` con la
+            # hora LOCAL del dispositivo convertida a UTC -- eso puede
+            # correr la fecha un dia para adelante o atras respecto al
+            # "hoy"/"ayer" en UTC que se calculo arriba (ej. 9pm en
+            # Nicaragua, UTC-6, ya es la madrugada del dia siguiente en
+            # UTC). Por eso el match contra `registradas_por_dia` se hace
+            # contra el dia calculado Y sus vecinos, no solo el exacto.
+            dias_vecinos = (dia - timedelta(days=1), dia, dia + timedelta(days=1))
+            if any((horario.id, d) in registradas_por_dia for d in dias_vecinos):
                 continue
 
             alertas.append(

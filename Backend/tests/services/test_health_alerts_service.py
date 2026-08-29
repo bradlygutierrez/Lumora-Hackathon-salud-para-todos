@@ -193,6 +193,77 @@ async def test_dosis_vencida_sin_registrar_aparece_y_desaparece_al_registrarla(
 
 
 @pytest.mark.asyncio
+async def test_dosis_tomada_con_fecha_un_dia_desfasada_por_zona_horaria_tambien_apaga_la_alerta(
+    session_factory,
+):
+    """`horario.hora` no lleva zona horaria, y el frontend arma
+    `fecha_programada` con la hora LOCAL del dispositivo convertida a UTC
+    (ver Frontend/.../utils/time-of-day.ts::todayAtHora). Para un usuario
+    en una zona horaria detras de UTC (ej. Nicaragua, UTC-6), una dosis
+    nocturna registrada "hoy" en su calendario local puede llegar al
+    backend con `fecha_programada` fechada "mañana" en UTC. La alerta
+    calculada tiene que reconocer que esa dosis SI fue registrada, sin
+    importar el corrimiento de un dia.
+    """
+    paciente_id = await _paciente(session_factory)
+    async with session_factory() as s:
+        estado_activa = EstadoReceta(nombre="Activa")
+        estado_tomada = EstadoDosis(nombre="Tomada")
+        s.add_all([estado_activa, estado_tomada])
+        await s.flush()
+
+        medicamento = Medicamento(nombre="Loratadina")
+        s.add(medicamento)
+        await s.flush()
+
+        receta = Receta(paciente_id=paciente_id, profesional_id=1, estado_id=estado_activa.id)
+        s.add(receta)
+        await s.flush()
+
+        detalle = DetalleReceta(
+            receta_id=receta.id,
+            medicamento_id=medicamento.id,
+            unidad_medida_id=1,
+            via_administracion_id=1,
+            dosis="10mg",
+            frecuencia="Diaria",
+            duracion_dias=30,
+            cantidad_total=30,
+        )
+        s.add(detalle)
+        await s.flush()
+
+        hora_vencida = (datetime.utcnow() - timedelta(hours=1)).time()
+        horario = HorarioMedicamento(
+            detalle_receta_id=detalle.id, hora=hora_vencida, activo=True
+        )
+        s.add(horario)
+        await s.flush()
+
+        # El "dia" que calcula el servicio para esta ocurrencia es
+        # utcnow().date(). Simulamos el desfase de zona horaria fechando
+        # el registro un dia despues de ese "dia" -- exactamente lo que
+        # pasaria con un dispositivo detras de UTC.
+        dia_calculado = datetime.utcnow().date()
+        dosis = DosisAdministrada(
+            horario_id=horario.id,
+            estado_dosis_id=estado_tomada.id,
+            fecha_programada=datetime.combine(
+                dia_calculado + timedelta(days=1), hora_vencida
+            ),
+            responsable_id=1,
+            origen_registro_id=1,
+        )
+        s.add(dosis)
+        await s.commit()
+
+    async with session_factory() as db:
+        alertas = await HealthAlertsService.get_health_alerts(db, paciente_id)
+
+    assert [a for a in alertas if a.tipo == "dosis_omitida"] == []
+
+
+@pytest.mark.asyncio
 async def test_cita_proxima_aparece_y_excluye_canceladas_y_lejanas(session_factory):
     paciente_id = await _paciente(session_factory)
     profesional_id = await _profesional(session_factory, especialidad="Cardiología")
