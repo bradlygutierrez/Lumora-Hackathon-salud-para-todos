@@ -11,7 +11,21 @@ export const queryKeys = {
       [...queryKeys.clinical.patients(), patientId, 'summary'] as const,
     medicalRecordTimeline: (recordId: number) =>
       [...queryKeys.clinical.all, 'records', recordId, 'timeline'] as const,
-    consultations: () => [...queryKeys.clinical.all, 'consultations'] as const,
+    consultations: {
+      all: () => [...queryKeys.clinical.all, 'consultations'] as const,
+      list: (params: object) =>
+        [...queryKeys.clinical.all, 'consultations', 'list', params] as const,
+      forRecord: (recordId: number, params: object) =>
+        [...queryKeys.clinical.all, 'records', recordId, 'consultations', params] as const,
+      detail: (consultationId: number) =>
+        [...queryKeys.clinical.all, 'consultations', consultationId] as const,
+      vitalSigns: (consultationId: number, params: object) =>
+        [...queryKeys.clinical.all, 'consultations', consultationId, 'vital-signs', params] as const,
+      notes: (consultationId: number, params: object) =>
+        [...queryKeys.clinical.all, 'consultations', consultationId, 'notes', params] as const,
+      reasons: (params: object) =>
+        [...queryKeys.clinical.all, 'catalogs', 'consultation-reasons', params] as const,
+    },
     diagnoses: () => [...queryKeys.clinical.all, 'diagnoses'] as const,
     conditions: () => [...queryKeys.clinical.all, 'conditions'] as const,
     patientsDirectory: {
@@ -31,6 +45,8 @@ export const queryKeys = {
         [...queryKeys.clinical.all, 'professionals', params] as const,
       detail: (professionalId: number) =>
         [...queryKeys.clinical.all, 'professionals', professionalId] as const,
+      currentByPerson: (personId: number) =>
+        [...queryKeys.clinical.all, 'professionals', 'current-person', personId] as const,
     },
   },
 } as const;

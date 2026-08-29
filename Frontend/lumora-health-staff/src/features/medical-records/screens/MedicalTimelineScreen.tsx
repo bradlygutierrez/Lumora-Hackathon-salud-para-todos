@@ -27,6 +27,8 @@ type TimelineFilter = {
 const filters: TimelineFilter[] = [
   { label: 'Todos' },
   { label: 'Consultas', type: 'consulta' },
+  { label: 'Signos vitales', type: 'signos_vitales' },
+  { label: 'Notas', type: 'nota' },
   { label: 'Diagnósticos', type: 'diagnostico' },
   { label: 'Recetas', type: 'receta' },
   { label: 'Condiciones', type: 'condicion' },
@@ -72,7 +74,13 @@ function formatDateTime(value: string) {
   }).format(new Date(value));
 }
 
-function destinationForEvent(patientId: number, event: ClinicalTimelineItem): Href {
+function destinationForEvent(patientId: number, recordId: number, event: ClinicalTimelineItem): Href {
+  if (event.tipo === 'consulta' && /^\d+$/.test(event.entidad_id)) {
+    return `/(staff)/patients/${patientId}/record/consultations/${event.entidad_id}` as Href;
+  }
+  if (event.tipo === 'signos_vitales' || event.tipo === 'nota') {
+    return `/(staff)/patients/${patientId}/record/consultations?recordId=${recordId}` as Href;
+  }
   const section = sectionByEventType[event.tipo];
   const path = section
     ? `/(staff)/patients/${patientId}/record?section=${section}`
@@ -177,7 +185,7 @@ export function MedicalTimelineScreen({ patientId, recordId }: Props) {
                 <Pressable
                   accessibilityLabel={`Abrir evento ${event.titulo}`}
                   accessibilityRole="button"
-                  onPress={() => router.push(destinationForEvent(patientId, event))}
+                  onPress={() => router.push(destinationForEvent(patientId, recordId, event))}
                   style={({ pressed }) => [styles.eventCard, pressed ? styles.pressed : null]}
                 >
                   <View style={styles.eventTopRow}>
@@ -187,7 +195,7 @@ export function MedicalTimelineScreen({ patientId, recordId }: Props) {
                   <Text style={styles.eventTitle}>{event.titulo}</Text>
                   {event.detalle ? <Text style={styles.eventDetail}>{event.detalle}</Text> : null}
                   <View style={styles.openRow}>
-                    <Text style={styles.openText}>Abrir sección relacionada</Text>
+                    <Text style={styles.openText}>{event.tipo === 'consulta' ? 'Abrir consulta' : 'Abrir sección relacionada'}</Text>
                     <Ionicons color={theme.color.primaryPressed} name="arrow-forward" size={15} />
                   </View>
                 </Pressable>

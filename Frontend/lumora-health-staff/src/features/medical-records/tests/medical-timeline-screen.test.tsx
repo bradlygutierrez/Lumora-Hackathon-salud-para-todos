@@ -93,6 +93,41 @@ describe('MedicalTimelineScreen', () => {
     );
   });
 
+
+  it('navigates consultation events directly and child clinical events to consultation history', async () => {
+    mockUseMedicalRecordTimeline.mockReturnValue({
+      data: {
+        pages: [{
+          items: [
+            { occurred_at: '2026-08-24T15:30:00Z', tipo: 'consulta', titulo: 'Control', detalle: null, entidad: 'consultas_medicas', entidad_id: '51' },
+            { occurred_at: '2026-08-24T15:35:00Z', tipo: 'signos_vitales', titulo: 'Signos vitales registrados', detalle: null, entidad: 'signos_vitales', entidad_id: '71' },
+            { occurred_at: '2026-08-24T15:40:00Z', tipo: 'nota', titulo: 'Nota clínica', detalle: 'Seguimiento', entidad: 'notas_clinicas', entidad_id: '81' },
+          ],
+          total: 3, limit: 10, offset: 0,
+        }],
+      },
+      isLoading: false, isError: false, hasNextPage: false, isFetchingNextPage: false, fetchNextPage: mockFetchNextPage,
+    });
+    const screen = await render(<MedicalTimelineScreen patientId={9} recordId={17} />);
+
+    await fireEvent.press(screen.getByLabelText('Abrir evento Control'));
+    expect(mockPush).toHaveBeenCalledWith('/(staff)/patients/9/record/consultations/51');
+
+    await fireEvent.press(screen.getByLabelText('Abrir evento Signos vitales registrados'));
+    expect(mockPush).toHaveBeenCalledWith('/(staff)/patients/9/record/consultations?recordId=17');
+
+    await fireEvent.press(screen.getByLabelText('Abrir evento Nota clínica'));
+    expect(mockPush).toHaveBeenCalledWith('/(staff)/patients/9/record/consultations?recordId=17');
+  });
+
+  it('offers backend filters for consultation notes and vital signs', async () => {
+    const screen = await render(<MedicalTimelineScreen patientId={9} recordId={17} />);
+    await fireEvent.press(screen.getByLabelText('Filtrar timeline por Signos vitales'));
+    expect(mockUseMedicalRecordTimeline).toHaveBeenLastCalledWith(17, { limit: 10, tipo: 'signos_vitales' });
+    await fireEvent.press(screen.getByLabelText('Filtrar timeline por Notas'));
+    expect(mockUseMedicalRecordTimeline).toHaveBeenLastCalledWith(17, { limit: 10, tipo: 'nota' });
+  });
+
   it('loads the next backend page when more events exist', async () => {
     const screen = await render(<MedicalTimelineScreen patientId={9} recordId={17} />);
     await fireEvent.press(screen.getByLabelText('Cargar más eventos clínicos'));
