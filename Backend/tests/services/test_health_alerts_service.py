@@ -96,6 +96,10 @@ async def test_alerta_clinica_pendiente_aparece_como_alta_severidad(session_fact
     assert item.categoria == "alta_severidad"
     assert "Presión Arterial" in item.titulo
     assert item.atendida is False
+    # A09 (Ver Medición Completa): el frontend necesita el id del
+    # indicador (no solo el de la medición) para poder llevar al usuario
+    # directo al historial de "Presión Arterial" en Indicadores de Salud.
+    assert item.indicador_id == indicador.id
 
 
 @pytest.mark.asyncio

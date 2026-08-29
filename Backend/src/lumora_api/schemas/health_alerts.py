@@ -25,5 +25,6 @@ class HealthAlertResponse(BaseModel):
     # el frontend sepa a donde navegar con cada boton de accion.
     alerta_id: Optional[UUID] = None
     medicion_id: Optional[UUID] = None
+    indicador_id: Optional[UUID] = None
     horario_id: Optional[UUID] = None
     cita_id: Optional[int] = None

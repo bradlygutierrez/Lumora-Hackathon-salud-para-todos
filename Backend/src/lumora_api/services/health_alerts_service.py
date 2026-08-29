@@ -64,6 +64,7 @@ class HealthAlertsService:
                 atendida=alerta.atendida,
                 alerta_id=alerta.id,
                 medicion_id=alerta.medicion_id,
+                indicador_id=indicador.id,
             )
             for alerta, indicador in rows
         ]

@@ -22,7 +22,7 @@ export const HEALTH_ALERT_CATEGORY_VARIANTS: Record<
   { label: string; icon: IconName; bgClass: string }
 > = {
   alta_severidad: {
-    label: 'Alta prioridad',
+    label: 'Alta Prioridad',
     icon: 'alert-circle',
     bgClass: 'bg-warm-300',
   },
@@ -39,14 +39,18 @@ export const HEALTH_ALERT_CATEGORY_VARIANTS: Record<
 };
 
 /**
- * Etiqueta y destino del boton de accion segun el tipo de alerta.
+ * Etiqueta y destino del boton principal de accion segun el tipo de
+ * alerta.
  *
- * Ninguna de estas alertas trae un endpoint propio de detalle (son
- * calculadas, no filas reales -- ver
- * Backend/.../schemas/health_alerts.py), asi que el boton lleva al tab
- * donde el paciente puede actuar sobre el origen real del dato: Mi salud
- * para una alerta clinica, Medicacion para registrar una dosis, Citas
- * para ver la cita. Mismo patron que las "Acciones rapidas" de Inicio.
+ * - alerta_clinica: lleva directo al historial del indicador que causo
+ *   la alerta (ej. "Presion Arterial"), usando `indicador_id` -- mismo
+ *   destino que si el paciente lo seleccionara a mano desde "Seleccionar
+ *   Indicador" (A08). Si por algun motivo no viniera el indicador_id, cae
+ *   al selector general en vez de romper la navegacion.
+ * - dosis_omitida / cita_proxima: ninguna trae un endpoint propio de
+ *   detalle (son calculadas, no filas reales -- ver
+ *   Backend/.../schemas/health_alerts.py), asi que el boton lleva al tab
+ *   donde el paciente puede actuar sobre el origen real del dato.
  */
 export function actionForAlert(alert: HealthAlertResponse): {
   label: string;
@@ -54,7 +58,15 @@ export function actionForAlert(alert: HealthAlertResponse): {
 } {
   switch (alert.tipo) {
     case 'alerta_clinica':
-      return { label: 'Ver Mi Salud', href: '/(app)/(tabs)/health' };
+      return {
+        label: 'Ver Medición Completa',
+        href: alert.indicador_id
+          ? {
+              pathname: '/(app)/health-indicators/[indicadorId]/history',
+              params: { indicadorId: alert.indicador_id },
+            }
+          : '/(app)/health-indicators',
+      };
     case 'dosis_omitida':
       return { label: 'Registrar Ahora', href: '/(app)/(tabs)/medication' };
     case 'cita_proxima':
@@ -62,4 +74,23 @@ export function actionForAlert(alert: HealthAlertResponse): {
     default:
       return { label: 'Ver Mas', href: '/(app)/(tabs)' };
   }
+}
+
+/**
+ * Boton secundario "Contactar Medico", solo para alertas clinicas de
+ * alta severidad (ver Figma).
+ *
+ * Todavia no existe una pantalla de Contactos -- esa es la tarea A13
+ * ("Permisos y Contactos" del Figma de Inicio/Vista Cuidador), que
+ * todavia no se ha construido. Mientras tanto el boton se muestra
+ * deshabilitado (igual al Figma visualmente, pero sin accion) para no
+ * navegar a una pantalla que no existe. Cuando A13 este lista, este
+ * boton pasa a ser un Link real hacia el contacto del profesional de la
+ * receta.
+ */
+export function secondaryActionForAlert(
+  alert: HealthAlertResponse
+): { label: string; disabled: true } | null {
+  if (alert.tipo !== 'alerta_clinica') return null;
+  return { label: 'Contactar Médico', disabled: true };
 }
