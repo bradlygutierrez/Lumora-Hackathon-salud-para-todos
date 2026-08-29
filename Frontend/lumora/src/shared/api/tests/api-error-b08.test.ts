@@ -26,4 +26,24 @@ describe('B08 ApiError mapping', () => {
       mock.restore();
     }
   });
+
+  it('repairs mojibake in backend domain messages', async () => {
+    const instance = axios.create();
+    const mock = new MockAdapter(instance);
+    mock.onPost('/mfa').reply(400, {
+      error: {
+        code: 'invalid_mfa_code',
+        message: 'CÃ³digo MFA incorrecto',
+      },
+    });
+
+    try {
+      await instance.post('/mfa');
+      throw new Error('Expected request to fail');
+    } catch (error) {
+      expect(toApiError(error).message).toBe('Código MFA incorrecto');
+    } finally {
+      mock.restore();
+    }
+  });
 });
