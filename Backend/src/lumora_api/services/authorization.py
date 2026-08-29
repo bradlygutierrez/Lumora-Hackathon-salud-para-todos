@@ -36,21 +36,29 @@ async def own_patient_id(session: AsyncSession, user: Usuario) -> int | None:
 
 
 async def ensure_can_access_patient_data(
-    session: AsyncSession, user: Usuario, paciente_id: int | None
+    session: AsyncSession,
+    user: Usuario,
+    paciente_id: int | None,
+    action: str = "read",
 ) -> None:
-    """Deja pasar a personal clínico o al propio paciente dueño del recurso.
+    """Autoriza personal clínico, paciente propio o cuidador con relación activa.
 
     `paciente_id` en None significa que el recurso todavía no se validó
     como existente; se deja pasar para que el llamador lance su propio
     ResourceNotFoundError (404) en vez de un 403 engañoso antes de saber
-    si el recurso siquiera existe.
+    si el recurso siquiera existe. Las mutaciones de cuidador requieren
+    action="write" y una relación con nivel de acceso write.
     """
     if paciente_id is None or is_clinical_staff(user):
         return
     roles = {role.nombre.lower() for role in user.roles}
     if "cuidador" in roles:
         relationships = await ReminderRepository(session).get_active_relationships_for_caregiver(user.id)
-        if any(item.paciente_id == paciente_id for item in relationships):
+        if any(
+            item.paciente_id == paciente_id
+            and (action == "read" or item.nivel_acceso == "write")
+            for item in relationships
+        ):
             return
 
     my_patient_id = await own_patient_id(session, user)
