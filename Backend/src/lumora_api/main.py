@@ -89,6 +89,9 @@ async def domain_error_handler(_: Request, error: DomainError) -> JSONResponse:
 
 @app.exception_handler(Exception)
 async def global_exception_handler(_: Request, error: Exception) -> JSONResponse:
+    # TODO(debug-temporal): quitar una vez resuelto el bug de 500 en recordatorios.
+    import traceback
+    traceback.print_exception(type(error), error, error.__traceback__)
     return JSONResponse(
         status_code=500,
         content={
