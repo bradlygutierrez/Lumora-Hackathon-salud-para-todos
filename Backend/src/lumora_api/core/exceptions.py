@@ -17,6 +17,11 @@ class ResourceConflictError(DomainError):
     code = "conflict"
 
 
+class ValidationError(DomainError):
+    status_code = 422
+    code = "validation_error"
+
+
 class AuthenticationError(DomainError):
     status_code = 401
     code = "unauthorized"
