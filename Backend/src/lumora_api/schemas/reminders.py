@@ -1,7 +1,42 @@
-from datetime import datetime
+from datetime import datetime, time
 from typing import Literal, Optional
 from uuid import UUID
 from pydantic import BaseModel, ConfigDict
+
+ESTADOS_RECORDATORIO = Literal["pendiente", "pospuesto", "completado", "omitido"]
+
+
+# --- HORARIOS DE UN RECORDATORIO (horas del dia elegidas para repartir ---
+# --- objetivo_cantidad, ej. "Beber Agua": 2L en 08:00/12:00/16:00/20:00) ---
+class RecordatorioHorarioBase(BaseModel):
+    hora: time
+    # Porcion de objetivo_cantidad para este horario puntual (ej. 0.5
+    # Litros a las 08:00). Si se deja en None, se reparte el
+    # objetivo_cantidad del recordatorio en partes iguales entre los
+    # horarios activos (ver cantidad_efectiva en el response).
+    cantidad_objetivo: Optional[float] = None
+    activo: bool = True
+
+
+class RecordatorioHorarioCreate(RecordatorioHorarioBase):
+    pass
+
+
+class RecordatorioHorarioUpdate(BaseModel):
+    hora: Optional[time] = None
+    cantidad_objetivo: Optional[float] = None
+    activo: Optional[bool] = None
+
+
+class RecordatorioHorarioResponse(RecordatorioHorarioBase):
+    id: int
+    recordatorio_id: int
+    # Cantidad que efectivamente le corresponde a este horario: la
+    # cantidad_objetivo explicita si se definio, o si no el reparto
+    # equitativo de objetivo_cantidad / horarios activos.
+    cantidad_efectiva: Optional[float] = None
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 # --- RECORDATORIOS ---
@@ -27,7 +62,10 @@ class RecordatorioBase(BaseModel):
 
 
 class RecordatorioCreate(RecordatorioBase):
-    pass
+    # Horas del dia en que se quiere que avise (opcional). Ej. para
+    # "Beber agua" con objetivo_cantidad=2 (Litros): [08:00, 12:00,
+    # 16:00, 20:00] reparte el objetivo entre esos 4 horarios.
+    horarios: list[RecordatorioHorarioCreate] = []
 
 
 class RecordatorioUpdate(BaseModel):
@@ -41,8 +79,13 @@ class RecordatorioUpdate(BaseModel):
     progreso_actual: Optional[float] = None
 
 
+class RecordatorioPosponer(BaseModel):
+    nueva_fecha_programada: datetime
+
+
 class RecordatorioResponse(RecordatorioBase):
     id: int
+    estado: ESTADOS_RECORDATORIO
     creado_en: datetime
 
     model_config = ConfigDict(from_attributes=True)

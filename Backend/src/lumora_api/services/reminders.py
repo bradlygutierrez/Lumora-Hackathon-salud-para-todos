@@ -10,11 +10,15 @@ from lumora_api.models.appointments import Cita
 from lumora_api.models.catalogs import EstadoCita, EstadoDosis, EstadoReceta, TipoRecordatorio
 from lumora_api.models.identity import ProfesionalSalud
 from lumora_api.models.prescriptions import DetalleReceta, Medicamento, Receta
-from lumora_api.models.reminders import Recordatorio, Notificacion, PreferenciaNotificacion, RelacionPaciente
+from lumora_api.models.reminders import Recordatorio, RecordatorioHorario, Notificacion, PreferenciaNotificacion, RelacionPaciente
 from lumora_api.models.schedules import DosisAdministrada, HorarioMedicamento
 from lumora_api.schemas.reminders import (
     RecordatorioCreate,
     RecordatorioUpdate,
+    RecordatorioPosponer,
+    RecordatorioHorarioCreate,
+    RecordatorioHorarioUpdate,
+    RecordatorioHorarioResponse,
     NotificacionResponse,
     PreferenciaNotificacionUpdate,
     RelacionPacienteCreate,
@@ -71,7 +75,12 @@ class ReminderService:
 
     # Recordatorios
     async def crear_recordatorio(self, data: RecordatorioCreate) -> Recordatorio:
-        obj = Recordatorio(**data.model_dump())
+        payload = data.model_dump(exclude={"horarios"})
+        obj = Recordatorio(**payload)
+        # Horas del dia elegidas para repartir objetivo_cantidad (ej. las
+        # horas en que se quiere que avise para beber agua). Se guardan
+        # junto con el recordatorio gracias al cascade de la relacion.
+        obj.horarios = [RecordatorioHorario(**h.model_dump()) for h in data.horarios]
         return await self.repo.create_recordatorio(obj)
 
     async def obtener_recordatorios_paciente(self, paciente_id: int) -> Sequence[Recordatorio]:
@@ -92,6 +101,86 @@ class ReminderService:
     async def eliminar_recordatorio(self, id: int) -> None:
         rec = await self.obtener_recordatorio_por_id(id)
         await self.repo.delete_recordatorio(rec)
+
+    async def posponer_recordatorio(self, id: int, data: RecordatorioPosponer) -> Recordatorio:
+        """Boton "Posponer": el usuario elige una nueva hora/fecha desde
+        una ventanita en el front y aca se reprograma el recordatorio."""
+        rec = await self.obtener_recordatorio_por_id(id)
+        rec.fecha_programada = data.nueva_fecha_programada
+        rec.estado = "pospuesto"
+        return await self.repo.update_recordatorio(rec)
+
+    async def omitir_recordatorio(self, id: int) -> Recordatorio:
+        """Boton "Omitir": marca el recordatorio como omitido, sin tocar
+        la hora programada."""
+        rec = await self.obtener_recordatorio_por_id(id)
+        rec.estado = "omitido"
+        return await self.repo.update_recordatorio(rec)
+
+    # Horarios de un recordatorio (reparto del objetivo_cantidad en
+    # distintas horas del dia, ej. beber 0.5L a las 08:00, 12:00, etc.)
+    async def crear_horario_recordatorio(
+        self, recordatorio_id: int, data: RecordatorioHorarioCreate
+    ) -> RecordatorioHorarioResponse:
+        rec = await self.obtener_recordatorio_por_id(recordatorio_id)
+        horario = RecordatorioHorario(recordatorio_id=recordatorio_id, **data.model_dump())
+        horario = await self.repo.create_recordatorio_horario(horario)
+        todos = await self.repo.get_recordatorio_horarios(recordatorio_id)
+        return self._horario_a_response(rec, horario, todos)
+
+    async def obtener_horarios_recordatorio(
+        self, recordatorio_id: int
+    ) -> list[RecordatorioHorarioResponse]:
+        rec = await self.obtener_recordatorio_por_id(recordatorio_id)
+        todos = await self.repo.get_recordatorio_horarios(recordatorio_id)
+        return [self._horario_a_response(rec, h, todos) for h in todos]
+
+    async def actualizar_horario_recordatorio(
+        self, recordatorio_id: int, horario_id: int, data: RecordatorioHorarioUpdate
+    ) -> RecordatorioHorarioResponse:
+        rec = await self.obtener_recordatorio_por_id(recordatorio_id)
+        horario = await self._obtener_horario_o_404(recordatorio_id, horario_id)
+        for key, value in data.model_dump(exclude_unset=True).items():
+            setattr(horario, key, value)
+        horario = await self.repo.update_recordatorio_horario(horario)
+        todos = await self.repo.get_recordatorio_horarios(recordatorio_id)
+        return self._horario_a_response(rec, horario, todos)
+
+    async def eliminar_horario_recordatorio(self, recordatorio_id: int, horario_id: int) -> None:
+        horario = await self._obtener_horario_o_404(recordatorio_id, horario_id)
+        await self.repo.delete_recordatorio_horario(horario)
+
+    async def _obtener_horario_o_404(
+        self, recordatorio_id: int, horario_id: int
+    ) -> RecordatorioHorario:
+        horario = await self.repo.get_recordatorio_horario_by_id(horario_id)
+        if not horario or horario.recordatorio_id != recordatorio_id:
+            raise HTTPException(status_code=404, detail="Horario no encontrado")
+        return horario
+
+    @staticmethod
+    def _horario_a_response(
+        recordatorio: Recordatorio,
+        horario: RecordatorioHorario,
+        todos_los_horarios: Sequence[RecordatorioHorario],
+    ) -> RecordatorioHorarioResponse:
+        activos = [h for h in todos_los_horarios if h.activo]
+        cantidad_efectiva = horario.cantidad_objetivo
+        if (
+            cantidad_efectiva is None
+            and horario.activo
+            and recordatorio.objetivo_cantidad
+            and activos
+        ):
+            cantidad_efectiva = round(recordatorio.objetivo_cantidad / len(activos), 4)
+        return RecordatorioHorarioResponse(
+            id=horario.id,
+            recordatorio_id=horario.recordatorio_id,
+            hora=horario.hora,
+            cantidad_objetivo=horario.cantidad_objetivo,
+            activo=horario.activo,
+            cantidad_efectiva=cantidad_efectiva,
+        )
 
     # Notificaciones
     async def obtener_notificaciones_usuario(self, usuario_id: int) -> List[NotificacionResponse]:

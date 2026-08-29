@@ -10,7 +10,11 @@ from lumora_api.services.reminders import ReminderService
 from lumora_api.schemas.reminders import (
     RecordatorioCreate,
     RecordatorioUpdate,
+    RecordatorioPosponer,
     RecordatorioResponse,
+    RecordatorioHorarioCreate,
+    RecordatorioHorarioUpdate,
+    RecordatorioHorarioResponse,
     NotificacionResponse,
     PreferenciaNotificacionUpdate,
     PreferenciaNotificacionResponse,
@@ -80,6 +84,89 @@ async def eliminar_recordatorio(
     recordatorio = await service.obtener_recordatorio_por_id(id)
     await _patient_access(db).require_access(current_user, recordatorio.paciente_id, action="write")
     await service.eliminar_recordatorio(id)
+
+# --- Posponer / Omitir (botones "Posponer"/"Omitir" del recordatorio) ---
+# Mismo criterio A10 que el resto: nivel_acceso="write" para el cuidador.
+@router.post("/recordatorios/{id}/posponer", response_model=RecordatorioResponse)
+async def posponer_recordatorio(
+    id: int,
+    data: RecordatorioPosponer,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+):
+    service = ReminderService(db)
+    recordatorio = await service.obtener_recordatorio_por_id(id)
+    await _patient_access(db).require_access(current_user, recordatorio.paciente_id, action="write")
+    return await service.posponer_recordatorio(id, data)
+
+@router.post("/recordatorios/{id}/omitir", response_model=RecordatorioResponse)
+async def omitir_recordatorio(
+    id: int,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+):
+    service = ReminderService(db)
+    recordatorio = await service.obtener_recordatorio_por_id(id)
+    await _patient_access(db).require_access(current_user, recordatorio.paciente_id, action="write")
+    return await service.omitir_recordatorio(id)
+
+# --- CRUD /recordatorios/{id}/horarios ---
+# Horas del dia elegidas por quien crea el recordatorio para repartir
+# objetivo_cantidad (ej. "Beber agua": 2L en 08:00/12:00/16:00/20:00).
+# Mismo criterio de acceso A10 que el recordatorio padre.
+@router.post(
+    "/recordatorios/{id}/horarios",
+    response_model=RecordatorioHorarioResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def crear_horario_recordatorio(
+    id: int,
+    data: RecordatorioHorarioCreate,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+):
+    service = ReminderService(db)
+    recordatorio = await service.obtener_recordatorio_por_id(id)
+    await _patient_access(db).require_access(current_user, recordatorio.paciente_id, action="write")
+    return await service.crear_horario_recordatorio(id, data)
+
+@router.get("/recordatorios/{id}/horarios", response_model=List[RecordatorioHorarioResponse])
+async def listar_horarios_recordatorio(
+    id: int,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+):
+    service = ReminderService(db)
+    recordatorio = await service.obtener_recordatorio_por_id(id)
+    await _patient_access(db).require_access(current_user, recordatorio.paciente_id, action="read")
+    return await service.obtener_horarios_recordatorio(id)
+
+@router.patch(
+    "/recordatorios/{id}/horarios/{horario_id}", response_model=RecordatorioHorarioResponse
+)
+async def actualizar_horario_recordatorio(
+    id: int,
+    horario_id: int,
+    data: RecordatorioHorarioUpdate,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+):
+    service = ReminderService(db)
+    recordatorio = await service.obtener_recordatorio_por_id(id)
+    await _patient_access(db).require_access(current_user, recordatorio.paciente_id, action="write")
+    return await service.actualizar_horario_recordatorio(id, horario_id, data)
+
+@router.delete("/recordatorios/{id}/horarios/{horario_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def eliminar_horario_recordatorio(
+    id: int,
+    horario_id: int,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+):
+    service = ReminderService(db)
+    recordatorio = await service.obtener_recordatorio_por_id(id)
+    await _patient_access(db).require_access(current_user, recordatorio.paciente_id, action="write")
+    await service.eliminar_horario_recordatorio(id, horario_id)
 
 # --- GET/PATCH /notificaciones ---
 @router.get("/notificaciones/usuario/{usuario_id}", response_model=List[NotificacionResponse])
