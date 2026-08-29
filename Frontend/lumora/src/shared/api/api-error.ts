@@ -117,11 +117,11 @@ class ApiErrorMapper {
   private extractMessage(data: BackendDomainError | undefined): string {
     const domainMessage = data?.error?.message;
     if (typeof domainMessage === 'string' && domainMessage.trim()) {
-      return domainMessage;
+      return this.repairMojibake(domainMessage);
     }
 
     if (typeof data?.detail === 'string' && data.detail.trim()) {
-      return data.detail;
+      return this.repairMojibake(data.detail);
     }
 
     if (Array.isArray(data?.detail)) {
@@ -129,10 +129,32 @@ class ApiErrorMapper {
     }
 
     if (typeof data?.message === 'string' && data.message.trim()) {
-      return data.message;
+      return this.repairMojibake(data.message);
     }
 
     return 'La solicitud no pudo completarse.';
+  }
+
+  private repairMojibake(message: string): string {
+    const replacements: Record<string, string> = {
+      'Ã¡': 'á',
+      'Ã©': 'é',
+      'Ã­': 'í',
+      'Ã³': 'ó',
+      'Ãº': 'ú',
+      'Ã±': 'ñ',
+      'Ã¼': 'ü',
+      'Ã': 'Á',
+      'Ã‰': 'É',
+      'Ã': 'Í',
+      'Ã“': 'Ó',
+      'Ãš': 'Ú',
+      'Ã‘': 'Ñ',
+      'Â¿': '¿',
+      'Â¡': '¡',
+    };
+
+    return message.replace(/Ã.|Â./g, (value) => replacements[value] ?? value);
   }
 }
 
