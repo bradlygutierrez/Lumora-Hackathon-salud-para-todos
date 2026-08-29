@@ -89,7 +89,11 @@ export default function HomeRoute() {
     return (
       <Screen contentClassName="px-0 py-0">
         {role !== 'caregiver' ? (
-          <AppHeader showBackButton={false} showNotification />
+          <AppHeader
+            showBackButton={false}
+            showNotification
+            onNotificationPress={() => router.push('/(app)/notifications')}
+          />
         ) : null}
         <View className="px-4 py-5">
           <HomeHealthState
@@ -106,7 +110,11 @@ export default function HomeRoute() {
     return (
       <Screen contentClassName="px-0 py-0">
         {role !== 'caregiver' ? (
-          <AppHeader showBackButton={false} showNotification />
+          <AppHeader
+            showBackButton={false}
+            showNotification
+            onNotificationPress={() => router.push('/(app)/notifications')}
+          />
         ) : null}
         <View className="px-4 py-5">
           <HomeHealthState
@@ -123,7 +131,11 @@ export default function HomeRoute() {
     return (
       <Screen contentClassName="px-0 py-0">
         {role !== 'caregiver' ? (
-          <AppHeader showBackButton={false} showNotification />
+          <AppHeader
+            showBackButton={false}
+            showNotification
+            onNotificationPress={() => router.push('/(app)/notifications')}
+          />
         ) : null}
         <View className="px-4 py-5">
           <HomeHealthState
@@ -163,7 +175,11 @@ export default function HomeRoute() {
       contentClassName="px-0 py-0"
     >
       {role !== 'caregiver' ? (
-        <AppHeader showBackButton={false} showNotification />
+        <AppHeader
+            showBackButton={false}
+            showNotification
+            onNotificationPress={() => router.push('/(app)/notifications')}
+          />
       ) : null}
 
       {role === 'caregiver' ? (
