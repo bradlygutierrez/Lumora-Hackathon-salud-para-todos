@@ -8,6 +8,7 @@ from lumora_api.models import (
     DetalleReceta,
     DosisAdministrada,
     EstadoCita,
+    EstadoDosis,
     EstadoReceta,
     HorarioMedicamento,
     IndicadorMedico,
@@ -104,7 +105,9 @@ async def test_dosis_vencida_sin_registrar_aparece_y_desaparece_al_registrarla(
     paciente_id = await _paciente(session_factory)
     async with session_factory() as s:
         estado_activa = EstadoReceta(nombre="Activa")
-        s.add(estado_activa)
+        estado_tomada = EstadoDosis(nombre="Tomada")
+        estado_pendiente = EstadoDosis(nombre="Pendiente")
+        s.add_all([estado_activa, estado_tomada, estado_pendiente])
         await s.flush()
 
         medicamento = Medicamento(nombre="Losartán")
@@ -137,6 +140,8 @@ async def test_dosis_vencida_sin_registrar_aparece_y_desaparece_al_registrarla(
         s.add(horario)
         await s.commit()
         horario_id = horario.id
+        tomada_id = estado_tomada.id
+        pendiente_id = estado_pendiente.id
 
     async with session_factory() as db:
         alertas = await HealthAlertsService.get_health_alerts(db, paciente_id)
@@ -147,22 +152,44 @@ async def test_dosis_vencida_sin_registrar_aparece_y_desaparece_al_registrarla(
     assert "Losartán 50mg" in dosis_alertas[0].mensaje
     assert dosis_alertas[0].horario_id == horario_id
 
-    # Al registrar la dosis (tomada, pospuesta, lo que sea), la alerta
-    # calculada deja de aparecer -- ya no esta "sin registrar".
+    # Al registrar la dosis como "Tomada", la alerta calculada deja de
+    # aparecer -- ya no esta "sin registrar".
     async with session_factory() as s:
         dosis = DosisAdministrada(
             horario_id=horario_id,
-            estado_dosis_id=1,
+            estado_dosis_id=tomada_id,
             fecha_programada=datetime.utcnow() - timedelta(hours=2),
             responsable_id=1,
             origen_registro_id=1,
         )
         s.add(dosis)
         await s.commit()
+        dosis_id = dosis.id
 
     async with session_factory() as db:
         alertas_despues = await HealthAlertsService.get_health_alerts(db, paciente_id)
     assert [a for a in alertas_despues if a.tipo == "dosis_omitida"] == []
+
+    # Si el usuario "cancela" el registro (vuelve el estado a
+    # "Pendiente" -- ver PATCH /dosis/{id} y useCancelDose en el
+    # frontend), la dosis sigue sin tomarse de verdad, asi que la alerta
+    # tiene que reaparecer. Antes de este fix, cualquier fila en
+    # DosisAdministrada (sin importar su estado) apagaba la alerta para
+    # siempre.
+    async with session_factory() as s:
+        dosis_en_sesion = await s.get(DosisAdministrada, dosis_id)
+        dosis_en_sesion.estado_dosis_id = pendiente_id
+        await s.commit()
+
+    async with session_factory() as db:
+        alertas_tras_cancelar = await HealthAlertsService.get_health_alerts(
+            db, paciente_id
+        )
+    dosis_alertas_tras_cancelar = [
+        a for a in alertas_tras_cancelar if a.tipo == "dosis_omitida"
+    ]
+    assert len(dosis_alertas_tras_cancelar) == 1
+    assert dosis_alertas_tras_cancelar[0].horario_id == horario_id
 
 
 @pytest.mark.asyncio
