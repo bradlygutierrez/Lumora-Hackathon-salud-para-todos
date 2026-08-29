@@ -3,7 +3,10 @@ import { Text, View } from 'react-native';
 
 import { MeasurementForm } from '@/features/health-indicators/components/MeasurementForm';
 import { useIndicatorsCatalog } from '@/features/health-indicators/hooks/useIndicatorsCatalog';
-import { useRegisterMeasurement } from '@/features/health-indicators/hooks/useRegisterMeasurement';
+import {
+  registerMeasurementErrorMessage,
+  useRegisterMeasurement,
+} from '@/features/health-indicators/hooks/useRegisterMeasurement';
 import type { IndicatorWithRange } from '@/features/health-indicators/types/health-indicators.types';
 import { useMeasurementUnitCatalog } from '@/features/prescriptions/hooks/useCatalog';
 import { AppHeader } from '@/shared/components/AppHeader';
@@ -82,7 +85,7 @@ export default function NewMeasurementRoute() {
         {registerMeasurement.isError ? (
           <View className="rounded-2xl border border-warm-500 bg-warm-300 p-4">
             <Text className="text-sm font-medium text-coal-900">
-              No pudimos guardar la medición. Revisa tu conexión e intenta de nuevo.
+              {registerMeasurementErrorMessage(registerMeasurement.error)}
             </Text>
           </View>
         ) : null}

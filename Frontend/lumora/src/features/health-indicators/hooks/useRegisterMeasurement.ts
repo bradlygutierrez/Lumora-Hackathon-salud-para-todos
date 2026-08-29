@@ -4,6 +4,19 @@ import { healthIndicatorsApi } from '@/features/health-indicators/api/health-ind
 import { usePatientId } from '@/features/health-indicators/hooks/usePatientId';
 import { useRecordOriginCatalog } from '@/features/prescriptions/hooks/useCatalog';
 import type { MedicionIndicadorCreate } from '@/features/health-indicators/types/health-indicators.types';
+import { ApiError } from '@/shared/api/api-error';
+
+export function registerMeasurementErrorMessage(error: unknown): string {
+  if (error instanceof ApiError && error.code === 'FORBIDDEN') {
+    return 'No tienes permiso para registrar mediciones de este paciente.';
+  }
+
+  if (error instanceof ApiError && error.code === 'NETWORK_ERROR') {
+    return 'No fue posible conectarse con el servidor. Revisa tu conexión e intenta de nuevo.';
+  }
+
+  return 'No pudimos guardar la medición. Intenta de nuevo.';
+}
 
 export type RegisterMeasurementInput = {
   indicadorId: string;
