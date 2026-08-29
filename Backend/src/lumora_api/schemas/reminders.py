@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Literal, Optional
+from uuid import UUID
 from pydantic import BaseModel, ConfigDict
 
 
@@ -7,9 +8,13 @@ from pydantic import BaseModel, ConfigDict
 class RecordatorioBase(BaseModel):
     paciente_id: int
     tipo_recordatorio_id: int
-    horario_medicamento_id: Optional[int] = None
+    # BUGFIX: coinciden con los ids UUID de HorarioMedicamento/AlertaClinica
+    # (ver models/reminders.py) -- antes declarados como int, causaba
+    # ResponseValidationError (500) al listar recordatorios generados
+    # a partir de una dosis omitida o una alerta clinica.
+    horario_medicamento_id: Optional[UUID] = None
     cita_id: Optional[int] = None
-    alerta_id: Optional[int] = None
+    alerta_id: Optional[UUID] = None
     titulo: str
     mensaje: str
     fecha_programada: datetime

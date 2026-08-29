@@ -1,6 +1,8 @@
+import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING, Optional
 from sqlalchemy import String, ForeignKey, Boolean, DateTime, Text, Float
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from lumora_api.db.base import Base
 
@@ -17,9 +19,18 @@ class Recordatorio(Base):
     tipo_recordatorio_id: Mapped[int] = mapped_column(ForeignKey("tipos_recordatorio.id"), nullable=False)
     
     # Entidades de origen opcionales (A03, B05, A04)
-    horario_medicamento_id: Mapped[Optional[int]] = mapped_column(ForeignKey("horarios_medicamento.id"), nullable=True)
+    # BUGFIX: horario_medicamento_id y alerta_id son UUID en sus tablas
+    # de origen (HorarioMedicamento.id, AlertaClinica.id) -- declararlos
+    # como int aca causaba ResponseValidationError (500) en cualquier
+    # GET que trajera un Recordatorio generado a partir de una dosis
+    # omitida o una alerta clinica (ver A09 _generar_notificaciones_*).
+    horario_medicamento_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("horarios_medicamento.id"), nullable=True
+    )
     cita_id: Mapped[Optional[int]] = mapped_column(ForeignKey("citas.id"), nullable=True)
-    alerta_id: Mapped[Optional[int]] = mapped_column(ForeignKey("alertas_clinicas.id"), nullable=True)
+    alerta_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("alertas_clinicas.id"), nullable=True
+    )
 
     titulo: Mapped[str] = mapped_column(String(150), nullable=False)
     mensaje: Mapped[str] = mapped_column(Text, nullable=False)
