@@ -1,4 +1,4 @@
-import { act, fireEvent, render } from '@testing-library/react-native';
+import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 import { DiagnosesScreen } from '../screens/DiagnosesScreen';
 
 const mockUseAuthSession = jest.fn();
@@ -129,16 +129,22 @@ describe('DiagnosesScreen J13', () => {
       screen.getByLabelText('Descripción del diagnóstico'),
       'Diabetes mellitus tipo 2',
     );
-    await fireEvent.press(screen.getByText('Guardar diagnóstico'));
+    fireEvent.press(screen.getByText('Guardar diagnóstico'));
 
-    expect(mockCreate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        tipo_diagnostico_id: 2,
-        descripcion: 'Diabetes mellitus tipo 2',
-        es_principal: false,
-        activo: true,
-      }),
-    );
+    await waitFor(() => {
+      expect(mockCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tipo_diagnostico_id: 2,
+          descripcion: 'Diabetes mellitus tipo 2',
+          es_principal: false,
+          activo: true,
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Descripción del diagnóstico').props.value).toBe('');
+    });
   });
 
   it('requires confirmation before soft deleting a diagnosis', async () => {
