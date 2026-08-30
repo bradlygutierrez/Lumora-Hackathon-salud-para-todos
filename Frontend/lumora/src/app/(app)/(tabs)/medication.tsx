@@ -126,6 +126,12 @@ export default function MedicationRoute() {
         <Link href="/(app)/health-alerts" asChild>
           <AppButton title="Ver alertas de salud" variant="ghost" />
         </Link>
+
+        {/* A10: acceso a "Recordatorios" (dosis + citas + seguimiento en
+            un solo tablero, agrupado Próximamente/Más tarde). */}
+        <Link href="/(app)/reminders" asChild>
+          <AppButton title="Ver recordatorios" variant="ghost" />
+        </Link>
       </View>
     </Screen>
   );

@@ -34,6 +34,14 @@ module.exports = {
           300: '#FFFCF6',
           100: '#FFFDFA',
         },
+
+        // Tono "éxito/completado" de la paleta oficial (ver
+        // shared/theme/tokens.ts::palette.mint) -- usado en la barra de
+        // progreso y el badge cuando se cumple un objetivo de Seguimiento.
+        mint: {
+          500: '#C5ECDD',
+          300: '#DDF5EA',
+        },
       },
     },
   },

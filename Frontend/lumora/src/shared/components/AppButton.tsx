@@ -46,7 +46,7 @@ export function AppButton({
       {loading ? (
         <ActivityIndicator color={theme.colors.textPrimary} />
       ) : (
-        <Text className="text-base font-semibold text-coal-900">
+        <Text className="text-center text-base font-semibold text-coal-900">
           {title}
         </Text>
       )}
