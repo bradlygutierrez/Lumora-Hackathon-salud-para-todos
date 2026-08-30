@@ -69,4 +69,68 @@ describe('HttpClientManager', () => {
       });
     }
   });
+
+  it('refreshes once and repeats the original request', async () => {
+    const instance = axios.create();
+    const localMock = new MockAdapter(instance);
+    const localClient = new HttpClientManager(instance);
+    let storedSession = { accessToken: 'expired', refreshToken: 'refresh' };
+    mockedSecureStore.getItemAsync.mockImplementation(async () => JSON.stringify(storedSession));
+    mockedSecureStore.setItemAsync.mockImplementation(async (_key, value) => {
+      storedSession = JSON.parse(value) as typeof storedSession;
+    });
+    const refresh = jest.fn().mockResolvedValue({ accessToken: 'renewed', refreshToken: 'next' });
+    localClient.setRefreshHandler(refresh);
+    localMock.onGet('/protected').reply((config) =>
+      config.headers?.Authorization === 'Bearer renewed'
+        ? [200, { ok: true }]
+        : [401, {}],
+    );
+
+    await expect(localClient.get('/protected')).resolves.toEqual({ ok: true });
+    expect(refresh).toHaveBeenCalledTimes(1);
+    localMock.restore();
+  });
+
+  it('shares one refresh across concurrent requests', async () => {
+    const instance = axios.create();
+    const localMock = new MockAdapter(instance);
+    const localClient = new HttpClientManager(instance);
+    let storedSession = { accessToken: 'expired', refreshToken: 'refresh' };
+    mockedSecureStore.getItemAsync.mockImplementation(async () => JSON.stringify(storedSession));
+    mockedSecureStore.setItemAsync.mockImplementation(async (_key, value) => {
+      storedSession = JSON.parse(value) as typeof storedSession;
+    });
+    const refresh = jest.fn().mockResolvedValue({ accessToken: 'renewed', refreshToken: 'next' });
+    localClient.setRefreshHandler(refresh);
+    localMock.onGet().reply((config) =>
+      config.headers?.Authorization === 'Bearer renewed' ? [200, { ok: true }] : [401, {}],
+    );
+
+    await expect(Promise.all([localClient.get('/one'), localClient.get('/two')])).resolves.toEqual([
+      { ok: true },
+      { ok: true },
+    ]);
+    expect(refresh).toHaveBeenCalledTimes(1);
+    localMock.restore();
+  });
+
+  it('clears the session when refresh fails', async () => {
+    const instance = axios.create();
+    const localMock = new MockAdapter(instance);
+    const localClient = new HttpClientManager(instance);
+    const expired = jest.fn();
+    mockedSecureStore.getItemAsync.mockResolvedValue(
+      JSON.stringify({ accessToken: 'expired', refreshToken: 'refresh' }),
+    );
+    mockedSecureStore.deleteItemAsync.mockResolvedValue();
+    localClient.setRefreshHandler(jest.fn().mockRejectedValue(new Error('refresh failed')));
+    localClient.setSessionExpiredHandler(expired);
+    localMock.onGet('/protected').reply(401);
+
+    await expect(localClient.get('/protected')).rejects.toBeInstanceOf(ApiError);
+    expect(mockedSecureStore.deleteItemAsync).toHaveBeenCalled();
+    expect(expired).toHaveBeenCalledTimes(1);
+    localMock.restore();
+  });
 });

@@ -2,6 +2,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 import {
   normalizeAppointmentText,
@@ -10,6 +11,7 @@ import {
 type StatusStyle = {
   backgroundColor: string;
   color: string;
+  icon: keyof typeof Ionicons.glyphMap;
 };
 
 function statusStyle(
@@ -26,6 +28,7 @@ function statusStyle(
           '#DDF4EE',
         color:
           '#196B59',
+        icon: 'checkmark-circle',
       };
 
     case 'pendiente':
@@ -34,6 +37,7 @@ function statusStyle(
           '#E7F2F1',
         color:
           '#54726D',
+        icon: 'time-outline',
       };
 
     case 'cancelada':
@@ -42,6 +46,7 @@ function statusStyle(
           '#FDE7E7',
         color:
           '#B42318',
+        icon: 'close-circle',
       };
 
     case 'completada':
@@ -50,6 +55,7 @@ function statusStyle(
           '#E8EDF2',
         color:
           '#425466',
+        icon: 'checkmark-done-circle',
       };
 
     default:
@@ -58,6 +64,7 @@ function statusStyle(
           '#E8F1F7',
         color:
           '#4A86B6',
+        icon: 'information-circle',
       };
   }
 }
@@ -74,12 +81,14 @@ export function AppointmentStatusBadge({
 
   return (
     <View
-      className="self-start rounded-full px-3 py-1.5"
+      accessibilityLabel={`Estado de la cita: ${status}`}
+      className="flex-row items-center gap-1 self-start rounded-full px-3 py-1.5"
       style={{
         backgroundColor:
           style.backgroundColor,
       }}
     >
+      <Ionicons name={style.icon} size={14} color={style.color} />
       <Text
         className="text-xs font-semibold"
         style={{

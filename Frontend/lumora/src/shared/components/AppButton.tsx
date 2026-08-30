@@ -36,6 +36,7 @@ export function AppButton({
     <Pressable
       {...props}
       accessibilityRole="button"
+      accessibilityLabel={props.accessibilityLabel ?? title}
       accessibilityState={{ disabled: isDisabled, busy: loading }}
       disabled={isDisabled}
       className={`min-h-12 items-center justify-center rounded-xl px-6 ${

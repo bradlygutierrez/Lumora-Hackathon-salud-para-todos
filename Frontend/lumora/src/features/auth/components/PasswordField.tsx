@@ -24,8 +24,10 @@ export function PasswordField(props: PasswordFieldProps) {
 
       <Pressable
         accessibilityRole="button"
+        accessibilityLabel={visible ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+        accessibilityState={{ expanded: visible }}
         onPress={() => setVisible((value) => !value)}
-        className="self-end py-1"
+        className="min-h-11 self-end justify-center px-2"
       >
         <Text className="text-sm font-medium text-coal-700">
           {visible ? 'Ocultar' : 'Mostrar'} contraseña

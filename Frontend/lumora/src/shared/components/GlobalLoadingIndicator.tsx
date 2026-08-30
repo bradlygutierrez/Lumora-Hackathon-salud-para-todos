@@ -18,6 +18,9 @@ export function GlobalLoadingIndicator() {
   return (
     <View
       pointerEvents="none"
+      accessibilityRole="progressbar"
+      accessibilityLabel="Actualizando información"
+      accessibilityState={{ busy: true }}
       className="absolute right-4 top-4 z-50 h-10 w-10 items-center justify-center rounded-full bg-lumen-300"
     >
       <ActivityIndicator size="small" color={theme.colors.textPrimary} />

@@ -9,6 +9,8 @@ import { queryClient } from '@/shared/api/query-client';
 import { queryLifecycle } from '@/shared/api/query-lifecycle';
 import { GlobalErrorBoundary } from '@/shared/components/GlobalErrorBoundary';
 import { GlobalLoadingIndicator } from '@/shared/components/GlobalLoadingIndicator';
+import { GlobalOfflineBanner } from '@/shared/components/GlobalOfflineBanner';
+import { FeedbackProvider } from '@/shared/feedback/FeedbackProvider';
 
 /**
  * Providers globales de Lumora.
@@ -29,7 +31,7 @@ export function AppProviders({ children }: PropsWithChildren) {
     // Limpiar QueryClient es importante para no conservar datos del usuario
     // anterior en memoria después de perder la sesión.
     httpClient.setSessionExpiredHandler(async () => {
-      await useAuthStore.getState().clearSession();
+      await useAuthStore.getState().clearSession('session-expired');
       queryClient.clear();
     });
 
@@ -42,8 +44,11 @@ export function AppProviders({ children }: PropsWithChildren) {
     <SafeAreaProvider>
       <GlobalErrorBoundary>
         <QueryClientProvider client={queryClient}>
-          {children}
-          <GlobalLoadingIndicator />
+          <FeedbackProvider>
+            {children}
+            <GlobalOfflineBanner />
+            <GlobalLoadingIndicator />
+          </FeedbackProvider>
         </QueryClientProvider>
       </GlobalErrorBoundary>
     </SafeAreaProvider>

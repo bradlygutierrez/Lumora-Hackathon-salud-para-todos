@@ -1,6 +1,6 @@
 import axios from 'axios';
 import MockAdapter from 'axios-mock-adapter';
-import { ApiError, toApiError } from '@/shared/api/api-error';
+import { ApiError, presentApiError, toApiError } from '@/shared/api/api-error';
 
 describe('B08 ApiError mapping', () => {
   it('maps backend 429 domain errors to RATE_LIMITED and preserves message', async () => {
@@ -45,5 +45,51 @@ describe('B08 ApiError mapping', () => {
     } finally {
       mock.restore();
     }
+  });
+
+  it.each([
+    [401, 'UNAUTHORIZED'],
+    [403, 'FORBIDDEN'],
+    [404, 'NOT_FOUND'],
+    [409, 'CONFLICT'],
+    [422, 'VALIDATION'],
+    [500, 'SERVER_ERROR'],
+  ] as const)('maps HTTP %s to %s', async (status, code) => {
+    const instance = axios.create();
+    const mock = new MockAdapter(instance);
+    mock.onGet('/resource').reply(status, { detail: 'backend detail' });
+
+    await expect(instance.get('/resource')).rejects.toBeDefined();
+    try {
+      await instance.get('/resource');
+    } catch (error) {
+      expect(toApiError(error).code).toBe(code);
+    } finally {
+      mock.restore();
+    }
+  });
+
+  it('maps requests without response to NETWORK_ERROR', () => {
+    const error = new axios.AxiosError('Network Error');
+    expect(toApiError(error)).toMatchObject({ code: 'NETWORK_ERROR', status: null });
+  });
+
+  it('only retries temporary errors', () => {
+    expect(new ApiError('NETWORK_ERROR', null, 'offline').isRetryable()).toBe(true);
+    expect(new ApiError('SERVER_ERROR', 500, 'server').isRetryable()).toBe(true);
+    expect(new ApiError('FORBIDDEN', 403, 'forbidden').isRetryable()).toBe(false);
+  });
+
+  it('presents patient-friendly messages without backend details', () => {
+    expect(presentApiError(new ApiError('FORBIDDEN', 403, 'internal'))).toEqual({
+      title: 'Acción no permitida',
+      message: 'No tenés permiso para realizar esta acción.',
+      kind: 'forbidden',
+    });
+    expect(presentApiError(new ApiError('SERVER_ERROR', 500, 'stack trace'))).toEqual({
+      title: 'No pudimos completar la solicitud',
+      message: 'Intentá nuevamente.',
+      kind: 'error',
+    });
   });
 });

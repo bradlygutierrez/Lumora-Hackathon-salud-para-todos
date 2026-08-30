@@ -266,7 +266,12 @@ function PatientHome({
       <View className="gap-3">
         <View className="flex-row items-center justify-between">
           <Text className="text-base font-bold text-coal-900">Mi salud</Text>
-          <Pressable onPress={() => router.push('/(app)/(tabs)/health')}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Ver detalles de Mi salud"
+            className="min-h-11 justify-center"
+            onPress={() => router.push('/(app)/(tabs)/health')}
+          >
             <Text className="text-xs font-semibold text-[#4A86B6]">Detalles →</Text>
           </Pressable>
         </View>

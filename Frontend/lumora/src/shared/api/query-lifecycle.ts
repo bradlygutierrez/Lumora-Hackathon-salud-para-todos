@@ -17,6 +17,8 @@ import {
 class QueryLifecycleManager {
   private configured = false;
   private appStateSubscription: NativeEventSubscription | null = null;
+  private online = true;
+  private readonly connectivityListeners = new Set<() => void>();
 
   public configure(): void {
     if (this.configured) {
@@ -35,14 +37,26 @@ class QueryLifecycleManager {
   private configureNetworkState(): void {
     onlineManager.setEventListener((setOnline) =>
       NetInfo.addEventListener((state) => {
-        setOnline(
-          Boolean(
-            state.isConnected && state.isInternetReachable !== false,
-          ),
+        const online = Boolean(
+          state.isConnected && state.isInternetReachable !== false,
         );
+
+        setOnline(online);
+
+        if (online !== this.online) {
+          this.online = online;
+          this.connectivityListeners.forEach((listener) => listener());
+        }
       }),
     );
   }
+
+  public subscribeConnectivity = (listener: () => void): (() => void) => {
+    this.connectivityListeners.add(listener);
+    return () => this.connectivityListeners.delete(listener);
+  };
+
+  public getConnectivitySnapshot = (): boolean => this.online;
 
   private configureAppState(): void {
     this.appStateSubscription = AppState.addEventListener(
@@ -61,6 +75,7 @@ class QueryLifecycleManager {
   public cleanup(): void {
     this.appStateSubscription?.remove();
     this.appStateSubscription = null;
+    onlineManager.setEventListener(() => () => undefined);
     this.configured = false;
   }
 }

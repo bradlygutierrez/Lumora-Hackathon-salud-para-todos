@@ -42,6 +42,7 @@ export function OptionSelectField({
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={label}
+        accessibilityState={{ expanded: open }}
         onPress={() => setOpen(true)}
         className="min-h-12 justify-center rounded-xl border border-lumen-500 bg-bone-300 px-4"
       >
@@ -54,6 +55,7 @@ export function OptionSelectField({
         visible={open}
         transparent
         animationType="fade"
+        accessibilityViewIsModal
         onRequestClose={() => setOpen(false)}
       >
         <Pressable
@@ -70,7 +72,12 @@ export function OptionSelectField({
 
             <ScrollView>
               {optional ? (
-                <Pressable className="py-4" onPress={() => choose(null)}>
+                <Pressable
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: value === null }}
+                  className="min-h-12 justify-center py-4"
+                  onPress={() => choose(null)}
+                >
                   <Text className="text-base text-coal-700">Sin especificar</Text>
                 </Pressable>
               ) : null}
@@ -78,7 +85,9 @@ export function OptionSelectField({
               {options.map((option) => (
                 <Pressable
                   key={option.value}
-                  className="border-b border-bone-500 py-4"
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: value === option.value }}
+                  className="min-h-12 justify-center border-b border-bone-500 py-4"
                   onPress={() => choose(option.value)}
                 >
                   <Text className="text-base text-coal-900">

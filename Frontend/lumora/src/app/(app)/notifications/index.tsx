@@ -4,14 +4,14 @@ import { Pressable, Text, View } from 'react-native';
 import { NotificationCard } from '@/features/notifications/components/NotificationCard';
 import { useNotifications } from '@/features/notifications/hooks/useNotifications';
 import { AppHeader } from '@/shared/components/AppHeader';
-import { FullScreenState } from '@/shared/components/FullScreenState';
+import { FullScreenApiError, FullScreenState } from '@/shared/components/FullScreenState';
 import { Screen } from '@/shared/components/Screen';
 
 type NotificationsTab = 'todas' | 'no_leidas';
 
 /** "Notificaciones" -- A09. */
 export default function NotificationsRoute() {
-  const { notifications, unreadCount, isLoading, isError, refetch, markAsRead } =
+  const { notifications, unreadCount, isLoading, isError, error, refetch, markAsRead } =
     useNotifications();
   const [tab, setTab] = useState<NotificationsTab>('todas');
 
@@ -26,11 +26,9 @@ export default function NotificationsRoute() {
 
   if (isError) {
     return (
-      <FullScreenState
-        title="No pudimos cargar tus notificaciones"
-        message="Revisa tu conexión e intenta de nuevo."
-        actionLabel="Reintentar"
-        onAction={refetch}
+      <FullScreenApiError
+        error={error}
+        onRetry={refetch}
       />
     );
   }
