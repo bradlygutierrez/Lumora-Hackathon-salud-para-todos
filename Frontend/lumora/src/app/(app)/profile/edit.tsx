@@ -24,6 +24,7 @@ import { AppButton } from '@/shared/components/AppButton';
 import { FormTextField } from '@/shared/components/FormTextField';
 import { FullScreenState } from '@/shared/components/FullScreenState';
 import { Screen } from '@/shared/components/Screen';
+import { useFeedback } from '@/shared/feedback/FeedbackProvider';
 
 function errorMessage(error: unknown): string {
   return error instanceof ApiError ? error.message : 'No fue posible guardar los cambios.';
@@ -31,6 +32,7 @@ function errorMessage(error: unknown): string {
 
 export default function EditProfileRoute() {
   const queryClient = useQueryClient();
+  const { showFeedback } = useFeedback();
   const profile = useAccountProfile();
   const { activePatient } = useShellContext();
   const [previewUri, setPreviewUri] = useState<string | null>(null);
@@ -76,8 +78,10 @@ export default function EditProfileRoute() {
         ? accountApi.updateEmergencyContact(activePatient.patientId, current.id, data)
         : accountApi.createEmergencyContact(activePatient.patientId, data);
     },
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ['profile', 'emergency', activePatient?.patientId] }),
+    onSuccess: () => {
+      showFeedback('Contacto de emergencia guardado.', 'success');
+      return queryClient.invalidateQueries({ queryKey: ['profile', 'emergency', activePatient?.patientId] });
+    },
   });
 
   if (profile.isPending || !profile.data) {
