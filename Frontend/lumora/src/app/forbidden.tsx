@@ -5,6 +5,7 @@ import { FullScreenState } from '@/shared/components/FullScreenState';
 export default function ForbiddenRoute() {
   return (
     <FullScreenState
+      kind="forbidden"
       title="Acceso denegado"
       message="Tu cuenta no tiene permisos para acceder a esta sección."
       actionLabel="Volver al inicio"

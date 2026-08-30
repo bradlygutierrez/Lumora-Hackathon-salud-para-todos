@@ -6,6 +6,7 @@ import { Pressable, Text, View } from 'react-native';
 import { AuthHeader } from '@/features/auth/components/AuthHeader';
 import { PasswordField } from '@/features/auth/components/PasswordField';
 import { useLogin } from '@/features/auth/hooks/useAuth';
+import { useAuthStore } from '@/features/auth/store/auth-store';
 import {
   loginSchema,
   type LoginForm,
@@ -22,6 +23,7 @@ import { Screen } from '@/shared/components/Screen';
  * `login`. `useLogin()` decide si guardar tokens o continuar al challenge MFA.
  */
 export default function LoginRoute() {
+  const notice = useAuthStore((state) => state.notice);
   const form = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -42,6 +44,11 @@ export default function LoginRoute() {
       />
 
       <View className="gap-4">
+        {notice === 'session-expired' ? (
+          <Text accessibilityRole="alert" className="text-sm font-medium text-coal-900">
+            Tu sesión expiró. Iniciá sesión nuevamente.
+          </Text>
+        ) : null}
         <FormTextField
           control={form.control}
           name="login"

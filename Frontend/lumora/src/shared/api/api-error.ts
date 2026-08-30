@@ -164,3 +164,32 @@ export const apiErrorMapper = new ApiErrorMapper();
 export function toApiError(error: unknown): ApiError {
   return apiErrorMapper.map(error);
 }
+
+export type ApiErrorPresentation = {
+  title: string;
+  message: string;
+  kind: 'error' | 'offline' | 'forbidden' | 'not-found';
+};
+
+export function presentApiError(error: unknown): ApiErrorPresentation {
+  const apiError = error instanceof ApiError ? error : toApiError(error);
+
+  switch (apiError.code) {
+    case 'FORBIDDEN':
+      return { title: 'Acción no permitida', message: 'No tenés permiso para realizar esta acción.', kind: 'forbidden' };
+    case 'NOT_FOUND':
+      return { title: 'Información no encontrada', message: 'No encontramos la información solicitada.', kind: 'not-found' };
+    case 'CONFLICT':
+      return { title: 'No pudimos realizar la acción', message: apiError.message, kind: 'error' };
+    case 'VALIDATION':
+      return { title: 'Revisá los datos', message: 'Hay datos inválidos. Revisalos e intentá nuevamente.', kind: 'error' };
+    case 'NETWORK_ERROR':
+      return { title: 'Sin conexión', message: 'No fue posible conectarse.', kind: 'offline' };
+    case 'UNAUTHORIZED':
+      return { title: 'Sesión no válida', message: 'Iniciá sesión nuevamente.', kind: 'error' };
+    case 'SERVER_ERROR':
+      return { title: 'No pudimos completar la solicitud', message: 'Intentá nuevamente.', kind: 'error' };
+    default:
+      return { title: 'No pudimos completar la solicitud', message: 'Intentá nuevamente.', kind: 'error' };
+  }
+}

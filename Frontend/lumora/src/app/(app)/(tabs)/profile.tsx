@@ -1,4 +1,4 @@
-import { Alert, Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useMutation, useQuery } from '@tanstack/react-query';
@@ -12,8 +12,10 @@ import { useAccountProfile } from '@/features/profile/hooks/useAccountProfile';
 import { profilePresenter } from '@/features/profile/utils/profile-presenter';
 import { useShellContext } from '@/features/shell/hooks/useShellContext';
 import { AppHeader } from '@/shared/components/AppHeader';
-import { FullScreenState } from '@/shared/components/FullScreenState';
+import { AppButton } from '@/shared/components/AppButton';
+import { FullScreenApiError, FullScreenState } from '@/shared/components/FullScreenState';
 import { Screen } from '@/shared/components/Screen';
+import { confirmDestructive } from '@/shared/feedback/confirmation';
 
 export default function ProfileRoute() {
   const profile = useAccountProfile();
@@ -37,11 +39,9 @@ export default function ProfileRoute() {
   }
   if (profile.isError || !profile.data) {
     return (
-      <FullScreenState
-        title="No pudimos cargar tu perfil"
-        message="Revisa tu conexión e intenta nuevamente."
-        actionLabel="Reintentar"
-        onAction={() => void profile.refetch()}
+      <FullScreenApiError
+        error={profile.error}
+        onRetry={() => void profile.refetch()}
       />
     );
   }
@@ -110,21 +110,19 @@ export default function ProfileRoute() {
           <ActionRow label="Sesiones activas" href="/(app)/security/sessions" />
         </ProfileSection>
 
-        <Pressable
-          accessibilityRole="button"
-          disabled={logout.isPending}
+        <AppButton
+          title="Cerrar sesión"
+          variant="ghost"
+          loading={logout.isPending}
           onPress={() =>
-            Alert.alert('Cerrar sesión', '¿Deseas cerrar esta sesión?', [
-              { text: 'Cancelar', style: 'cancel' },
-              { text: 'Cerrar sesión', style: 'destructive', onPress: () => logout.mutate() },
-            ])
+            confirmDestructive({
+              title: 'Cerrar sesión',
+              message: '¿Deseas cerrar esta sesión?',
+              confirmLabel: 'Cerrar sesión',
+              onConfirm: () => logout.mutate(),
+            })
           }
-          className="rounded-full border border-coal-500/20 px-4 py-3 disabled:opacity-50"
-        >
-          <Text className="text-center text-sm font-semibold text-coal-900">
-            {logout.isPending ? 'Cerrando...' : 'Cerrar sesión'}
-          </Text>
-        </Pressable>
+        />
       </View>
     </Screen>
   );

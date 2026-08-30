@@ -40,6 +40,8 @@ export type PendingMfa = {
     MfaMethodName | null;
 };
 
+export type AuthNotice = 'session-expired' | null;
+
 /**
  * Shape del store Zustand.
  */
@@ -52,6 +54,8 @@ type AuthState = {
   pendingMfa:
     PendingMfa | null;
 
+  notice: AuthNotice;
+
   bootstrap:
     () => Promise<void>;
 
@@ -61,7 +65,7 @@ type AuthState = {
     ) => Promise<void>;
 
   clearSession:
-    () => Promise<void>;
+    (notice?: AuthNotice) => Promise<void>;
 
   setPendingMfa:
     (
@@ -132,6 +136,8 @@ export const useAuthStore =
       pendingMfa:
         null,
 
+      notice: null,
+
       /**
        * Restaura la sesión cuando inicia Lumora.
        */
@@ -189,6 +195,8 @@ export const useAuthStore =
              */
             pendingMfa:
               null,
+
+            notice: null,
           });
         },
 
@@ -197,7 +205,7 @@ export const useAuthStore =
        * produce una excepción.
        */
       clearSession:
-        async () => {
+        async (notice = null) => {
           try {
             await authSessionManager
               .clear();
@@ -211,6 +219,8 @@ export const useAuthStore =
 
               pendingMfa:
                 null,
+
+              notice,
             });
           }
         },

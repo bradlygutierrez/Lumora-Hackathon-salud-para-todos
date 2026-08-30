@@ -33,6 +33,7 @@ import {
   AppHeader,
 } from '@/shared/components/AppHeader';
 import {
+  FullScreenApiError,
   FullScreenState,
 } from '@/shared/components/FullScreenState';
 import {
@@ -134,11 +135,9 @@ export function AppointmentsListScreen() {
     query.isError
   ) {
     return (
-      <FullScreenState
-        title="No pudimos cargar tus citas"
-        message="Revisa tu conexión e intenta nuevamente."
-        actionLabel="Reintentar"
-        onAction={() => {
+      <FullScreenApiError
+        error={query.error}
+        onRetry={() => {
           void query.refetch();
         }}
       />

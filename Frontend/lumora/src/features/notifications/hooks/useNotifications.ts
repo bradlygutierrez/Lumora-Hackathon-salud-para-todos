@@ -39,6 +39,7 @@ export function useNotifications() {
     unreadCount: notifications.filter((n) => !n.leido).length,
     isLoading: isPatientLoading || query.isLoading,
     isError: status === 'error' || query.isError,
+    error: query.error,
     refetch: () => {
       void query.refetch();
     },
