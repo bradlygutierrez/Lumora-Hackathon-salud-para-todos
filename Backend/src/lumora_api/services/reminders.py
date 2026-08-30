@@ -94,8 +94,17 @@ class ReminderService:
 
     async def actualizar_recordatorio(self, id: int, data: RecordatorioUpdate) -> Recordatorio:
         rec = await self.obtener_recordatorio_por_id(id)
-        for key, value in data.model_dump(exclude_unset=True).items():
+        payload = data.model_dump(exclude_unset=True, exclude={"horarios"})
+        for key, value in payload.items():
             setattr(rec, key, value)
+
+        # "horarios" se maneja aparte porque no es un valor plano sino
+        # una lista de sub-objetos -- reemplaza TODAS las horas del
+        # recordatorio de una vez (el cascade="all, delete-orphan" de la
+        # relacion borra las que ya no vienen en la lista nueva).
+        if data.horarios is not None:
+            rec.horarios = [RecordatorioHorario(**h.model_dump()) for h in data.horarios]
+
         return await self.repo.update_recordatorio(rec)
 
     async def eliminar_recordatorio(self, id: int) -> None:
