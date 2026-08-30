@@ -20,7 +20,9 @@ describe('J12/J13 medical record navigation', () => {
     expect(structuredHistoryPathForSection(9, 17, 'recetas')).toBe(
       '/(staff)/patients/9/prescriptions?recordId=17',
     );
-    expect(structuredHistoryPathForSection(9, 17, 'diagnosticos')).toBeNull();
+    expect(structuredHistoryPathForSection(9, 17, 'diagnosticos')).toBe(
+      '/(staff)/patients/9/record/consultations?recordId=17',
+    );
   });
 
   it('routes timeline events only when there is a supported J12/J13 destination', () => {

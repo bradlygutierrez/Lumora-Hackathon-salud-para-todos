@@ -15,6 +15,9 @@ export function structuredHistoryPathForSection(
   if (section === 'recetas') {
     return `/(staff)/patients/${patientId}/prescriptions?recordId=${recordId}`;
   }
+  if (section === 'diagnosticos') {
+    return `/(staff)/patients/${patientId}/record/consultations?recordId=${recordId}`;
+  }
   const segment = segmentBySection[section];
   if (!segment) return null;
   return `/(staff)/patients/${patientId}/record/${segment}?recordId=${recordId}`;
