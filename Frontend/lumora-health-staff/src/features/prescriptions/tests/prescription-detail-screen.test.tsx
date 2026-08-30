@@ -42,6 +42,49 @@ const professional = {
   persona: { id: 8001, nombres: 'Daniel', apellidos: 'Rojas' },
 };
 
+const prescriptionResult = {
+  data: {
+    id: 'rx-1',
+    paciente_id: 101,
+    profesional_id: 101,
+    consulta_id: null,
+    estado_id: 1,
+    titulo: 'Receta de otro profesional',
+    fecha_emision: '2026-08-20T12:00:00.000Z',
+    vigencia_hasta: null,
+    observaciones: null,
+    created_at: '2026-08-20T12:00:00.000Z',
+    detalles: [],
+    profesional: professional,
+  },
+  isLoading: false,
+  isError: false,
+};
+
+const statusesResult = {
+  data: { items: [{ id: 1, nombre: 'Activa' }] },
+  isLoading: false,
+  isError: false,
+};
+
+const medicationsResult = {
+  data: [],
+  isLoading: false,
+  isError: false,
+};
+
+const emptyCatalogResult = {
+  data: { items: [] },
+  isLoading: false,
+  isError: false,
+};
+
+const mutationResult = {
+  mutateAsync: jest.fn(),
+  isPending: false,
+  error: null,
+};
+
 describe('PrescriptionDetailScreen ownership J13', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -53,41 +96,16 @@ describe('PrescriptionDetailScreen ownership J13', () => {
       isLoading: false,
     });
     mockHook.mockImplementation((name: string) => {
-      if (name === 'prescription') {
-        return {
-          data: {
-            id: 'rx-1',
-            paciente_id: 101,
-            profesional_id: 101,
-            consulta_id: null,
-            estado_id: 1,
-            titulo: 'Receta de otro profesional',
-            fecha_emision: '2026-08-20T12:00:00.000Z',
-            vigencia_hasta: null,
-            observaciones: null,
-            created_at: '2026-08-20T12:00:00.000Z',
-            detalles: [],
-            profesional: professional,
-          },
-          isLoading: false,
-          isError: false,
-        };
-      }
-      if (name === 'statuses') {
-        return { data: { items: [{ id: 1, nombre: 'Activa' }] }, isLoading: false, isError: false };
-      }
-      if (name === 'medications') {
-        return { data: [], isLoading: false, isError: false };
-      }
-      if (name === 'routes' || name === 'units') {
-        return { data: { items: [] }, isLoading: false, isError: false };
-      }
-      return { mutateAsync: jest.fn(), isPending: false, error: null };
+      if (name === 'prescription') return prescriptionResult;
+      if (name === 'statuses') return statusesResult;
+      if (name === 'medications') return medicationsResult;
+      if (name === 'routes' || name === 'units') return emptyCatalogResult;
+      return mutationResult;
     });
   });
 
-  it('keeps another professional prescription read-only in the UI', async () => {
-    const screen = await render(
+  it('keeps another professional prescription read-only in the UI', () => {
+    const screen = render(
       <PrescriptionDetailScreen patientId={101} prescriptionId="rx-1" recordId={7001} />,
     );
 
