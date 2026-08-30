@@ -18,6 +18,7 @@ import {
 } from '@/features/prescriptions/hooks/useCatalog';
 
 import type {
+  DoseStatus,
   DosisAdministradaResponse,
   HorarioMedicamentoResponse,
   TimeOfDayBucket,
@@ -77,7 +78,6 @@ export function useTodayMedicationPlan() {
   const medicationsCatalog = useMedicationsCatalog();
 
   const activeEstadoId = statusCatalog.idByName('Activa');
-  const tomadaEstadoId = doseStatusCatalog.idByName('Tomada');
 
   const activePrescriptions = (prescriptionsQuery.data ?? []).filter(
     (receta) => activeEstadoId !== undefined && receta.estado_id === activeEstadoId,
@@ -103,6 +103,7 @@ export function useTodayMedicationPlan() {
     dosis: string;
     frecuencia: string;
     medicamentoId: string;
+    instrucciones: string | null;
   };
 
   const activeHorarios: HorarioWithParent[] = horariosQueries.flatMap(
@@ -119,6 +120,7 @@ export function useTodayMedicationPlan() {
           dosis: detalle.dosis,
           frecuencia: detalle.frecuencia,
           medicamentoId: detalle.medicamento_id,
+          instrucciones: detalle.instrucciones,
         }));
     },
   );
@@ -135,12 +137,28 @@ export function useTodayMedicationPlan() {
   const items: TodayMedicationItem[] = activeHorarios.map((horario, index) => {
     const dosisLogs: DosisAdministradaResponse[] = dosisQueries[index]?.data ?? [];
 
-    const dosisHoy = dosisLogs.find(
-      (log) =>
-        tomadaEstadoId !== undefined &&
-        log.estado_dosis_id === tomadaEstadoId &&
-        isSameLocalDay(new Date(log.fecha_programada), today),
-    );
+    // Toma el registro más reciente de hoy (por fecha_registro), sin
+    // importar su estado, para que Posponer/Omitir también se reflejen
+    // visualmente y no solo Tomada.
+    const dosisHoy = dosisLogs
+      .filter((log) => isSameLocalDay(new Date(log.fecha_programada), today))
+      .sort(
+        (a, b) =>
+          new Date(b.fecha_registro).getTime() - new Date(a.fecha_registro).getTime(),
+      )[0];
+
+    const dosisHoyEstadoNombre = dosisHoy
+      ? doseStatusCatalog.nameById(dosisHoy.estado_dosis_id)
+      : undefined;
+
+    const status: DoseStatus =
+      dosisHoyEstadoNombre === 'Tomada'
+        ? 'tomada'
+        : dosisHoyEstadoNombre === 'Pospuesta'
+          ? 'pospuesta'
+          : dosisHoyEstadoNombre === 'Omitida'
+            ? 'omitida'
+            : 'pendiente';
 
     return {
       horarioId: horario.id,
@@ -150,8 +168,10 @@ export function useTodayMedicationPlan() {
       dosis: horario.dosis,
       frecuencia: horario.frecuencia,
       hora: horario.hora,
-      status: dosisHoy ? 'tomada' : 'pendiente',
+      status,
       dosisHoyId: dosisHoy?.id ?? null,
+      dosisHoyFechaProgramada: dosisHoy?.fecha_programada ?? null,
+      instrucciones: horario.instrucciones,
     };
   });
 

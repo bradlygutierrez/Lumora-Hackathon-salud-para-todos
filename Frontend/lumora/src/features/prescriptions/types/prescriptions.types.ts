@@ -124,7 +124,7 @@ export type DosisAdministradaCreate = {
 
 export type TimeOfDayBucket = 'manana' | 'tarde' | 'noche';
 
-export type DoseStatus = 'tomada' | 'pendiente';
+export type DoseStatus = 'tomada' | 'pospuesta' | 'omitida' | 'pendiente';
 
 export type TodayMedicationItem = {
   horarioId: string;
@@ -137,6 +137,14 @@ export type TodayMedicationItem = {
   status: DoseStatus;
   /** id de la dosis ya registrada hoy, si existe (para no duplicar). */
   dosisHoyId: string | null;
+  /**
+   * `fecha_programada` del registro de hoy más reciente (si existe),
+   * ej. cuando `status` es 'pospuesta' esta es la NUEVA hora elegida en
+   * el modal de Posponer -- el tablero de Recordatorios la usa para que
+   * la tarjeta reaparezca a esa hora en vez de a la hora original.
+   */
+  dosisHoyFechaProgramada: string | null;
+  instrucciones: string | null;
 };
 
 export type TodayMedicationPlan = {
