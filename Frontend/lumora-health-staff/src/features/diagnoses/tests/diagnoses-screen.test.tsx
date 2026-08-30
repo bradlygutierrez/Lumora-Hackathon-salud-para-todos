@@ -149,7 +149,8 @@ describe('DiagnosesScreen J13', () => {
       <DiagnosesScreen consultationId={3401} patientId={101} recordId={7001} />,
     );
 
-    await fireEvent.press(screen.getByLabelText('Eliminar diagnóstico 31'));
+    const deleteButton = await screen.findByLabelText('Eliminar diagnóstico 31');
+    fireEvent.press(deleteButton);
     expect(alert).toHaveBeenCalledWith(
       'Eliminar diagnóstico',
       expect.stringContaining('borrado lógico'),
