@@ -34,7 +34,7 @@ export function HomeHealthState({
       ) : (
         <View className="h-12 w-12 items-center justify-center rounded-full bg-lumen-300">
           <Ionicons
-            name={kind === 'error' ? 'cloud-offline-outline' : 'heart-outline'}
+            name={kind === 'error' ? 'alert-circle-outline' : 'heart-outline'}
             size={22}
             color="#4A86B6"
           />

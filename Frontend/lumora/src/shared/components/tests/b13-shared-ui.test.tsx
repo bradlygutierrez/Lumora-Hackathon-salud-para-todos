@@ -16,7 +16,8 @@ import { PasswordField } from '@/features/auth/components/PasswordField';
 import { AppointmentStatusBadge } from '@/features/appointments/components/AppointmentStatusBadge';
 import { AppButton } from '@/shared/components/AppButton';
 import { AppTextInput } from '@/shared/components/AppTextInput';
-import { FullScreenState } from '@/shared/components/FullScreenState';
+import { FullScreenApiError, FullScreenState } from '@/shared/components/FullScreenState';
+import { ApiError } from '@/shared/api/api-error';
 import { GlobalErrorBoundary } from '@/shared/components/GlobalErrorBoundary';
 import { RemoteState } from '@/shared/components/RemoteState';
 
@@ -40,6 +41,22 @@ describe('B13 shared accessible UI', () => {
       <FullScreenState kind="offline" title="Sin conexión" message="Revisá Internet." />,
     );
     expect(offline.getByText('Sin conexión')).toBeTruthy();
+  });
+
+  it.each([
+    ['NETWORK_ERROR', 0, true],
+    ['SERVER_ERROR', 500, true],
+    ['FORBIDDEN', 403, false],
+    ['NOT_FOUND', 404, false],
+    ['VALIDATION', 422, false],
+  ] as const)('offers retry only for safe error %s', async (code, status, showsRetry) => {
+    const view = await render(
+      <FullScreenApiError
+        error={new ApiError(code, status || null, 'internal')}
+        onRetry={jest.fn()}
+      />,
+    );
+    expect(Boolean(view.queryByLabelText('Reintentar'))).toBe(showsRetry);
   });
 
   it('exposes button disabled and busy states', async () => {
