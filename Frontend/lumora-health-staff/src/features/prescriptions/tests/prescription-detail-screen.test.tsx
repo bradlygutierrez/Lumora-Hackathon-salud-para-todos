@@ -104,8 +104,8 @@ describe('PrescriptionDetailScreen ownership J13', () => {
     });
   });
 
-  it('keeps another professional prescription read-only in the UI', () => {
-    const screen = render(
+  it('keeps another professional prescription read-only in the UI', async () => {
+    const screen = await render(
       <PrescriptionDetailScreen patientId={101} prescriptionId="rx-1" recordId={7001} />,
     );
 
