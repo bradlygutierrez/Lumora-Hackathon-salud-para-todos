@@ -1,13 +1,9 @@
-import {
-  ActivityIndicator,
-  Pressable,
-  Text,
-  View,
-} from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import {
   Ionicons,
 } from '@expo/vector-icons';
+import { SkeletonBlock } from '@/shared/components/RemoteState';
 
 type HomeHealthStateProps = {
   kind: 'loading' | 'error' | 'empty';
@@ -26,7 +22,15 @@ export function HomeHealthState({
   return (
     <View className="items-center rounded-3xl border border-coal-500/10 bg-white px-6 py-10">
       {kind === 'loading' ? (
-        <ActivityIndicator size="small" color="#4A86B6" />
+        <View
+          accessible={false}
+          importantForAccessibility="no-hide-descendants"
+          className="w-full gap-3"
+        >
+          <SkeletonBlock className="h-5 w-2/3" />
+          <SkeletonBlock className="h-4 w-full" />
+          <SkeletonBlock className="h-4 w-5/6" />
+        </View>
       ) : (
         <View className="h-12 w-12 items-center justify-center rounded-full bg-lumen-300">
           <Ionicons
@@ -48,8 +52,9 @@ export function HomeHealthState({
       {kind === 'error' && onRetry ? (
         <Pressable
           accessibilityRole="button"
+          accessibilityLabel="Reintentar carga"
           onPress={onRetry}
-          className="mt-5 rounded-full bg-[#4A86B6] px-5 py-3 active:opacity-80"
+          className="mt-5 min-h-12 justify-center rounded-full bg-[#4A86B6] px-5 py-3 active:opacity-80"
         >
           <Text className="text-sm font-semibold text-white">Reintentar</Text>
         </Pressable>
