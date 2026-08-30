@@ -81,13 +81,14 @@ describe('MedicalRecordSummaryScreen', () => {
     expect(screen.getByText('Alertas')).toBeTruthy();
   });
 
-  it('opens a clinical section without inventing a detail route', async () => {
+  it('routes diagnoses through consultation history from the clinical summary', async () => {
     const screen = await render(<MedicalRecordSummaryScreen patientId={9} />);
 
     await fireEvent.press(screen.getByLabelText('Abrir sección Diagnósticos'));
 
-    expect(screen.getByText('Hipertensión primaria')).toBeTruthy();
-    expect(mockPush).not.toHaveBeenCalled();
+    expect(mockPush).toHaveBeenCalledWith(
+      '/(staff)/patients/9/record/consultations?recordId=17',
+    );
   });
 
   it('opens J12 structured history management from the clinical summary', async () => {

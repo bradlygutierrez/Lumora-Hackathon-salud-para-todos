@@ -12,6 +12,12 @@ export function structuredHistoryPathForSection(
   recordId: number,
   section: ClinicalSectionId,
 ) {
+  if (section === 'recetas') {
+    return `/(staff)/patients/${patientId}/prescriptions?recordId=${recordId}`;
+  }
+  if (section === 'diagnosticos') {
+    return `/(staff)/patients/${patientId}/record/consultations?recordId=${recordId}`;
+  }
   const segment = segmentBySection[section];
   if (!segment) return null;
   return `/(staff)/patients/${patientId}/record/${segment}?recordId=${recordId}`;
@@ -27,6 +33,9 @@ export function structuredHistoryPathForTimelineEvent(
   }
   if (eventType === 'antecedente') {
     return `/(staff)/patients/${patientId}/record/history?recordId=${recordId}`;
+  }
+  if (eventType === 'receta') {
+    return `/(staff)/patients/${patientId}/prescriptions?recordId=${recordId}`;
   }
   return null;
 }

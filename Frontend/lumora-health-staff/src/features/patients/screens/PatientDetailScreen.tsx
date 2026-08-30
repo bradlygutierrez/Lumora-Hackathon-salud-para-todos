@@ -71,6 +71,20 @@ export function PatientDetailScreen({ patientId }: Props) {
             Expediente Médico
           </Button>
           <Button
+            accessibilityLabel="Ver recetas del paciente"
+            icon="medkit-outline"
+            onPress={() => {
+              const recordId = clinicalSummary.data?.expediente?.id;
+              const query = recordId ? `?recordId=${recordId}` : '';
+              router.push(
+                `/(staff)/patients/${patientId}/prescriptions${query}` as Href,
+              );
+            }}
+            variant="secondary"
+          >
+            Recetas y medicamentos
+          </Button>
+          <Button
             icon="people-outline"
             onPress={() => router.push(`/(staff)/patients/${patientId}/family` as Href)}
             variant="secondary"

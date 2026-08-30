@@ -15,10 +15,16 @@ export default function StructuredHistoryCreateRoute() {
     id: string | string[];
     structuredSection: string | string[];
     recordId?: string | string[];
+    diagnosisId?: string | string[];
   }>();
   const patientId = Number(first(params.id));
   const recordId = Number(first(params.recordId));
   const section = first(params.structuredSection);
+  const parsedDiagnosisId = Number(first(params.diagnosisId));
+  const diagnosisId =
+    Number.isFinite(parsedDiagnosisId) && parsedDiagnosisId > 0
+      ? parsedDiagnosisId
+      : undefined;
 
   if (!Number.isFinite(patientId) || patientId <= 0 || !Number.isFinite(recordId) || recordId <= 0) {
     return (
@@ -29,7 +35,15 @@ export default function StructuredHistoryCreateRoute() {
     );
   }
 
-  if (section === 'conditions') return <ConditionFormScreen patientId={patientId} recordId={recordId} />;
+  if (section === 'conditions') {
+    return (
+      <ConditionFormScreen
+        diagnosisId={diagnosisId}
+        patientId={patientId}
+        recordId={recordId}
+      />
+    );
+  }
   if (section === 'allergies') return <AllergyFormScreen patientId={patientId} recordId={recordId} />;
   if (section === 'disabilities') return <DisabilityFormScreen patientId={patientId} recordId={recordId} />;
   if (section === 'history') return <MedicalHistoryFormScreen patientId={patientId} recordId={recordId} />;

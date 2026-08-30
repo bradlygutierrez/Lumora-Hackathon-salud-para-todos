@@ -76,8 +76,10 @@ async def delete_medicamento(medicamento_id: str, db: SessionDep):
     status_code=status.HTTP_201_CREATED,
     dependencies=[RequireClinicalStaff],
 )
-async def create_receta(schema: RecetaCreate, db: SessionDep):
-    return await service(db).create_receta(schema)
+async def create_receta(
+    schema: RecetaCreate, db: SessionDep, current_user: CurrentUser
+):
+    return await service(db).create_receta(current_user, schema)
 
 
 @router.get("/{receta_id}", response_model=RecetaResponse)
@@ -90,8 +92,13 @@ async def get_receta(receta_id: str, db: SessionDep, current_user: CurrentUser):
     response_model=RecetaResponse,
     dependencies=[RequireClinicalStaff],
 )
-async def update_receta(receta_id: str, schema: RecetaUpdate, db: SessionDep):
-    return await service(db).update_receta(receta_id, schema)
+async def update_receta(
+    receta_id: str,
+    schema: RecetaUpdate,
+    db: SessionDep,
+    current_user: CurrentUser,
+):
+    return await service(db).update_receta(current_user, receta_id, schema)
 
 
 @router.get("/patient/{paciente_id}", response_model=List[RecetaResponse])
@@ -106,8 +113,13 @@ async def get_recetas_by_patient(paciente_id: int, db: SessionDep, current_user:
     status_code=status.HTTP_201_CREATED,
     dependencies=[RequireClinicalStaff],
 )
-async def create_detalle_receta(receta_id: str, schema: DetalleRecetaCreate, db: SessionDep):
-    return await service(db).create_detalle(receta_id, schema)
+async def create_detalle_receta(
+    receta_id: str,
+    schema: DetalleRecetaCreate,
+    db: SessionDep,
+    current_user: CurrentUser,
+):
+    return await service(db).create_detalle(current_user, receta_id, schema)
 
 
 @router.get("/{receta_id}/detalles", response_model=List[DetalleRecetaResponse])
@@ -125,8 +137,11 @@ async def update_detalle_receta(
     detalle_id: str,
     schema: DetalleRecetaUpdate,
     db: SessionDep,
+    current_user: CurrentUser,
 ):
-    return await service(db).update_detalle(receta_id, detalle_id, schema)
+    return await service(db).update_detalle(
+        current_user, receta_id, detalle_id, schema
+    )
 
 
 @router.delete(
@@ -134,5 +149,10 @@ async def update_detalle_receta(
     status_code=status.HTTP_204_NO_CONTENT,
     dependencies=[RequireClinicalStaff],
 )
-async def delete_detalle_receta(receta_id: str, detalle_id: str, db: SessionDep):
-    await service(db).delete_detalle(receta_id, detalle_id)
+async def delete_detalle_receta(
+    receta_id: str,
+    detalle_id: str,
+    db: SessionDep,
+    current_user: CurrentUser,
+):
+    await service(db).delete_detalle(current_user, receta_id, detalle_id)
