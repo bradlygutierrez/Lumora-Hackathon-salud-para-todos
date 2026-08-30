@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useMemo, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 
 import { useAuthSession } from '@/src/features/auth/hooks/use-auth-session';
@@ -32,7 +32,6 @@ import {
   type PrescriptionHeaderForm,
 } from '../schemas/prescription.schemas';
 import type {
-  PrescriptionDetail,
   PrescriptionDetailCreate,
   PrescriptionUpdate,
 } from '../types/prescription.types';
@@ -102,6 +101,7 @@ export function PrescriptionDetailScreen({
   const createDetail = useCreatePrescriptionDetail(patientId, prescriptionId, recordId);
   const deleteDetail = useDeletePrescriptionDetail(patientId, prescriptionId, recordId);
   const [editingDetailId, setEditingDetailId] = useState<string | 'new' | null>(null);
+  const [pendingDeleteDetailId, setPendingDeleteDetailId] = useState<string | null>(null);
   const updateDetail = useUpdatePrescriptionDetail(
     patientId,
     prescriptionId,
@@ -257,21 +257,14 @@ export function PrescriptionDetailScreen({
     }
   });
 
-  const confirmDelete = (detail: PrescriptionDetail) => {
-    Alert.alert(
-      'Eliminar medicamento de la receta',
-      'FastAPI eliminará este detalle de receta. La receta principal se conserva.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar',
-          style: 'destructive',
-          onPress: () => {
-            void deleteDetail.mutateAsync(detail.id);
-          },
-        },
-      ],
-    );
+  const deleteSelectedDetail = async () => {
+    if (!pendingDeleteDetailId) return;
+    try {
+      await deleteDetail.mutateAsync(pendingDeleteDetailId);
+      setPendingDeleteDetailId(null);
+    } catch {
+      // La mutación conserva el error para mostrarlo.
+    }
   };
 
   const serverError = errorMessage(
@@ -443,11 +436,39 @@ export function PrescriptionDetailScreen({
                     <Button
                       accessibilityLabel={`Eliminar medicamento ${detail.id}`}
                       disabled={detailBusy}
-                      onPress={() => confirmDelete(detail)}
+                      onPress={() => setPendingDeleteDetailId(detail.id)}
                       variant="ghost"
                     >
                       Eliminar
                     </Button>
+                  </View>
+                ) : null}
+                {canEdit && pendingDeleteDetailId === detail.id ? (
+                  <View accessibilityRole="alert" style={styles.deleteConfirmation}>
+                    <Text style={styles.deleteTitle}>Eliminar medicamento de la receta</Text>
+                    <Text style={styles.deleteMessage}>
+                      FastAPI eliminará este detalle de receta. La receta principal se conserva.
+                    </Text>
+                    <View style={styles.deleteActions}>
+                      <Button
+                        disabled={deleteDetail.isPending}
+                        onPress={() => setPendingDeleteDetailId(null)}
+                        variant="ghost"
+                      >
+                        Cancelar
+                      </Button>
+                      <Button
+                        accessibilityLabel={`Confirmar eliminación de medicamento ${detail.id}`}
+                        disabled={deleteDetail.isPending}
+                        loading={deleteDetail.isPending}
+                        onPress={() => {
+                          void deleteSelectedDetail();
+                        }}
+                        variant="danger"
+                      >
+                        Eliminar
+                      </Button>
+                    </View>
                   </View>
                 ) : null}
               </View>
@@ -587,6 +608,22 @@ const styles = StyleSheet.create({
   detailCard: { backgroundColor: theme.color.surfaceMuted, borderRadius: theme.radius.md, gap: 5, padding: theme.spacing.md },
   detailTitle: { color: theme.color.text, fontSize: 15, fontWeight: '900' },
   actions: { gap: theme.spacing.sm },
+  deleteConfirmation: {
+    backgroundColor: theme.color.dangerSoft,
+    borderColor: theme.color.danger,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    gap: theme.spacing.sm,
+    padding: theme.spacing.md,
+  },
+  deleteTitle: { color: theme.color.danger, fontSize: 14, fontWeight: '900' },
+  deleteMessage: { color: theme.color.text, fontSize: 13, lineHeight: 19 },
+  deleteActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: theme.spacing.sm,
+    justifyContent: 'flex-end',
+  },
   errorBox: { backgroundColor: '#FFD7D2', borderRadius: theme.radius.md, padding: theme.spacing.md },
   errorText: { color: theme.color.danger, fontSize: 13, fontWeight: '700' },
 });

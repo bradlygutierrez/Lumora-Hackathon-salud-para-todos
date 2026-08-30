@@ -1,6 +1,4 @@
 import { fireEvent, render } from '@testing-library/react-native';
-import { Alert } from 'react-native';
-
 import { DiagnosesScreen } from '../screens/DiagnosesScreen';
 
 const mockUseAuthSession = jest.fn();
@@ -144,22 +142,21 @@ describe('DiagnosesScreen J13', () => {
   });
 
   it('requires confirmation before soft deleting a diagnosis', async () => {
-    const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
     const screen = await render(
       <DiagnosesScreen consultationId={3401} patientId={101} recordId={7001} />,
     );
 
     const deleteButton = await screen.findByLabelText('Eliminar diagnóstico 31');
     fireEvent.press(deleteButton);
-    expect(alert).toHaveBeenCalledWith(
-      'Eliminar diagnóstico',
-      expect.stringContaining('borrado lógico'),
-      expect.any(Array),
+
+    expect(screen.getByText('Eliminar diagnóstico')).toBeTruthy();
+    expect(screen.getByText(/borrado lógico/)).toBeTruthy();
+    expect(mockDelete).not.toHaveBeenCalled();
+
+    await fireEvent.press(
+      screen.getByLabelText('Confirmar eliminación de diagnóstico 31'),
     );
 
-    const actions = alert.mock.calls[0][2] ?? [];
-    actions.find((action) => action.style === 'destructive')?.onPress?.();
     expect(mockDelete).toHaveBeenCalledWith(31);
-    alert.mockRestore();
   });
 });

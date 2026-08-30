@@ -1,10 +1,11 @@
-import { render } from '@testing-library/react-native';
+import { fireEvent, render } from '@testing-library/react-native';
 
 import { PrescriptionDetailScreen } from '../screens/PrescriptionDetailScreen';
 
 const mockUseAuthSession = jest.fn();
 const mockUseCurrentProfessional = jest.fn();
 const mockHook = jest.fn();
+const mockDeleteDetail = jest.fn();
 
 jest.mock('@/src/features/auth/hooks/use-auth-session', () => ({
   useAuthSession: () => mockUseAuthSession(),
@@ -61,6 +62,29 @@ const prescriptionResult = {
   isError: false,
 };
 
+const ownedPrescriptionResult = {
+  data: {
+    ...prescriptionResult.data,
+    titulo: 'Receta propia',
+    detalles: [
+      {
+        id: 'detail-1',
+        receta_id: 'rx-1',
+        medicamento_id: 'med-1',
+        unidad_medida_id: 1,
+        via_administracion_id: 1,
+        dosis: '500 mg',
+        frecuencia: 'Cada 8 horas',
+        duracion_dias: 5,
+        cantidad_total: 15,
+        instrucciones: null,
+      },
+    ],
+  },
+  isLoading: false,
+  isError: false,
+};
+
 const statusesResult = {
   data: { items: [{ id: 1, nombre: 'Activa' }] },
   isLoading: false,
@@ -68,19 +92,25 @@ const statusesResult = {
 };
 
 const medicationsResult = {
-  data: [],
+  data: [{ id: 'med-1', nombre: 'Paracetamol', activo: true }],
   isLoading: false,
   isError: false,
 };
 
 const emptyCatalogResult = {
-  data: { items: [] },
+  data: { items: [{ id: 1, nombre: 'Unidad de prueba', activo: true }] },
   isLoading: false,
   isError: false,
 };
 
 const mutationResult = {
   mutateAsync: jest.fn(),
+  isPending: false,
+  error: null,
+};
+
+const deleteDetailMutationResult = {
+  mutateAsync: mockDeleteDetail,
   isPending: false,
   error: null,
 };
@@ -100,6 +130,7 @@ describe('PrescriptionDetailScreen ownership J13', () => {
       if (name === 'statuses') return statusesResult;
       if (name === 'medications') return medicationsResult;
       if (name === 'routes' || name === 'units') return emptyCatalogResult;
+      if (name === 'deleteDetail') return deleteDetailMutationResult;
       return mutationResult;
     });
   });
@@ -116,5 +147,35 @@ describe('PrescriptionDetailScreen ownership J13', () => {
     ).toBeTruthy();
     expect(screen.queryByText('Guardar receta')).toBeNull();
     expect(screen.queryByText('Agregar')).toBeNull();
+  });
+
+  it('confirms medication deletion before mutating the prescription', async () => {
+    mockUseCurrentProfessional.mockReturnValue({
+      data: professional,
+      isLoading: false,
+    });
+    mockHook.mockImplementation((name: string) => {
+      if (name === 'prescription') return ownedPrescriptionResult;
+      if (name === 'statuses') return statusesResult;
+      if (name === 'medications') return medicationsResult;
+      if (name === 'routes' || name === 'units') return emptyCatalogResult;
+      if (name === 'deleteDetail') return deleteDetailMutationResult;
+      return mutationResult;
+    });
+
+    const screen = await render(
+      <PrescriptionDetailScreen patientId={101} prescriptionId="rx-1" recordId={7001} />,
+    );
+
+    fireEvent.press(screen.getByLabelText('Eliminar medicamento detail-1'));
+
+    expect(screen.getByText('Eliminar medicamento de la receta')).toBeTruthy();
+    expect(mockDeleteDetail).not.toHaveBeenCalled();
+
+    await fireEvent.press(
+      screen.getByLabelText('Confirmar eliminación de medicamento detail-1'),
+    );
+
+    expect(mockDeleteDetail).toHaveBeenCalledWith('detail-1');
   });
 });

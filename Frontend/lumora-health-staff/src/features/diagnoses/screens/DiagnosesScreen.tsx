@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { type Href, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useAuthSession } from '@/src/features/auth/hooks/use-auth-session';
 import { ChoiceField } from '@/src/features/patients/components/ChoiceField';
@@ -68,6 +68,7 @@ export function DiagnosesScreen({
   const allowed = permissions.has('clinica:manage');
   const [offset, setOffset] = useState(0);
   const [editing, setEditing] = useState<Diagnosis | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<Diagnosis | null>(null);
   const diagnoses = useDiagnoses(
     patientId,
     recordId,
@@ -168,21 +169,14 @@ export function DiagnosesScreen({
     }
   });
 
-  const confirmDelete = (diagnosis: Diagnosis) => {
-    Alert.alert(
-      'Eliminar diagnóstico',
-      'El backend realizará un borrado lógico. Esta acción no elimina físicamente el registro clínico.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar',
-          style: 'destructive',
-          onPress: () => {
-            void deletion.mutateAsync(diagnosis.id);
-          },
-        },
-      ],
-    );
+  const deleteSelectedDiagnosis = async () => {
+    if (!pendingDelete) return;
+    try {
+      await deletion.mutateAsync(pendingDelete.id);
+      setPendingDelete(null);
+    } catch {
+      // React Query conserva el error para renderizarlo debajo del formulario.
+    }
   };
 
   const serverError = diagnosisError(mutation.error ?? deletion.error);
@@ -254,12 +248,40 @@ export function DiagnosesScreen({
                 <Button
                   accessibilityLabel={`Eliminar diagnóstico ${diagnosis.id}`}
                   disabled={deletion.isPending}
-                  onPress={() => confirmDelete(diagnosis)}
+                  onPress={() => setPendingDelete(diagnosis)}
                   variant="ghost"
                 >
                   Eliminar
                 </Button>
               </View>
+              {pendingDelete?.id === diagnosis.id ? (
+                <View accessibilityRole="alert" style={styles.deleteConfirmation}>
+                  <Text style={styles.deleteTitle}>Eliminar diagnóstico</Text>
+                  <Text style={styles.deleteMessage}>
+                    El backend realizará un borrado lógico. Esta acción no elimina físicamente el registro clínico.
+                  </Text>
+                  <View style={styles.deleteActions}>
+                    <Button
+                      disabled={deletion.isPending}
+                      onPress={() => setPendingDelete(null)}
+                      variant="ghost"
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      accessibilityLabel={`Confirmar eliminación de diagnóstico ${diagnosis.id}`}
+                      disabled={deletion.isPending}
+                      loading={deletion.isPending}
+                      onPress={() => {
+                        void deleteSelectedDiagnosis();
+                      }}
+                      variant="danger"
+                    >
+                      Eliminar
+                    </Button>
+                  </View>
+                </View>
+              ) : null}
             </View>
           ))}
           {page && page.total > PAGE_SIZE ? (
@@ -421,6 +443,22 @@ const styles = StyleSheet.create({
   meta: { color: theme.color.subtleText, fontSize: 11 },
   description: { color: theme.color.text, fontSize: 14, lineHeight: 21 },
   actions: { gap: theme.spacing.sm },
+  deleteConfirmation: {
+    backgroundColor: theme.color.dangerSoft,
+    borderColor: theme.color.danger,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    gap: theme.spacing.sm,
+    padding: theme.spacing.md,
+  },
+  deleteTitle: { color: theme.color.danger, fontSize: 14, fontWeight: '900' },
+  deleteMessage: { color: theme.color.text, fontSize: 13, lineHeight: 19 },
+  deleteActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: theme.spacing.sm,
+    justifyContent: 'flex-end',
+  },
   pagination: {
     alignItems: 'center',
     flexDirection: 'row',
