@@ -1,4 +1,4 @@
-import { fireEvent, render } from '@testing-library/react-native';
+import { act, fireEvent, render } from '@testing-library/react-native';
 
 import { PrescriptionDetailScreen } from '../screens/PrescriptionDetailScreen';
 
@@ -167,14 +167,18 @@ describe('PrescriptionDetailScreen ownership J13', () => {
       <PrescriptionDetailScreen patientId={101} prescriptionId="rx-1" recordId={7001} />,
     );
 
-    fireEvent.press(screen.getByLabelText('Eliminar medicamento detail-1'));
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText('Eliminar medicamento detail-1'));
+    });
 
     expect(screen.getByText('Eliminar medicamento de la receta')).toBeTruthy();
     expect(mockDeleteDetail).not.toHaveBeenCalled();
 
-    await fireEvent.press(
-      screen.getByLabelText('Confirmar eliminación de medicamento detail-1'),
-    );
+    await act(async () => {
+      fireEvent.press(
+        screen.getByLabelText('Confirmar eliminación de medicamento detail-1'),
+      );
+    });
 
     expect(mockDeleteDetail).toHaveBeenCalledWith('detail-1');
   });

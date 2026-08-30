@@ -1,4 +1,4 @@
-import { fireEvent, render } from '@testing-library/react-native';
+import { act, fireEvent, render } from '@testing-library/react-native';
 import { DiagnosesScreen } from '../screens/DiagnosesScreen';
 
 const mockUseAuthSession = jest.fn();
@@ -147,15 +147,19 @@ describe('DiagnosesScreen J13', () => {
     );
 
     const deleteButton = await screen.findByLabelText('Eliminar diagnóstico 31');
-    fireEvent.press(deleteButton);
+    await act(async () => {
+      fireEvent.press(deleteButton);
+    });
 
     expect(screen.getByText('Eliminar diagnóstico')).toBeTruthy();
     expect(screen.getByText(/borrado lógico/)).toBeTruthy();
     expect(mockDelete).not.toHaveBeenCalled();
 
-    await fireEvent.press(
-      screen.getByLabelText('Confirmar eliminación de diagnóstico 31'),
-    );
+    await act(async () => {
+      fireEvent.press(
+        screen.getByLabelText('Confirmar eliminación de diagnóstico 31'),
+      );
+    });
 
     expect(mockDelete).toHaveBeenCalledWith(31);
   });
