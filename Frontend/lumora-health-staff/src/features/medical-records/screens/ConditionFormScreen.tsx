@@ -44,10 +44,12 @@ export function ConditionFormScreen({
   patientId,
   recordId,
   conditionId,
+  diagnosisId,
 }: {
   patientId: number;
   recordId: number;
   conditionId?: number;
+  diagnosisId?: number;
 }) {
   const router = useRouter();
   const { permissions } = useAuthSession();
@@ -132,6 +134,7 @@ export function ConditionFormScreen({
           nombre: values.nombre,
           descripcion: nullable(values.descripcion),
           ...(values.fecha_inicio ? { fecha_inicio: values.fecha_inicio } : {}),
+          ...(diagnosisId ? { diagnostico_id: diagnosisId } : {}),
           motivo_historial: nullable(values.motivo_historial),
           activo: values.activo,
         };
@@ -277,6 +280,13 @@ export function ConditionFormScreen({
           />
         ) : null}
 
+        {!isEditing && diagnosisId ? (
+          <View style={styles.notice}>
+            <Text style={styles.noticeText}>
+              La nueva condición quedará vinculada al diagnóstico #{diagnosisId}. FastAPI validará que el diagnóstico pertenezca a este expediente.
+            </Text>
+          </View>
+        ) : null}
         {isEditing && detail.data?.diagnostico_id ? (
           <View style={styles.notice}>
             <Text style={styles.noticeText}>

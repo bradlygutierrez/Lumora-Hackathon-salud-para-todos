@@ -124,6 +124,16 @@ export function ConsultationDetailScreen({ patientId, consultationId }: { patien
         <View style={styles.card}>
           {detailRows.map(([label, value]) => value ? <View key={label} style={styles.detailRow}><Text style={styles.label}>{label}</Text><Text style={styles.value}>{value}</Text></View> : null)}
           <Text style={[styles.status, item.activo ? styles.active : styles.inactive]}>{item.activo ? 'Consulta activa' : 'Consulta inactiva'}</Text>
+          <Button
+            onPress={() =>
+              router.push(
+                `/(staff)/patients/${patientId}/record/consultations/${item.id}/diagnoses?recordId=${item.expediente_id}` as Href,
+              )
+            }
+            variant="secondary"
+          >
+            Diagnósticos
+          </Button>
           <Button onPress={() => router.push(`/(staff)/patients/${patientId}/record/consultations/${item.id}/edit?recordId=${item.expediente_id}` as Href)} variant="secondary">Editar consulta</Button>
         </View>
 
