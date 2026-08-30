@@ -1,6 +1,6 @@
 import { RemoteState, type RemoteStateKind } from '@/shared/components/RemoteState';
 import { Screen } from '@/shared/components/Screen';
-import { presentApiError } from '@/shared/api/api-error';
+import { presentApiError, toApiError } from '@/shared/api/api-error';
 
 type FullScreenStateProps = {
   title: string;
@@ -36,19 +36,22 @@ export function FullScreenState({
 export function FullScreenApiError({
   error,
   onRetry,
+  allowRetry = false,
 }: {
   error: unknown;
   onRetry?: () => void;
+  allowRetry?: boolean;
 }) {
   const presentation = presentApiError(error);
+  const canRetry = Boolean(onRetry && (toApiError(error).isRetryable() || allowRetry));
 
   return (
     <FullScreenState
       kind={presentation.kind}
       title={presentation.title}
       message={presentation.message}
-      actionLabel={onRetry ? 'Reintentar' : undefined}
-      onAction={onRetry}
+      actionLabel={canRetry ? 'Reintentar' : undefined}
+      onAction={canRetry ? onRetry : undefined}
     />
   );
 }

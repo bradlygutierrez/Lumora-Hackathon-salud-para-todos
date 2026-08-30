@@ -60,6 +60,8 @@ import {
 import {
   SurfaceCard,
 } from '@/shared/components/SurfaceCard';
+import { presentApiError, toApiError } from '@/shared/api/api-error';
+import { RemoteState } from '@/shared/components/RemoteState';
 
 type HealthSection = 'summary' | 'conditions';
 
@@ -100,17 +102,20 @@ export default function HealthRoute() {
           <TabPill
             label="Resumen"
             active={section === 'summary'}
+            role="tab"
             onPress={() => setSection('summary')}
           />
 
           <TabPill
             label="Indicadores"
+            role="button"
             onPress={() => router.push('/(app)/health-indicators')}
           />
 
           <TabPill
             label="Condiciones"
             active={section === 'conditions'}
+            role="tab"
             onPress={() => setSection('conditions')}
           />
         </View>
@@ -128,14 +133,7 @@ export default function HealthRoute() {
             message="Estamos consultando tus indicadores y antecedentes activos."
           />
         ) : dashboard.isError || !dashboard.data ? (
-          <HomeHealthState
-            kind="error"
-            title="No pudimos cargar Mi Salud"
-            message="Revisa tu conexión e intenta nuevamente."
-            onRetry={() => {
-              void dashboard.refetch();
-            }}
-          />
+          <HealthErrorState error={dashboard.error} onRetry={() => void dashboard.refetch()} />
         ) : section === 'conditions' ? (
           <ConditionsSection
             conditions={dashboard.data.healthSummary.active_conditions}
@@ -145,6 +143,21 @@ export default function HealthRoute() {
         )}
       </View>
     </Screen>
+  );
+}
+
+function HealthErrorState({ error, onRetry }: { error: unknown; onRetry: () => void }) {
+  const presentation = presentApiError(error);
+  const canRetry = toApiError(error).isRetryable();
+
+  return (
+    <RemoteState
+      kind={presentation.kind}
+      title={presentation.title}
+      message={presentation.message}
+      actionLabel={canRetry ? 'Reintentar' : undefined}
+      onAction={canRetry ? onRetry : undefined}
+    />
   );
 }
 
@@ -190,7 +203,9 @@ function SummarySection({
       {alerts.length > 0 ? (
         <Pressable
           accessibilityRole="button"
+          accessibilityLabel="Ver todas las alertas de salud"
           onPress={() => router.push('/(app)/health-alerts')}
+          className="min-h-12 justify-center"
         >
           <Text className="text-center text-sm font-semibold text-[#4A86B6]">
             Ver todas las alertas de salud
@@ -204,8 +219,9 @@ function SummarySection({
 
           <Pressable
             accessibilityRole="button"
+            accessibilityLabel="Registrar indicador"
             onPress={() => router.push('/(app)/health-indicators')}
-            className="h-8 w-8 items-center justify-center rounded-full bg-[#E7F2F7]"
+            className="h-12 w-12 items-center justify-center rounded-full bg-[#E7F2F7]"
           >
             <Ionicons name="add" size={18} color="#4A86B6" />
           </Pressable>
@@ -235,8 +251,9 @@ function SummarySection({
 
         <Pressable
           accessibilityRole="button"
+          accessibilityLabel="Ver histórico completo"
           onPress={() => router.push('/(app)/health-indicators')}
-          className="mt-5"
+          className="mt-5 min-h-12 justify-center"
         >
           <Text className="text-center text-sm font-semibold text-[#4A86B6]">
             Ver histórico completo
@@ -321,17 +338,20 @@ function ConditionsSection({
 function TabPill({
   label,
   active = false,
+  role,
   onPress,
 }: {
   label: string;
   active?: boolean;
+  role: 'tab' | 'button';
   onPress: () => void;
 }) {
   return (
     <Pressable
-      accessibilityRole="button"
+      accessibilityRole={role}
+      accessibilityState={role === 'tab' ? { selected: active } : undefined}
       onPress={onPress}
-      className={`rounded-full px-4 py-2 active:opacity-80 ${
+      className={`min-h-12 justify-center rounded-full px-4 py-2 active:opacity-80 ${
         active ? 'bg-[#7CADDC]' : 'bg-[#EEF3F6]'
       }`}
     >
