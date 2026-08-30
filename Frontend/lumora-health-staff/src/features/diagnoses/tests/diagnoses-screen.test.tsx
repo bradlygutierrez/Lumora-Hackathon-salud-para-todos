@@ -151,14 +151,15 @@ describe('DiagnosesScreen J13', () => {
       fireEvent.press(deleteButton);
     });
 
-    expect(screen.getByText('Eliminar diagnóstico')).toBeTruthy();
-    expect(screen.getByText(/borrado lógico/)).toBeTruthy();
+    expect(await screen.findByText('Eliminar diagnóstico')).toBeTruthy();
+    expect(await screen.findByText(/borrado lógico/)).toBeTruthy();
     expect(mockDelete).not.toHaveBeenCalled();
 
+    const confirmDeleteButton = await screen.findByLabelText(
+      'Confirmar eliminación de diagnóstico 31',
+    );
     await act(async () => {
-      fireEvent.press(
-        screen.getByLabelText('Confirmar eliminación de diagnóstico 31'),
-      );
+      fireEvent.press(confirmDeleteButton);
     });
 
     expect(mockDelete).toHaveBeenCalledWith(31);
