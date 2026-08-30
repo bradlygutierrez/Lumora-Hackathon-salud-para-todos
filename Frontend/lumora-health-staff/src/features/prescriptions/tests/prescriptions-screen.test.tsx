@@ -17,6 +17,7 @@ jest.mock('../hooks/use-prescriptions', () => ({
   usePrescriptionStatuses: (...args: unknown[]) =>
     mockUsePrescriptionStatuses(...args),
 }));
+jest.mock('@expo/vector-icons', () => ({ Ionicons: () => null }));
 jest.mock('expo-router', () => ({
   useRouter: () => ({ push: mockPush, back: mockBack }),
 }));

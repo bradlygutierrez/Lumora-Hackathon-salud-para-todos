@@ -127,6 +127,8 @@ export function PrescriptionCreateScreen({
       />
     );
   }
+
+  const currentProfessional = professional.data;
   if (statuses.isError || medications.isError || routes.isError || units.isError) {
     return (
       <ErrorState
@@ -149,7 +151,7 @@ export function PrescriptionCreateScreen({
   const consultationChoices =
     summary.data?.consultas
       .filter(
-        (item) => item.consulta.profesional_id === professional.data.id,
+        (item) => item.consulta.profesional_id === currentProfessional.id,
       )
       .map((item) => ({
         id: item.consulta.id,
@@ -160,7 +162,7 @@ export function PrescriptionCreateScreen({
   const submit = handleSubmit(async (values) => {
     const payload: PrescriptionCreate = {
       paciente_id: patientId,
-      profesional_id: professional.data.id,
+      profesional_id: currentProfessional.id,
       estado_id: values.estado_id,
       consulta_id: values.consulta_id ?? null,
       titulo: nullable(values.titulo),

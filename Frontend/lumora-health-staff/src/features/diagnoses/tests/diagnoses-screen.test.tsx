@@ -25,6 +25,7 @@ jest.mock('../hooks/use-diagnoses', () => ({
   useUpdateDiagnosis: (...args: unknown[]) => mockUseUpdateDiagnosis(...args),
   useDeleteDiagnosis: (...args: unknown[]) => mockUseDeleteDiagnosis(...args),
 }));
+jest.mock('@expo/vector-icons', () => ({ Ionicons: () => null }));
 jest.mock('expo-router', () => ({
   useRouter: () => ({ push: mockPush, back: mockBack }),
 }));

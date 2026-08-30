@@ -4,7 +4,7 @@ import { PrescriptionDetailScreen } from '../screens/PrescriptionDetailScreen';
 
 const mockUseAuthSession = jest.fn();
 const mockUseCurrentProfessional = jest.fn();
-const hook = jest.fn();
+const mockHook = jest.fn();
 
 jest.mock('@/src/features/auth/hooks/use-auth-session', () => ({
   useAuthSession: () => mockUseAuthSession(),
@@ -13,16 +13,17 @@ jest.mock('@/src/features/profile/hooks/use-professionals', () => ({
   useCurrentProfessional: () => mockUseCurrentProfessional(),
 }));
 jest.mock('../hooks/use-prescriptions', () => ({
-  usePrescription: (...args: unknown[]) => hook('prescription', ...args),
-  usePrescriptionStatuses: (...args: unknown[]) => hook('statuses', ...args),
-  usePrescriptionMedications: (...args: unknown[]) => hook('medications', ...args),
-  useAdministrationRoutes: (...args: unknown[]) => hook('routes', ...args),
-  useMeasurementUnits: (...args: unknown[]) => hook('units', ...args),
-  useUpdatePrescription: (...args: unknown[]) => hook('updatePrescription', ...args),
-  useCreatePrescriptionDetail: (...args: unknown[]) => hook('createDetail', ...args),
-  useDeletePrescriptionDetail: (...args: unknown[]) => hook('deleteDetail', ...args),
-  useUpdatePrescriptionDetail: (...args: unknown[]) => hook('updateDetail', ...args),
+  usePrescription: (...args: unknown[]) => mockHook('prescription', ...args),
+  usePrescriptionStatuses: (...args: unknown[]) => mockHook('statuses', ...args),
+  usePrescriptionMedications: (...args: unknown[]) => mockHook('medications', ...args),
+  useAdministrationRoutes: (...args: unknown[]) => mockHook('routes', ...args),
+  useMeasurementUnits: (...args: unknown[]) => mockHook('units', ...args),
+  useUpdatePrescription: (...args: unknown[]) => mockHook('updatePrescription', ...args),
+  useCreatePrescriptionDetail: (...args: unknown[]) => mockHook('createDetail', ...args),
+  useDeletePrescriptionDetail: (...args: unknown[]) => mockHook('deleteDetail', ...args),
+  useUpdatePrescriptionDetail: (...args: unknown[]) => mockHook('updateDetail', ...args),
 }));
+jest.mock('@expo/vector-icons', () => ({ Ionicons: () => null }));
 jest.mock('expo-router', () => ({
   useRouter: () => ({ back: jest.fn() }),
 }));
@@ -51,7 +52,7 @@ describe('PrescriptionDetailScreen ownership J13', () => {
       data: { ...professional, id: 202 },
       isLoading: false,
     });
-    hook.mockImplementation((name: string) => {
+    mockHook.mockImplementation((name: string) => {
       if (name === 'prescription') {
         return {
           data: {
