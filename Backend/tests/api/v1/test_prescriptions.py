@@ -1,8 +1,19 @@
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import select
 
 from lumora_api.core.security import hash_password
-from lumora_api.models import Paciente, Permiso, Persona, ProfesionalSalud, Rol, Usuario
+from lumora_api.models import (
+    ConsultaMedica,
+    EstadoExpediente,
+    Expediente,
+    Paciente,
+    Permiso,
+    Persona,
+    ProfesionalSalud,
+    Rol,
+    Usuario,
+)
 
 
 async def _staff_login(client: AsyncClient, session_factory) -> str:
@@ -25,10 +36,103 @@ async def _staff_login(client: AsyncClient, session_factory) -> str:
     return login.json()["access_token"]
 
 
+async def _staff_login_with_professional(
+    client: AsyncClient,
+    session_factory,
+    *,
+    username: str,
+    email: str,
+    nombres: str = "Doc",
+    apellidos: str = "Profesional",
+    especialidad: str = "Medicina general",
+    numero_licencia: str,
+) -> tuple[str, int]:
+    async with session_factory() as session:
+        permission = await session.scalar(
+            select(Permiso).where(Permiso.nombre == "clinica:manage")
+        )
+        if permission is None:
+            permission = Permiso(nombre="clinica:manage")
+            session.add(permission)
+            await session.flush()
+        role = Rol(nombre=f"Staff-{username}", permisos=[permission])
+        person = Persona(nombres=nombres, apellidos=apellidos)
+        user = Usuario(
+            persona=person,
+            email=email,
+            username=username,
+            password_hash=hash_password("safe-password"),
+            roles=[role],
+        )
+        professional = ProfesionalSalud(
+            persona=person,
+            especialidad=especialidad,
+            numero_licencia=numero_licencia,
+        )
+        session.add_all([user, professional])
+        await session.flush()
+        professional_id = professional.id
+        await session.commit()
+
+    login = await client.post(
+        "/api/v1/auth/login",
+        json={"login": username, "password": "safe-password"},
+    )
+    assert login.status_code == 200
+    return login.json()["access_token"], professional_id
+
+
+async def _create_patient(session_factory, suffix: str) -> int:
+    async with session_factory() as session:
+        person = Persona(nombres="Paciente", apellidos=suffix)
+        session.add(person)
+        await session.flush()
+        patient = Paciente(persona_id=person.id)
+        session.add(patient)
+        await session.flush()
+        patient_id = patient.id
+        await session.commit()
+        return patient_id
+
+
+async def _create_consultation(
+    session_factory,
+    *,
+    patient_id: int,
+    professional_id: int,
+    suffix: str,
+) -> int:
+    async with session_factory() as session:
+        state = await session.scalar(
+            select(EstadoExpediente).where(EstadoExpediente.nombre == "Activo")
+        )
+        if state is None:
+            state = EstadoExpediente(nombre="Activo")
+            session.add(state)
+            await session.flush()
+        record = Expediente(
+            paciente_id=patient_id,
+            estado_expediente_id=state.id,
+            numero_expediente=f"RX-{suffix}",
+        )
+        session.add(record)
+        await session.flush()
+        consultation = ConsultaMedica(
+            expediente_id=record.id,
+            paciente_id=patient_id,
+            profesional_id=professional_id,
+            motivo="Control para receta",
+        )
+        session.add(consultation)
+        await session.flush()
+        consultation_id = consultation.id
+        await session.commit()
+        return consultation_id
+
+
 @pytest.mark.asyncio
 async def test_create_prescription_validation_error(client: AsyncClient, session_factory):
-    # Ahora requiere estar logueado como staff -- se prueba la validación
-    # de datos (duracion_dias/cantidad_total <= 0), no la autenticación.
+    # Pydantic debe rechazar duración/cantidad inválidas antes de persistir.
     token = await _staff_login(client, session_factory)
     headers = {"Authorization": f"Bearer {token}"}
     payload = {
@@ -44,18 +148,17 @@ async def test_create_prescription_validation_error(client: AsyncClient, session
                 "unidad_medida_id": 1,
                 "dosis": "500mg",
                 "frecuencia": "Cada 8 horas",
-                "duracion_dias": 0,  # Inválido por la regla gt=0
-                "cantidad_total": -5  # Inválido por la regla gt=0
+                "duracion_dias": 0,
+                "cantidad_total": -5,
             }
-        ]
+        ],
     }
     response = await client.post("/api/v1/prescriptions", json=payload, headers=headers)
-    assert response.status_code == 422  # HTTP 422 Unprocessable Entity
+    assert response.status_code == 422
 
 
 @pytest.mark.asyncio
 async def test_prescriptions_require_authentication(client: AsyncClient):
-    # Antes de este cambio, este endpoint respondía sin pedir token.
     response = await client.get("/api/v1/prescriptions/patient/1")
     assert response.status_code == 401
 
@@ -87,28 +190,26 @@ async def test_patient_cannot_create_receta(client: AsyncClient, session_factory
 
 
 @pytest.mark.asyncio
-async def test_staff_can_create_receta_with_titulo_and_profesional(
+async def test_staff_can_create_receta_only_with_own_professional_profile(
     client: AsyncClient, session_factory
 ):
-    async with session_factory() as session:
-        patient_person = Persona(nombres="Pac", apellidos="Uno")
-        session.add(patient_person)
-        await session.flush()
-        patient = Paciente(persona_id=patient_person.id)
-        professional = ProfesionalSalud(
-            persona=Persona(nombres="Emilio", apellidos="Cárdenas"),
-            especialidad="Cardiología",
-            numero_licencia="L-100",
-        )
-        session.add_all([patient, professional])
-        await session.commit()
-        patient_id, professional_id = patient.id, professional.id
-
-    token = await _staff_login(client, session_factory)
+    patient_id = await _create_patient(session_factory, "Uno")
+    token, professional_id = await _staff_login_with_professional(
+        client,
+        session_factory,
+        username="doc-own",
+        email="doc-own@example.com",
+        nombres="Emilio",
+        apellidos="Cárdenas",
+        especialidad="Cardiología",
+        numero_licencia="L-100",
+    )
     headers = {"Authorization": f"Bearer {token}"}
 
     medication = await client.post(
-        "/api/v1/prescriptions/medications", json={"nombre": "Losartán"}, headers=headers
+        "/api/v1/prescriptions/medications",
+        json={"nombre": "Losartán"},
+        headers=headers,
     )
     assert medication.status_code == 201
 
@@ -132,6 +233,190 @@ async def test_staff_can_create_receta_with_titulo_and_profesional(
     assert created.status_code == 201
     body = created.json()
     assert body["titulo"] == "Tratamiento Hipertensión"
+    assert body["profesional_id"] == professional_id
     assert body["profesional"]["especialidad"] == "Cardiología"
     assert body["profesional"]["persona"]["nombres"] == "Emilio"
 
+
+@pytest.mark.asyncio
+async def test_staff_cannot_issue_recipe_as_another_professional(
+    client: AsyncClient, session_factory
+):
+    patient_id = await _create_patient(session_factory, "Dos")
+    token, own_professional_id = await _staff_login_with_professional(
+        client,
+        session_factory,
+        username="doc-owner",
+        email="doc-owner@example.com",
+        numero_licencia="L-OWNER",
+    )
+    async with session_factory() as session:
+        other = ProfesionalSalud(
+            persona=Persona(nombres="Otro", apellidos="Profesional"),
+            especialidad="Neurología",
+            numero_licencia="L-OTHER",
+        )
+        session.add(other)
+        await session.flush()
+        other_professional_id = other.id
+        await session.commit()
+
+    assert own_professional_id != other_professional_id
+    response = await client.post(
+        "/api/v1/prescriptions",
+        json={
+            "paciente_id": patient_id,
+            "profesional_id": other_professional_id,
+            "detalles": [],
+        },
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 403
+    assert response.json()["error"]["code"] == "forbidden"
+
+
+@pytest.mark.asyncio
+async def test_recipe_rejects_consultation_from_another_patient(
+    client: AsyncClient, session_factory
+):
+    patient_a = await _create_patient(session_factory, "Consulta-A")
+    patient_b = await _create_patient(session_factory, "Consulta-B")
+    token, professional_id = await _staff_login_with_professional(
+        client,
+        session_factory,
+        username="doc-consulta",
+        email="doc-consulta@example.com",
+        numero_licencia="L-CONSULTA",
+    )
+    consultation_id = await _create_consultation(
+        session_factory,
+        patient_id=patient_a,
+        professional_id=professional_id,
+        suffix="PATIENT-MISMATCH",
+    )
+
+    response = await client.post(
+        "/api/v1/prescriptions",
+        json={
+            "paciente_id": patient_b,
+            "profesional_id": professional_id,
+            "consulta_id": consultation_id,
+            "detalles": [],
+        },
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 409
+    assert response.json()["error"]["code"] == "conflict"
+
+
+@pytest.mark.asyncio
+async def test_recipe_rejects_consultation_from_another_professional(
+    client: AsyncClient, session_factory
+):
+    patient_id = await _create_patient(session_factory, "Consulta-Profesional")
+    token, professional_id = await _staff_login_with_professional(
+        client,
+        session_factory,
+        username="doc-consulta-owner",
+        email="doc-consulta-owner@example.com",
+        numero_licencia="L-CONSULTA-OWNER",
+    )
+    _, other_professional_id = await _staff_login_with_professional(
+        client,
+        session_factory,
+        username="doc-consulta-other",
+        email="doc-consulta-other@example.com",
+        numero_licencia="L-CONSULTA-OTHER",
+    )
+    consultation_id = await _create_consultation(
+        session_factory,
+        patient_id=patient_id,
+        professional_id=other_professional_id,
+        suffix="PROFESSIONAL-MISMATCH",
+    )
+
+    response = await client.post(
+        "/api/v1/prescriptions",
+        json={
+            "paciente_id": patient_id,
+            "profesional_id": professional_id,
+            "consulta_id": consultation_id,
+            "detalles": [],
+        },
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 403
+    assert response.json()["error"]["code"] == "forbidden"
+
+
+@pytest.mark.asyncio
+async def test_other_professional_cannot_edit_recipe_or_its_details(
+    client: AsyncClient, session_factory
+):
+    patient_id = await _create_patient(session_factory, "Propiedad")
+    owner_token, owner_professional_id = await _staff_login_with_professional(
+        client,
+        session_factory,
+        username="doc-rx-owner",
+        email="doc-rx-owner@example.com",
+        numero_licencia="L-RX-OWNER",
+    )
+    other_token, _ = await _staff_login_with_professional(
+        client,
+        session_factory,
+        username="doc-rx-other",
+        email="doc-rx-other@example.com",
+        numero_licencia="L-RX-OTHER",
+    )
+    owner_headers = {"Authorization": f"Bearer {owner_token}"}
+    other_headers = {"Authorization": f"Bearer {other_token}"}
+
+    medication = await client.post(
+        "/api/v1/prescriptions/medications",
+        json={"nombre": "Amlodipino"},
+        headers=owner_headers,
+    )
+    assert medication.status_code == 201
+    created = await client.post(
+        "/api/v1/prescriptions",
+        json={
+            "paciente_id": patient_id,
+            "profesional_id": owner_professional_id,
+            "titulo": "Receta protegida",
+            "detalles": [
+                {
+                    "medicamento_id": medication.json()["id"],
+                    "unidad_medida_id": 1,
+                    "via_administracion_id": 1,
+                    "dosis": "5mg",
+                    "frecuencia": "Cada 24 horas",
+                    "duracion_dias": 10,
+                    "cantidad_total": 10,
+                }
+            ],
+        },
+        headers=owner_headers,
+    )
+    assert created.status_code == 201
+    recipe_id = created.json()["id"]
+    detail_id = created.json()["detalles"][0]["id"]
+
+    update = await client.patch(
+        f"/api/v1/prescriptions/{recipe_id}",
+        json={"titulo": "Intento de suplantación"},
+        headers=other_headers,
+    )
+    assert update.status_code == 403
+
+    detail_update = await client.patch(
+        f"/api/v1/prescriptions/{recipe_id}/detalles/{detail_id}",
+        json={"dosis": "20mg"},
+        headers=other_headers,
+    )
+    assert detail_update.status_code == 403
+
+    detail_delete = await client.delete(
+        f"/api/v1/prescriptions/{recipe_id}/detalles/{detail_id}",
+        headers=other_headers,
+    )
+    assert detail_delete.status_code == 403
