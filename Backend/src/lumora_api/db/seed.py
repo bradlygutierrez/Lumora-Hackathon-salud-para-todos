@@ -65,6 +65,7 @@ CATALOGS = {
 
 ROLES = {
     "Paciente": "Acceso base de paciente",
+    "Cuidador": "Acceso base de cuidador",
     "Administrador": "Acceso administrativo",
 }
 
