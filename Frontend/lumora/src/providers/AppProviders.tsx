@@ -4,6 +4,8 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { authApi } from '@/features/auth/api/auth-api';
 import { useAuthStore } from '@/features/auth/store/auth-store';
+import { CAREGIVER_PATIENTS_QUERY_KEY } from '@/features/shell/hooks/useCaregiverPatientsSync';
+import { usePatientContextStore } from '@/features/shell/store/patient-context-store';
 import { httpClient } from '@/shared/api/http-client';
 import { queryClient } from '@/shared/api/query-client';
 import { queryLifecycle } from '@/shared/api/query-lifecycle';
@@ -33,6 +35,21 @@ export function AppProviders({ children }: PropsWithChildren) {
     httpClient.setSessionExpiredHandler(async () => {
       await useAuthStore.getState().clearSession('session-expired');
       queryClient.clear();
+    });
+
+    // A13: un 403 en cualquier momento de la sesión probablemente
+    // significa que el paciente cambió/revocó el acceso de este
+    // cuidador. Invalidamos la lista de pacientes autorizados -- el
+    // refetch inmediato dispara useCaregiverPatientsSync, que ya sabe
+    // limpiar activePatient si dejó de estar autorizado.
+    httpClient.setForbiddenHandler(async () => {
+      if (usePatientContextStore.getState().role !== 'caregiver') {
+        return;
+      }
+
+      await queryClient.invalidateQueries({
+        queryKey: CAREGIVER_PATIENTS_QUERY_KEY,
+      });
     });
 
     return () => {

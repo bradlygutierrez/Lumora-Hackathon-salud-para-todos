@@ -27,6 +27,9 @@ import {
   splitAppointments,
 } from '@/features/appointments/utils/appointments';
 import {
+  canManagePatientData,
+} from '@/features/caregiver-access/utils/caregiver-permissions';
+import {
   useShellContext,
 } from '@/features/shell/hooks/useShellContext';
 import {
@@ -67,6 +70,12 @@ export function AppointmentsListScreen() {
   const patientId =
     activePatient?.patientId ??
     null;
+
+  const canManage =
+    role !== 'caregiver' ||
+    canManagePatientData(
+      activePatient?.accessLevel ?? null,
+    );
 
   const query =
     useAppointments(
@@ -227,23 +236,25 @@ export function AppointmentsListScreen() {
       />
 
       <View className="gap-5 px-4 py-4">
-        <Pressable
-          accessibilityRole="button"
-          onPress={
-            openProfessionals
-          }
-          className="self-start flex-row items-center gap-2 rounded-full bg-[#67B5D8] px-4 py-3 active:opacity-80"
-        >
-          <Ionicons
-            name="add"
-            size={18}
-            color="#FFFFFF"
-          />
+        {canManage ? (
+          <Pressable
+            accessibilityRole="button"
+            onPress={
+              openProfessionals
+            }
+            className="self-start flex-row items-center gap-2 rounded-full bg-[#67B5D8] px-4 py-3 active:opacity-80"
+          >
+            <Ionicons
+              name="add"
+              size={18}
+              color="#FFFFFF"
+            />
 
-          <Text className="text-sm font-semibold text-white">
-            Solicitar nueva cita
-          </Text>
-        </Pressable>
+            <Text className="text-sm font-semibold text-white">
+              Solicitar nueva cita
+            </Text>
+          </Pressable>
+        ) : null}
 
         <View className="flex-row border-b border-coal-500/10">
           <Pressable
@@ -335,7 +346,8 @@ export function AppointmentsListScreen() {
             </Text>
 
             {activeTab ===
-            'upcoming' ? (
+              'upcoming' &&
+            canManage ? (
               <Pressable
                 accessibilityRole="button"
                 onPress={
@@ -365,6 +377,9 @@ export function AppointmentsListScreen() {
                   upcoming={
                     activeTab ===
                     'upcoming'
+                  }
+                  canManage={
+                    canManage
                   }
                   onDetail={() =>
                     openDetail(

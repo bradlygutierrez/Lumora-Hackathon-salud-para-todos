@@ -74,6 +74,7 @@ export function ShellBootstrap({
           .hydrate(
             identity.role,
             identity.availablePatients,
+            identity.user.id,
           );
       } catch (error) {
         if (cancelled) {
