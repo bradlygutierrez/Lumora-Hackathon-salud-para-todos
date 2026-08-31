@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useProfessionalAgenda } from '@/src/features/appointments/hooks/use-appointments';
+import { formatWorkspaceDateTime } from '@/src/features/appointments/utils/workspace-date-time';
 import { useAuthSession } from '@/src/features/auth/hooks/use-auth-session';
 import type { PatientClinicalSummary as RichClinicalSummary } from '@/src/features/medical-records/types/medical-record.types';
 import { useMeasurementCatalogs, usePatientMeasurements } from '@/src/features/measurements/hooks/use-measurements';
@@ -155,7 +156,7 @@ export function PatientDetailScreen({ patientId }: Props) {
           <InfoRow
             icon="calendar-number-outline"
             label="Próxima cita"
-            value={formatDate(nextAppointment?.inicio)}
+            value={formatWorkspaceDateTime(nextAppointment?.inicio)}
           />
           <InfoRow
             icon="time-outline"

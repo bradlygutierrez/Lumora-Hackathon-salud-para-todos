@@ -1,5 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { formatWorkspaceDateTime } from '@/src/features/appointments/utils/workspace-date-time';
+
 import { theme } from '@/src/shared/constants/theme';
 import type { MyPatient } from '../types/my-patient.types';
 import { fullPatientName } from '../utils/patient-format';
@@ -26,7 +28,7 @@ export function MyPatientCard({
       </Text>
       <View style={styles.row}>
         <Text style={styles.label}>Próxima cita</Text>
-        <Text style={styles.value}>{formatDate(item.proxima_cita?.inicio)}</Text>
+        <Text style={styles.value}>{formatWorkspaceDateTime(item.proxima_cita?.inicio)}</Text>
       </View>
       <View style={styles.row}>
         <Text style={styles.label}>Última consulta</Text>

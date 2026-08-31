@@ -15,6 +15,7 @@ import {
 } from '../hooks/use-appointments';
 import type { ProfessionalSchedule } from '../types/appointment.types';
 import { buildSchedulePayload, shortTime } from '../utils/schedule-form';
+import { formatWorkspaceDateTime, formatWorkspaceTime } from '../utils/workspace-date-time';
 
 const DAYS = [
   'Lunes',
@@ -30,12 +31,6 @@ function todayIso() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat('es-NI', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(new Date(value));
-}
 
 export function AgendaScreen() {
   const { permissions, session } = useAuthSession();
@@ -148,7 +143,7 @@ export function AgendaScreen() {
               {agenda.data?.map((item) => (
                 <View key={item.id} style={styles.card}>
                   <Text style={styles.cardTitle}>{item.paciente_nombre}</Text>
-                  <Text style={styles.cardMeta}>{formatDateTime(item.inicio)}</Text>
+                  <Text style={styles.cardMeta}>{formatWorkspaceDateTime(item.inicio)}</Text>
                   <Text style={styles.cardMeta}>
                     {item.tipo_cita?.nombre ?? 'Tipo no indicado'} · {item.estado?.nombre ?? 'Estado no indicado'}
                   </Text>
@@ -303,15 +298,9 @@ export function AgendaScreen() {
               {availability.data?.slots.map((slot) => (
                 <View key={slot.inicio} style={styles.slotRow}>
                   <Text style={styles.cardMeta}>
-                    {new Date(slot.inicio).toLocaleTimeString('es-NI', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
+                    {formatWorkspaceTime(slot.inicio)}
                     {' – '}
-                    {new Date(slot.fin).toLocaleTimeString('es-NI', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
+                    {formatWorkspaceTime(slot.fin)}
                   </Text>
                   <Text style={slot.disponible ? styles.active : styles.inactive}>
                     {slot.disponible ? 'Disponible' : 'Ocupado'}
