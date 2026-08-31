@@ -180,6 +180,18 @@ export function MedicalRecordSummaryScreen({ patientId, initialSection }: Props)
             >
               Línea de tiempo
             </Button>
+            <Button
+              accessibilityLabel="Abrir expediente documental"
+              icon="document-text-outline"
+              onPress={() =>
+                router.push(
+                  `/(staff)/patients/${patientId}/record/document` as Href,
+                )
+              }
+              variant="secondary"
+            >
+              Documento clínico y PDF
+            </Button>
           </View>
         </View>
 

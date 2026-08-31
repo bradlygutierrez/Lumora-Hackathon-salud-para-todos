@@ -71,6 +71,9 @@ export async function invalidatePrescriptionViews(
     queryClient.invalidateQueries({ queryKey: prescriptionKeys.patient(patientId) }),
     queryClient.invalidateQueries({ queryKey: queryKeys.clinical.patientSummary(patientId) }),
     queryClient.invalidateQueries({
+      queryKey: queryKeys.clinical.medicalRecordDocument(patientId),
+    }),
+    queryClient.invalidateQueries({
       queryKey: queryKeys.clinical.patientsDirectory.clinicalSummary(patientId),
     }),
   ];

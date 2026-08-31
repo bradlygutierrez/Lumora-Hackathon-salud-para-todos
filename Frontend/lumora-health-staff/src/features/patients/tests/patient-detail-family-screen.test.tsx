@@ -209,6 +209,9 @@ describe('patient detail and family screens J15', () => {
 
     await fireEvent.press(screen.getByText('Expediente Médico'));
     expect(mockPush).toHaveBeenCalledWith('/(staff)/patients/9/record');
+
+    await fireEvent.press(screen.getByText('Documento clínico y PDF'));
+    expect(mockPush).toHaveBeenCalledWith('/(staff)/patients/9/record/document');
   });
 
   it('keeps Bruno-style follow-up self-scoped: no next appointment but a last consultation', async () => {

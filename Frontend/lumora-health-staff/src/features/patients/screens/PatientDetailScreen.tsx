@@ -115,6 +115,16 @@ export function PatientDetailScreen({ patientId }: Props) {
             Expediente Médico
           </Button>
           <Button
+            accessibilityLabel="Abrir expediente documental del paciente"
+            icon="document-text-outline"
+            onPress={() =>
+              router.push(`/(staff)/patients/${patientId}/record/document` as Href)
+            }
+            variant="secondary"
+          >
+            Documento clínico y PDF
+          </Button>
+          <Button
             accessibilityLabel="Ver recetas del paciente"
             icon="medkit-outline"
             onPress={() => {

@@ -129,6 +129,16 @@ describe('MedicalRecordSummaryScreen', () => {
     expect(mockPush).toHaveBeenCalledWith('/(staff)/patients/9/record/timeline?recordId=17');
   });
 
+  it('opens the canonical B15 document from the clinical summary', async () => {
+    const screen = await render(<MedicalRecordSummaryScreen patientId={9} />);
+
+    await fireEvent.press(screen.getByLabelText('Abrir expediente documental'));
+
+    expect(mockPush).toHaveBeenCalledWith(
+      '/(staff)/patients/9/record/document',
+    );
+  });
+
   it('blocks users without clinical permission', async () => {
     mockUseAuthSession.mockReturnValue({ permissions: new Set() });
     const screen = await render(<MedicalRecordSummaryScreen patientId={9} />);
