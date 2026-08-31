@@ -123,6 +123,14 @@ class ReminderRepository:
         res = await self.session.execute(stmt)
         return res.scalars().all()
 
+    async def get_relacion_by_id(self, relacion_id: int) -> RelacionPaciente | None:
+        return await self.session.get(RelacionPaciente, relacion_id)
+
+    async def update_relacion(self, relacion: RelacionPaciente) -> RelacionPaciente:
+        await self.session.commit()
+        await self.session.refresh(relacion)
+        return relacion
+
     async def get_active_relationships_for_caregiver(
         self, usuario_id: int
     ) -> Sequence[RelacionPaciente]:

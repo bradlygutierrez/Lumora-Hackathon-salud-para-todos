@@ -51,6 +51,10 @@ class Usuario(SoftDeleteMixin, Base):
         secondary="usuario_roles", back_populates="usuarios", lazy="selectin"
     )
 
+    @property
+    def full_name(self) -> str:
+        return " ".join(filter(None, (self.persona.nombres, self.persona.apellidos)))
+
 
 class Paciente(SoftDeleteMixin, Base):
     __tablename__ = "pacientes"
