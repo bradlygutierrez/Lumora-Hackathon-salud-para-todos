@@ -8,7 +8,7 @@ from sqlalchemy import func, select
 
 from lumora_api.models import Persona, Rol, SesionUsuario, Sexo, TipoSangre, TokenRecuperacion, Usuario, VerificacionCorreo
 from lumora_api.repositories.auth_repository import AuthRepository
-from lumora_api.schemas.auth import PatientRegistrationRequest
+from lumora_api.schemas.auth import CaregiverRegistrationRequest, PatientRegistrationRequest
 from lumora_api.services.auth_service import AuthService
 
 
@@ -188,6 +188,51 @@ class CapturingEmailService:
         self.verifications = []
     def send_verification_code(self, email, code):
         self.verifications.append((email, code))
+
+
+def caregiver_registration_data() -> CaregiverRegistrationRequest:
+    return CaregiverRegistrationRequest.model_validate(
+        {
+            "username": "caregiver",
+            "email": "caregiver@example.com",
+            "password": "Secure123!",
+            "phone": "+50588888888",
+            "first_names": "María",
+            "last_names": "Cuidadora",
+            "birth_date": "1990-01-01",
+            "sex_id": 1,
+            "address": {
+                "line_1": "Casa",
+                "city": "Managua",
+                "country": "Nicaragua",
+            },
+            "accept_terms": True,
+            "accept_privacy": True,
+        }
+    )
+
+
+@pytest.mark.asyncio
+async def test_caregiver_registration_sends_hashed_verification_code(session_factory):
+    async with session_factory() as session:
+        session.add_all([Rol(nombre="Cuidador"), Sexo(id=1, nombre="Femenino")])
+        await session.commit()
+        sender = CapturingEmailService()
+
+        response = await AuthService(
+            AuthRepository(session), sender
+        ).register_caregiver(caregiver_registration_data())
+
+        assert response["email_verified"] is False
+        assert len(sender.verifications) == 1
+        email, code = sender.verifications[0]
+        assert email == "caregiver@example.com"
+        verification = await AuthRepository(session).verification_by_hash(
+            hash_token(code)
+        )
+        assert verification is not None
+        assert verification.token_hash != code
+        assert verification.expires_at > datetime.utcnow()
 
 
 @pytest.mark.asyncio

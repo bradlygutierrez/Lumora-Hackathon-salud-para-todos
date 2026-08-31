@@ -36,7 +36,7 @@ from lumora_api.models import (
     SesionUsuario,
 )
 from lumora_api.repositories.auth_repository import AuthRepository
-from lumora_api.schemas.auth import PatientRegistrationRequest
+from lumora_api.schemas.auth import CaregiverRegistrationRequest, PatientRegistrationRequest
 from lumora_api.services.email_service import EmailService
 
 logger = logging.getLogger(__name__)
@@ -112,6 +112,72 @@ class AuthService:
                 "person_id": person.id,
                 "patient_id": patient.id,
                 "emergency_contact_id": contact.id,
+                "email_verified": False,
+                "status": "pending_email_verification",
+            }
+            await session.commit()
+        except IntegrityError as error:
+            await session.rollback()
+            raise ResourceConflictError("El correo o usuario ya está registrado") from error
+        except Exception:
+            await session.rollback()
+            raise
+
+        sender = self.email_service or EmailService()
+        try:
+            sender.send_verification_code(str(data.email), code)
+        except RuntimeError:
+            logger.exception("Email verification delivery failed for user_id=%s", user.id)
+        return response
+
+    async def register_caregiver(self, data: CaregiverRegistrationRequest) -> dict:
+        if await self.repository.user_by_email(str(data.email)):
+            raise ResourceConflictError("El correo ya está registrado")
+        if await self.repository.user_by_username(data.username):
+            raise ResourceConflictError("El nombre de usuario ya está registrado")
+        if not await self.repository.sex_exists(data.sex_id):
+            raise ResourceNotFoundError("El sexo indicado no existe")
+        role = await self.repository.caregiver_role()
+        if role is None:
+            raise ResourceNotFoundError("El rol Cuidador no está configurado")
+
+        session = self.repository.session
+        code = f"{secrets.randbelow(1_000_000):06d}"
+        try:
+            person = Persona(
+                nombres=data.first_names,
+                apellidos=data.last_names,
+                fecha_nacimiento=data.birth_date,
+                telefono=data.phone,
+                sexo_id=data.sex_id,
+            )
+            user = Usuario(
+                persona=person,
+                email=str(data.email).lower(),
+                username=data.username,
+                password_hash=hash_password(data.password),
+                roles=[role],
+            )
+            address = Direccion(
+                persona=person,
+                linea_1=data.address.line_1,
+                ciudad=data.address.city,
+                departamento=data.address.department,
+                pais=data.address.country,
+                codigo_postal=data.address.postal_code,
+                es_principal=True,
+            )
+            verification = VerificacionCorreo(
+                usuario=user,
+                token_hash=hash_token(code),
+                expires_at=datetime.now(timezone.utc)
+                + timedelta(minutes=get_settings().verification_code_minutes),
+            )
+            session.add_all([person, user, address, verification])
+            await session.flush()
+            response = {
+                "user_id": user.id,
+                "person_id": person.id,
                 "email_verified": False,
                 "status": "pending_email_verification",
             }

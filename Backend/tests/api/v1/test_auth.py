@@ -41,10 +41,126 @@ def registration_body(**overrides):
     return body
 
 
+def caregiver_registration_body(**overrides):
+    body = registration_body()
+    body.pop("blood_type_id")
+    body.pop("emergency_contact")
+    body["username"] = "new-caregiver"
+    body["email"] = "new-caregiver@example.com"
+    body.update(overrides)
+    return body
+
+
 async def seed_registration_catalogs(session_factory):
     async with session_factory() as session:
         session.add_all([Rol(id=1, nombre="Paciente"), Sexo(id=1, nombre="Femenino"), TipoSangre(id=1, nombre="O+")])
         await session.commit()
+
+
+async def seed_caregiver_registration_catalogs(session_factory):
+    async with session_factory() as session:
+        session.add_all(
+            [
+                Rol(id=1, nombre="Paciente"),
+                Rol(id=2, nombre="Cuidador", permisos=[]),
+                Sexo(id=1, nombre="Femenino"),
+            ]
+        )
+        await session.commit()
+
+
+@pytest.mark.asyncio
+async def test_caregiver_registration_creates_only_caregiver_identity(
+    client, session_factory
+):
+    await seed_caregiver_registration_catalogs(session_factory)
+
+    response = await client.post(
+        "/api/v1/auth/register/caregiver",
+        json=caregiver_registration_body(),
+    )
+
+    assert response.status_code == 201
+    assert set(response.json()) == {
+        "user_id",
+        "person_id",
+        "email_verified",
+        "status",
+    }
+    assert response.json()["email_verified"] is False
+    assert response.json()["status"] == "pending_email_verification"
+    async with session_factory() as session:
+        user = await session.scalar(
+            select(Usuario).where(Usuario.username == "new-caregiver")
+        )
+        assert [role.nombre for role in user.roles] == ["Cuidador"]
+        assert await session.scalar(
+            select(Direccion).where(Direccion.persona_id == user.persona_id)
+        )
+        assert await session.scalar(
+            select(VerificacionCorreo).where(VerificacionCorreo.usuario_id == user.id)
+        )
+        assert await session.scalar(
+            select(Paciente).where(Paciente.persona_id == user.persona_id)
+        ) is None
+        assert await session.scalar(
+            select(ContactoEmergencia).where(
+                ContactoEmergencia.paciente_id == user.persona_id
+            )
+        ) is None
+
+    logged = await client.post(
+        "/api/v1/auth/login",
+        json={"login": "new-caregiver", "password": "Secure123!"},
+    )
+    headers = {
+        "Authorization": f"Bearer {logged.json()['access_token']}"
+    }
+    me = await client.get("/api/v1/auth/me", headers=headers)
+    patients = await client.get("/api/v1/caregivers/me/patients", headers=headers)
+    assert [role["nombre"] for role in me.json()["roles"]] == ["Cuidador"]
+    assert patients.status_code == 200
+    assert patients.json() == {"items": []}
+
+
+@pytest.mark.asyncio
+async def test_caregiver_registration_validates_duplicates_catalog_and_security(
+    client, session_factory
+):
+    await seed_caregiver_registration_catalogs(session_factory)
+    assert (
+        await client.post(
+            "/api/v1/auth/register/caregiver",
+            json=caregiver_registration_body(),
+        )
+    ).status_code == 201
+    assert (
+        await client.post(
+            "/api/v1/auth/register/caregiver",
+            json=caregiver_registration_body(username="other-caregiver"),
+        )
+    ).status_code == 409
+    assert (
+        await client.post(
+            "/api/v1/auth/register/caregiver",
+            json=caregiver_registration_body(email="other-caregiver@example.com"),
+        )
+    ).status_code == 409
+
+    for overrides in (
+        {"sex_id": 999, "username": "missing-sex", "email": "missing-sex@example.com"},
+        {"password": "weak", "username": "weak-caregiver", "email": "weak@example.com"},
+        {"accept_terms": False, "username": "terms-caregiver", "email": "terms@example.com"},
+        {"accept_privacy": False, "username": "privacy-caregiver", "email": "privacy@example.com"},
+        {"role": "Administrador", "username": "admin-caregiver", "email": "admin@example.com"},
+        {"role_id": 1, "username": "role-caregiver", "email": "role@example.com"},
+        {"permissions": ["clinica:manage"], "username": "permission-caregiver", "email": "permission@example.com"},
+    ):
+        response = await client.post(
+            "/api/v1/auth/register/caregiver",
+            json=caregiver_registration_body(**overrides),
+        )
+        assert response.status_code in ({404} if overrides.get("sex_id") == 999 else {422})
 
 
 @pytest.mark.asyncio

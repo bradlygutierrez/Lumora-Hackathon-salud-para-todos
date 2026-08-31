@@ -462,8 +462,27 @@ class ReminderService:
             raise HTTPException(
                 status_code=409, detail="Ya existe una relación con este familiar"
             )
-        obj = RelacionPaciente(**data.model_dump())
-        return await self.repo.create_relacion(obj)
+        user = await self.repo.related_user(data.usuario_relacionado_id)
+        if user is None:
+            raise HTTPException(status_code=404, detail="Usuario relacionado no encontrado")
+        if await self.repo.patient_owner_user_id(data.paciente_id) == user.id:
+            raise HTTPException(
+                status_code=409,
+                detail="El paciente no puede vincularse a sí mismo como cuidador",
+            )
+        role = await self.repo.caregiver_role()
+        if role is None:
+            raise HTTPException(status_code=404, detail="El rol Cuidador no está configurado")
+        if role not in user.roles:
+            user.roles.append(role)
+        try:
+            obj = await self.repo.create_relacion(RelacionPaciente(**data.model_dump()))
+            await self.session.commit()
+            await self.session.refresh(obj)
+            return obj
+        except Exception:
+            await self.session.rollback()
+            raise
 
     async def obtener_relaciones_paciente(self, paciente_id: int) -> Sequence[RelacionPaciente]:
         return await self.repo.get_relaciones_by_paciente(paciente_id)
@@ -481,4 +500,17 @@ class ReminderService:
             setattr(relacion, key, value)
         if data.estado == "revoked":
             relacion.activo = False
-        return await self.repo.update_relacion(relacion)
+        if relacion.estado == "active" and relacion.activo:
+            user = await self.repo.related_user(relacion.usuario_relacionado_id)
+            if user is None:
+                raise HTTPException(status_code=404, detail="Usuario relacionado no encontrado")
+            role = await self.repo.caregiver_role()
+            if role is None:
+                raise HTTPException(status_code=404, detail="El rol Cuidador no está configurado")
+            if role not in user.roles:
+                user.roles.append(role)
+        try:
+            return await self.repo.update_relacion(relacion)
+        except Exception:
+            await self.session.rollback()
+            raise
