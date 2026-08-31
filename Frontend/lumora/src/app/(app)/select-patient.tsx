@@ -1,28 +1,21 @@
-import {
-  Pressable,
-  Text,
-  View,
-} from 'react-native';
+import { Pressable, Text, View } from 'react-native';
+import { router } from 'expo-router';
 
-import {
-  router,
-} from 'expo-router';
+import { Screen } from '@/shared/components/Screen';
+import { AppHeader } from '@/shared/components/AppHeader';
+import { SurfaceCard } from '@/shared/components/SurfaceCard';
+import { useShellContext } from '@/features/shell/hooks/useShellContext';
 
-import {
-  Screen,
-} from '@/shared/components/Screen';
-
-import {
-  AppHeader,
-} from '@/shared/components/AppHeader';
-
-import {
-  SurfaceCard,
-} from '@/shared/components/SurfaceCard';
-
-import {
-  useShellContext,
-} from '@/features/shell/hooks/useShellContext';
+function accessLevelLabel(accessLevel: string | null): string {
+  switch (accessLevel) {
+    case 'write':
+      return 'Acceso completo (lectura y escritura)';
+    case 'read':
+      return 'Acceso de solo lectura';
+    default:
+      return 'Nivel de acceso no especificado';
+  }
+}
 
 /**
  * Selector de patientContext para cuidadores.
@@ -31,12 +24,7 @@ import {
  * un paciente activo.
  */
 export default function SelectPatientRoute() {
-  const {
-    role,
-    availablePatients,
-    switchPatient,
-    errorMessage,
-  } =
+  const { role, activePatient, availablePatients, switchPatient, errorMessage } =
     useShellContext();
 
   /**
@@ -57,60 +45,37 @@ export default function SelectPatientRoute() {
    * Por eso Perfil es el destino seguro.
    */
   const handleBackPress = () => {
-    router.replace(
-      '/(app)/(tabs)/profile',
-    );
+    router.replace('/(app)/(tabs)/profile');
   };
 
-  if (
-    role !==
-    'caregiver'
-  ) {
+  if (role !== 'caregiver') {
     return (
-      <Screen
-        contentClassName="px-0 py-0"
-      >
+      <Screen contentClassName="px-0 py-0">
         <AppHeader
           title="Familiares"
           subtitle="Esta pantalla está disponible solo para cuidadores."
-          onBackPress={
-            handleBackPress
-          }
+          onBackPress={handleBackPress}
         />
       </Screen>
     );
   }
 
   return (
-    <Screen
-      scrollable
-      contentClassName="px-0 py-0"
-    >
+    <Screen scrollable contentClassName="px-0 py-0">
       <AppHeader
         title="Familiares Autorizados"
         subtitle="Gestiona los pacientes vinculados y selecciona el contexto activo."
-        onBackPress={
-          handleBackPress
-        }
+        onBackPress={handleBackPress}
       />
 
       <View className="gap-4 px-4 py-4">
-        <Pressable className="self-start rounded-full bg-[#78AEDD] px-4 py-3 active:opacity-80">
-          <Text className="text-sm font-semibold text-white">
-            + Añadir Familiar
-          </Text>
-        </Pressable>
-
         {errorMessage ? (
           <SurfaceCard className="bg-[#fff0ef]">
-            <Text className="text-sm text-coal-900">
-              {errorMessage}
-            </Text>
+            <Text className="text-sm text-coal-900">{errorMessage}</Text>
           </SurfaceCard>
         ) : null}
 
-        {availablePatients.length ===
-        0 ? (
+        {availablePatients.length === 0 ? (
           <SurfaceCard>
             <Text className="text-base font-semibold text-coal-900">
               No hay pacientes disponibles
@@ -122,95 +87,42 @@ export default function SelectPatientRoute() {
           </SurfaceCard>
         ) : null}
 
-        {availablePatients.map(
-          (
-            patient,
-            index,
-          ) => (
-            <SurfaceCard
-              key={
-                patient.patientId
-              }
-            >
+        {availablePatients.map((patient) => {
+          const isActive = activePatient?.patientId === patient.patientId;
+
+          return (
+            <SurfaceCard key={patient.patientId}>
               <View className="flex-row items-start justify-between">
                 <View className="flex-1 gap-1">
                   <Text className="text-xl font-semibold text-coal-900">
-                    {
-                      patient.displayName
-                    }
+                    {patient.displayName}
                   </Text>
 
                   <Text className="text-sm text-coal-500">
-                    {patient.relationship ??
-                      'Paciente vinculado'}
+                    {patient.relationship ?? 'Paciente vinculado'}
                   </Text>
                 </View>
 
-                <Text className="text-coal-500">
-                  ⋮
+                {isActive ? (
+                  <View className="rounded-full bg-[#78AEDD] px-3 py-1">
+                    <Text className="text-xs font-semibold text-white">Activo</Text>
+                  </View>
+                ) : null}
+              </View>
+
+              <View className="mt-4 gap-1">
+                <Text className="text-sm text-coal-500">
+                  {accessLevelLabel(patient.accessLevel)}
                 </Text>
               </View>
 
-              <View className="mt-4 gap-3">
-                <View className="flex-row items-center justify-between">
-                  <Text className="text-sm text-coal-500">
-                    Recibe alertas críticas
-                  </Text>
-
-                  <View
-                    className={`h-6 w-11 rounded-full ${
-                      index % 2 ===
-                      0
-                        ? 'bg-[#78AEDD]'
-                        : 'bg-[#c9d5de]'
-                    }`}
-                  >
-                    <View
-                      className={`mt-0.5 h-5 w-5 rounded-full bg-white ${
-                        index % 2 ===
-                        0
-                          ? 'ml-5'
-                          : 'ml-0.5'
-                      }`}
-                    />
-                  </View>
-                </View>
-
-                <View className="flex-row items-center justify-between">
-                  <Text className="text-sm text-coal-500">
-                    Acceso a expediente
-                  </Text>
-
-                  <View
-                    className={`h-6 w-11 rounded-full ${
-                      index === 0
-                        ? 'bg-[#78AEDD]'
-                        : 'bg-[#c9d5de]'
-                    }`}
-                  >
-                    <View
-                      className={`mt-0.5 h-5 w-5 rounded-full bg-white ${
-                        index === 0
-                          ? 'ml-5'
-                          : 'ml-0.5'
-                      }`}
-                    />
-                  </View>
-                </View>
-              </View>
-
               <Pressable
-                className="mt-4 rounded-2xl bg-[#0F7B83] px-4 py-3 active:opacity-80"
+                className="mt-4 rounded-2xl bg-[#78AEDD] px-4 py-3 active:opacity-80"
                 onPress={() => {
-                  const allowed =
-                    switchPatient(
-                      patient.patientId,
-                    );
+                  const allowed = switchPatient(patient.patientId);
 
                   if (allowed) {
-                    router.replace(
-                      '/(app)/(tabs)/health',
-                    );
+                    router.replace('/(app)/(tabs)/health');
                   }
                 }}
               >
@@ -219,8 +131,8 @@ export default function SelectPatientRoute() {
                 </Text>
               </Pressable>
             </SurfaceCard>
-          ),
-        )}
+          );
+        })}
       </View>
     </Screen>
   );

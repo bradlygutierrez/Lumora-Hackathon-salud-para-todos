@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from lumora_api.db.session import get_session as get_db
 from lumora_api.api.dependencies import CurrentUser
+from lumora_api.repositories.auth_repository import AuthRepository
 from lumora_api.repositories.patient_access_repository import PatientAccessRepository
 from lumora_api.services.patient_access_service import PatientAccessService
 from lumora_api.services.reminders import ReminderService
@@ -21,6 +22,7 @@ from lumora_api.schemas.reminders import (
     RelacionPacienteCreate,
     RelacionPacienteUpdate,
     RelacionPacienteResponse,
+    UsuarioRelacionadoSummary,
 )
 
 router = APIRouter()
@@ -222,6 +224,17 @@ async def obtener_preferencias(usuario_id: int, db: AsyncSession = Depends(get_d
 @router.patch("/usuarios/{usuario_id}/preferencias-notificacion", response_model=PreferenciaNotificacionResponse)
 async def actualizar_preferencias(usuario_id: int, data: PreferenciaNotificacionUpdate, db: AsyncSession = Depends(get_db)):
     return await ReminderService(db).actualizar_preferencias(usuario_id, data)
+
+# --- Búsqueda de usuarios para invitar a la red de cuidado (A11) ---
+@router.get("/usuarios/buscar", response_model=UsuarioRelacionadoSummary)
+async def buscar_usuario_por_email(
+    email: str, current_user: CurrentUser, db: AsyncSession = Depends(get_db)
+):
+    usuario = await AuthRepository(db).user_by_email(email)
+    if usuario is None or usuario.id == current_user.id:
+        raise HTTPException(status_code=404, detail="No encontramos a nadie con ese correo")
+    return usuario
+
 
 # --- CRUD /pacientes/{id}/relaciones ---
 @router.post("/pacientes/{paciente_id}/relaciones", response_model=RelacionPacienteResponse, status_code=status.HTTP_201_CREATED)

@@ -31,6 +31,9 @@ import {
   isVirtualAppointmentType,
 } from '@/features/appointments/utils/appointments';
 import {
+  canManagePatientData,
+} from '@/features/caregiver-access/utils/caregiver-permissions';
+import {
   useShellContext,
 } from '@/features/shell/hooks/useShellContext';
 import {
@@ -62,12 +65,22 @@ export function AppointmentDetailScreen({
 
   const {
     activePatient,
+    role,
   } =
     useShellContext();
 
   const patientId =
     activePatient?.patientId ??
     null;
+
+  // A13 -- un cuidador de solo lectura puede ver el detalle de la cita
+  // pero no reprogramarla ni cancelarla.
+  const canManage =
+    role !== 'caregiver' ||
+    canManagePatientData(
+      activePatient?.accessLevel ??
+        null,
+    );
 
   const query =
     useAppointmentDetail(
@@ -140,6 +153,7 @@ export function AppointmentDetailScreen({
     );
 
   const manageable =
+    canManage &&
     canManageAppointment(
       appointment,
     );

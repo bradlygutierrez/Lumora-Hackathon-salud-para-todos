@@ -11,6 +11,7 @@ from lumora_api.models.reminders import (
     PreferenciaNotificacion,
     RelacionPaciente,
 )
+from lumora_api.models import Paciente, Persona, Rol, Usuario
 
 class ReminderRepository:
     def __init__(self, session: AsyncSession):
@@ -114,9 +115,30 @@ class ReminderRepository:
     # --- RELACIONES PACIENTE ---
     async def create_relacion(self, relacion: RelacionPaciente) -> RelacionPaciente:
         self.session.add(relacion)
-        await self.session.commit()
-        await self.session.refresh(relacion)
+        await self.session.flush()
         return relacion
+
+    async def related_user(self, user_id: int) -> Usuario | None:
+        return await self.session.scalar(
+            select(Usuario)
+            .options(selectinload(Usuario.roles))
+            .where(
+                Usuario.id == user_id,
+                Usuario.activo.is_(True),
+                Usuario.deleted_at.is_(None),
+            )
+        )
+
+    async def patient_owner_user_id(self, patient_id: int) -> int | None:
+        return await self.session.scalar(
+            select(Usuario.id)
+            .join(Persona, Persona.id == Usuario.persona_id)
+            .join(Paciente, Paciente.persona_id == Persona.id)
+            .where(Paciente.id == patient_id)
+        )
+
+    async def caregiver_role(self) -> Rol | None:
+        return await self.session.scalar(select(Rol).where(Rol.nombre == "Cuidador"))
 
     async def get_relaciones_by_paciente(self, paciente_id: int) -> Sequence[RelacionPaciente]:
         stmt = select(RelacionPaciente).where(RelacionPaciente.paciente_id == paciente_id)
@@ -125,6 +147,16 @@ class ReminderRepository:
 
     async def get_relacion_by_id(self, relacion_id: int) -> RelacionPaciente | None:
         return await self.session.get(RelacionPaciente, relacion_id)
+
+    async def get_relacion_no_revocada(
+        self, paciente_id: int, usuario_relacionado_id: int
+    ) -> RelacionPaciente | None:
+        stmt = select(RelacionPaciente).where(
+            RelacionPaciente.paciente_id == paciente_id,
+            RelacionPaciente.usuario_relacionado_id == usuario_relacionado_id,
+            RelacionPaciente.estado != "revoked",
+        )
+        return await self.session.scalar(stmt)
 
     async def update_relacion(self, relacion: RelacionPaciente) -> RelacionPaciente:
         await self.session.commit()

@@ -49,6 +49,8 @@ export type PatientContext = {
   patientId: number;
   displayName: string;
   relationship: string | null;
+  /** Solo aplica a caregivers -- nivel de acceso otorgado por el paciente (A11). */
+  accessLevel: string | null;
 };
 
 export type ShellIdentity = {

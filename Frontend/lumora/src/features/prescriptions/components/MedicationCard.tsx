@@ -13,6 +13,8 @@ type MedicationCardProps = {
   isRegistering: boolean;
   onCancelDose: () => void;
   isCanceling: boolean;
+  /** A13 -- un cuidador de solo lectura ve el plan pero no puede actuar. */
+  canManage: boolean;
 };
 
 /**
@@ -29,6 +31,7 @@ export function MedicationCard({
   isRegistering,
   onCancelDose,
   isCanceling,
+  canManage,
 }: MedicationCardProps) {
   const isTaken = item.status === 'tomada';
 
@@ -86,21 +89,28 @@ export function MedicationCard({
               <Text className="text-sm text-coal-500">Tomada</Text>
             </View>
 
-            <AppButton
-              title={isCanceling ? 'Cancelando…' : 'Cancelar'}
-              variant="ghost"
-              loading={isCanceling}
-              onPress={onCancelDose}
-              accessibilityLabel={`Cancelar dosis registrada de ${item.medicamentoNombre}`}
-            />
+            {canManage ? (
+              <AppButton
+                title={isCanceling ? 'Cancelando…' : 'Cancelar'}
+                variant="ghost"
+                loading={isCanceling}
+                onPress={onCancelDose}
+                accessibilityLabel={`Cancelar dosis registrada de ${item.medicamentoNombre}`}
+              />
+            ) : null}
           </View>
-        ) : (
+        ) : canManage ? (
           <AppButton
             title={isRegistering ? 'Registrando…' : 'Registrar dosis'}
             onPress={onRegisterDose}
             loading={isRegistering}
             accessibilityLabel={`Registrar dosis de ${item.medicamentoNombre}`}
           />
+        ) : (
+          <View className="flex-row items-center gap-1">
+            <Ionicons name="lock-closed-outline" size={14} color={theme.colors.textSecondary} />
+            <Text className="text-sm text-coal-500">Solo lectura</Text>
+          </View>
         )}
       </Pressable>
     </Link>

@@ -1,8 +1,11 @@
 import { httpClient } from '@/shared/api/http-client';
 
 import type {
+  RelacionPacienteCreateInput,
   RelacionPacienteResponse,
   RelacionPacienteUpdateInput,
+  TipoRelacionCatalogPage,
+  UsuarioRelacionadoSummary,
 } from '@/features/familiares/types/familiares.types';
 
 /**
@@ -27,6 +30,24 @@ export class FamiliaresApiService {
       `/reminders/pacientes/${pacienteId}/relaciones/${relacionId}`,
       data,
     );
+  }
+
+  /** GET /reminders/usuarios/buscar?email=... -- para "+ Añadir Familiar". */
+  public buscarUsuarioPorEmail(email: string): Promise<UsuarioRelacionadoSummary> {
+    return httpClient.get(`/reminders/usuarios/buscar`, { params: { email } });
+  }
+
+  /** POST /reminders/pacientes/{paciente_id}/relaciones */
+  public crearRelacion(
+    pacienteId: number,
+    data: RelacionPacienteCreateInput,
+  ): Promise<RelacionPacienteResponse> {
+    return httpClient.post(`/reminders/pacientes/${pacienteId}/relaciones`, data);
+  }
+
+  /** GET /tipos-relacion?limit=100 (catálogo, sin prefijo /reminders -- propio router). */
+  public getTiposRelacion(): Promise<TipoRelacionCatalogPage> {
+    return httpClient.get('/tipos-relacion?limit=100');
   }
 }
 

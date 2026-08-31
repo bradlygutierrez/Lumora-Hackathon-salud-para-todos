@@ -64,7 +64,7 @@ class RegistrationEmergencyContact(BaseModel):
     phone: Annotated[str, Field(min_length=5, max_length=30)]
 
 
-class PatientRegistrationRequest(BaseModel):
+class RegistrationIdentityRequest(BaseModel):
     username: Annotated[str, Field(min_length=3, max_length=50)]
     email: EmailStr
     password: Annotated[str, Field(min_length=8, max_length=128)]
@@ -73,9 +73,7 @@ class PatientRegistrationRequest(BaseModel):
     last_names: Annotated[str, Field(min_length=1, max_length=100)]
     birth_date: date
     sex_id: int
-    blood_type_id: int | None = None
     address: RegistrationAddress
-    emergency_contact: RegistrationEmergencyContact
     accept_terms: Literal[True]
     accept_privacy: Literal[True]
 
@@ -95,6 +93,15 @@ class PatientRegistrationRequest(BaseModel):
         return validate_password_policy(value)
 
 
+class PatientRegistrationRequest(RegistrationIdentityRequest):
+    blood_type_id: int | None = None
+    emergency_contact: RegistrationEmergencyContact
+
+
+class CaregiverRegistrationRequest(RegistrationIdentityRequest):
+    model_config = ConfigDict(extra='forbid')
+
+
 class RegistrationResponse(BaseModel):
     user_id: int
     person_id: int
@@ -102,6 +109,13 @@ class RegistrationResponse(BaseModel):
     emergency_contact_id: int
     email_verified: bool = False
     status: str = "pending_email_verification"
+
+
+class CaregiverRegistrationResponse(BaseModel):
+    user_id: int
+    person_id: int
+    email_verified: bool = False
+    status: str = 'pending_email_verification'
 
 
 class RoleAssignment(BaseModel):

@@ -1,7 +1,9 @@
 import { Text, View } from 'react-native';
 
+import { canManagePatientData } from '@/features/caregiver-access/utils/caregiver-permissions';
 import { HealthAlertCard } from '@/features/health-alerts/components/HealthAlertCard';
 import { useHealthAlerts } from '@/features/health-alerts/hooks/useHealthAlerts';
+import { useShellContext } from '@/features/shell/hooks/useShellContext';
 import { AppHeader } from '@/shared/components/AppHeader';
 import { FullScreenState } from '@/shared/components/FullScreenState';
 import { Screen } from '@/shared/components/Screen';
@@ -9,6 +11,11 @@ import { Screen } from '@/shared/components/Screen';
 /** "Alertas de Salud" -- A09. */
 export default function HealthAlertsRoute() {
   const { alerts, isLoading, isError, refetch } = useHealthAlerts();
+  const { activePatient, role } = useShellContext();
+  // A13 -- un cuidador de solo lectura no debe ver "Registrar Ahora" en
+  // una alerta de dosis omitida.
+  const canManage =
+    role !== 'caregiver' || canManagePatientData(activePatient?.accessLevel ?? null);
 
   if (isLoading) {
     return (
@@ -45,7 +52,9 @@ export default function HealthAlertsRoute() {
             </Text>
           </View>
         ) : (
-          alerts.map((alert) => <HealthAlertCard key={alert.id} alert={alert} />)
+          alerts.map((alert) => (
+            <HealthAlertCard key={alert.id} alert={alert} canManage={canManage} />
+          ))
         )}
       </View>
     </Screen>

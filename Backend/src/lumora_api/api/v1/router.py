@@ -21,6 +21,7 @@ from lumora_api.api.v1 import (
     health_indicators,
     health_summary,
     medical_records,
+    medical_record_document,
     mfa,
     motivos_consulta,
     niveles_severidad,
@@ -70,6 +71,7 @@ api_router.include_router(mfa.router)
 api_router.include_router(appointments.router)
 api_router.include_router(professional_workspace.router)
 api_router.include_router(medical_records.router)
+api_router.include_router(medical_record_document.router)
 api_router.include_router(patient_clinical.router)
 api_router.include_router(consultations.router)
 api_router.include_router(prescriptions.router)

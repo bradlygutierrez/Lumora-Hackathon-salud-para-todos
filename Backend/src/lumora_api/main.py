@@ -30,6 +30,7 @@ OPENAPI_TAGS = [
     {"name": "Sexos", "description": "Catálogo de sexo."},
     {"name": "Tipos de sangre", "description": "Catálogo sanguíneo."},
     {"name": "Expedientes", "description": "Expedientes y antecedentes clínicos."},
+    {"name": "Expediente documental", "description": "Documento clínico canónico y exportación PDF."},
     {"name": "Clínica de pacientes", "description": "Alergias y discapacidades."},
     {"name": "Consultas médicas", "description": "Consultas, signos vitales y notas clínicas."},
     {"name": "Diagnósticos", "description": "Diagnósticos asociados a consultas."},

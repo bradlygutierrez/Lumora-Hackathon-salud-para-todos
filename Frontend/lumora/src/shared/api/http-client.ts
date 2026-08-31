@@ -27,6 +27,19 @@ export type RefreshHandler = (
 export type SessionExpiredHandler = () => void | Promise<void>;
 
 /**
+ * Callback usado cuando el backend responde 403 (A13).
+ *
+ * Un 403 durante la sesión normalmente significa que los permisos del
+ * usuario cambiaron desde que se cargó el contexto -- por ejemplo, un
+ * paciente le bajó el nivel de acceso a un cuidador, o le revocó el
+ * acceso, mientras el cuidador seguía con la app abierta. No sabemos
+ * reparar la request que falló, pero sí podemos refrescar el contexto
+ * de permisos para que la UI deje de mostrar acciones que ya no están
+ * autorizadas.
+ */
+export type ForbiddenHandler = () => void | Promise<void>;
+
+/**
  * Cliente HTTP central de Lumora.
  *
  * Equivalente en React web: una instancia de Axios compartida, pero
@@ -37,6 +50,7 @@ export class HttpClientManager {
 
   private refreshHandler: RefreshHandler | null = null;
   private sessionExpiredHandler: SessionExpiredHandler | null = null;
+  private forbiddenHandler: ForbiddenHandler | null = null;
 
   /**
    * Una sola Promise de refresh puede ser compartida por varias requests
@@ -70,6 +84,11 @@ export class HttpClientManager {
   /** Registra qué hacer cuando el refresh deja de ser válido. */
   public setSessionExpiredHandler(handler: SessionExpiredHandler): void {
     this.sessionExpiredHandler = handler;
+  }
+
+  /** Registra qué hacer cuando el backend responde 403 (A13). */
+  public setForbiddenHandler(handler: ForbiddenHandler): void {
+    this.forbiddenHandler = handler;
   }
 
   /** GET tipado que devuelve directamente `response.data`. */
@@ -160,6 +179,12 @@ export class HttpClientManager {
     error: AxiosError,
   ): Promise<AxiosResponse> {
     const request = error.config as RetryableRequest | undefined;
+
+    if (error.response?.status === 403) {
+      // No bloqueamos la propagación del error por esto -- es un efecto
+      // secundario best-effort para refrescar permisos/contexto.
+      void this.forbiddenHandler?.();
+    }
 
     if (error.response?.status !== 401 || !request) {
       throw toApiError(error);

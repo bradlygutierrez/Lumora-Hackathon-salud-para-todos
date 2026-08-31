@@ -6,6 +6,10 @@ Base URL: `/api/v1`. Los errores de dominio usan `{"error":{"code":"...","messag
 
 `POST /auth/register` crea Persona, Usuario, Dirección principal, Paciente, Contacto de emergencia, rol Paciente y código de verificación en una sola transacción. Requiere `username`, `email`, `password`, `phone`, `first_names`, `last_names`, `birth_date`, `sex_id`, `address`, `emergency_contact`, `accept_terms:true` y `accept_privacy:true`; `blood_type_id` es opcional. Responde 201 con IDs, `email_verified:false` y estado, nunca con contraseña o código. Duplicados: 409; catálogos inexistentes: 404; payload inválido: 422.
 
+`POST /auth/register/caregiver` crea Persona, Usuario, Dirección principal, rol Cuidador y código de verificación; no crea Paciente ni Contacto de emergencia. Ambos registros reutilizan `/auth/verify-email` y `/auth/resend-verification`.
+
+`GET /auth/me` puede devolver uno o varios roles. `GET /patients/me` requiere un perfil Paciente. `GET /caregivers/me/patients` devuelve únicamente pacientes con una RelacionPaciente activa, vigente y autorizada; una cuenta cuidadora sin relaciones recibe una lista vacía. El rol Cuidador habilita el modo cuidador, pero no concede acceso global ni reemplaza la autorización por relación.
+
 ## Verificación de correo
 
 `POST /auth/verify-email` acepta `{"email":"...","code":"123456"}`. Por compatibilidad también acepta `{"token":"..."}`. Los códigos expiran, se almacenan como hash y son de un solo uso. `POST /auth/resend-verification` recibe email, responde genéricamente, reemplaza códigos activos y puede responder 429 durante el cooldown.

@@ -2,10 +2,12 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Text, View } from 'react-native';
 
+import { canManagePatientData } from '@/features/caregiver-access/utils/caregiver-permissions';
 import { MeasurementHistoryItem } from '@/features/health-indicators/components/MeasurementHistoryItem';
 import { RangeBadge } from '@/features/health-indicators/components/RangeBadge';
 import { TrendSparkline } from '@/features/health-indicators/components/TrendSparkline';
 import { useResolvedIndicatorHistory } from '@/features/health-indicators/hooks/useResolvedIndicatorHistory';
+import { useShellContext } from '@/features/shell/hooks/useShellContext';
 import { AppButton } from '@/shared/components/AppButton';
 import { AppHeader } from '@/shared/components/AppHeader';
 import { FullScreenState } from '@/shared/components/FullScreenState';
@@ -19,6 +21,9 @@ export default function IndicatorHistoryRoute() {
   const { indicadorId } = useLocalSearchParams<{ indicadorId: string }>();
   const router = useRouter();
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const { activePatient, role } = useShellContext();
+  const canManage =
+    role !== 'caregiver' || canManagePatientData(activePatient?.accessLevel ?? null);
 
   const {
     indicador,
@@ -126,15 +131,17 @@ export default function IndicatorHistoryRoute() {
           ) : null}
         </View>
 
-        <AppButton
-          title="+ Nueva Medición"
-          onPress={() =>
-            router.push({
-              pathname: '/(app)/health-indicators/[indicadorId]/new',
-              params: { indicadorId: indicador.id },
-            })
-          }
-        />
+        {canManage ? (
+          <AppButton
+            title="+ Nueva Medición"
+            onPress={() =>
+              router.push({
+                pathname: '/(app)/health-indicators/[indicadorId]/new',
+                params: { indicadorId: indicador.id },
+              })
+            }
+          />
+        ) : null}
       </View>
     </Screen>
   );

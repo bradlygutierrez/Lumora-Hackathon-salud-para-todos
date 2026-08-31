@@ -1,6 +1,7 @@
 import {
   canOpenPatient,
   canOpenWithoutPatientContext,
+  shouldClearPatientCache,
 } from '@/features/shell/navigation/shell-route-guard';
 
 describe('canOpenPatient', () => {
@@ -78,5 +79,21 @@ describe('canOpenWithoutPatientContext', () => {
         '/medication',
       ),
     ).toBe(false);
+  });
+});
+
+// --- A12: aislamiento de cache al cambiar de paciente -----------------------
+
+describe('shouldClearPatientCache', () => {
+  it('does not clear the cache the first time a patient is selected', () => {
+    expect(shouldClearPatientCache(null, 7)).toBe(false);
+  });
+
+  it('does not clear the cache when re-selecting the same patient', () => {
+    expect(shouldClearPatientCache(7, 7)).toBe(false);
+  });
+
+  it('clears the cache when switching to a genuinely different patient', () => {
+    expect(shouldClearPatientCache(7, 8)).toBe(true);
   });
 });

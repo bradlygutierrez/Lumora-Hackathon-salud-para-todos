@@ -32,6 +32,12 @@ type AppointmentCardProps = {
   onDetail: () => void;
   onReschedule?: () => void;
   onCancel?: () => void;
+  /**
+   * A13 -- un cuidador de solo lectura puede ver la cita pero no
+   * reprogramarla ni cancelarla. Por defecto true para no romper otros
+   * llamadores (pacientes siempre pueden gestionar sus propias citas).
+   */
+  canManage?: boolean;
 };
 
 function SmallAction({
@@ -108,6 +114,7 @@ export function AppointmentCard({
   onDetail,
   onReschedule,
   onCancel,
+  canManage = true,
 }: AppointmentCardProps) {
   const status =
     appointmentStatusName(
@@ -116,6 +123,7 @@ export function AppointmentCard({
 
   const manageable =
     upcoming &&
+    canManage &&
     canManageAppointment(
       appointment,
     );

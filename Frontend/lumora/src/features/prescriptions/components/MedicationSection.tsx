@@ -25,6 +25,8 @@ type MedicationSectionProps = {
   onRegisterDose: (item: TodayMedicationItem) => void;
   cancelingHorarioId: string | null;
   onCancelDose: (item: TodayMedicationItem) => void;
+  /** A13 -- un cuidador de solo lectura no puede registrar/cancelar dosis. */
+  canManage: boolean;
 };
 
 /** Grupo "Mañana"/"Tarde"/"Noche" del Plan de Hoy. */
@@ -35,6 +37,7 @@ export function MedicationSection({
   onRegisterDose,
   cancelingHorarioId,
   onCancelDose,
+  canManage,
 }: MedicationSectionProps) {
   return (
     <View className="gap-3">
@@ -59,6 +62,7 @@ export function MedicationSection({
               onRegisterDose={() => onRegisterDose(item)}
               isCanceling={cancelingHorarioId === item.horarioId}
               onCancelDose={() => onCancelDose(item)}
+              canManage={canManage}
             />
           ))}
         </View>
