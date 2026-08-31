@@ -12,19 +12,19 @@ import type {
  * sesión automáticos, ver shared/api/http-client.ts).
  */
 export class FamiliaresApiService {
-  /** GET /pacientes/{paciente_id}/relaciones */
+  /** GET /reminders/pacientes/{paciente_id}/relaciones */
   public getRelaciones(pacienteId: number): Promise<RelacionPacienteResponse[]> {
-    return httpClient.get(`/pacientes/${pacienteId}/relaciones`);
+    return httpClient.get(`/reminders/pacientes/${pacienteId}/relaciones`);
   }
 
-  /** PATCH /pacientes/{paciente_id}/relaciones/{relacion_id} */
+  /** PATCH /reminders/pacientes/{paciente_id}/relaciones/{relacion_id} */
   public updateRelacion(
     pacienteId: number,
     relacionId: number,
     data: RelacionPacienteUpdateInput,
   ): Promise<RelacionPacienteResponse> {
     return httpClient.patch(
-      `/pacientes/${pacienteId}/relaciones/${relacionId}`,
+      `/reminders/pacientes/${pacienteId}/relaciones/${relacionId}`,
       data,
     );
   }
