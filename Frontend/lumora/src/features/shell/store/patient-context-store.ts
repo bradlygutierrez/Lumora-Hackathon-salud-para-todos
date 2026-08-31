@@ -25,6 +25,20 @@ type PatientContextState = {
     availablePatients: PatientContext[],
   ) => void;
   selectPatient: (patientId: number) => boolean;
+  /**
+   * Refresca la lista de pacientes autorizados de un caregiver con datos
+   * frescos del backend (A12). Si el paciente activo ya no aparece en la
+   * lista -- porque el paciente revocó el acceso, o expiró -- se limpia
+   * el contexto y vuelve a "needs-patient" para forzar una nueva
+   * selección (el layout ya redirige a /select-patient en ese estado).
+   * Si el paciente activo sigue autorizado, no se toca -- solo se
+   * refresca la lista para que la pantalla de selección muestre datos
+   * al día.
+   */
+  syncAvailablePatients: (
+    role: LumoraRole,
+    freshPatients: PatientContext[],
+  ) => void;
   clear: () => void;
   setError: (message: string) => void;
 };
@@ -101,6 +115,48 @@ export const usePatientContextStore =
       });
 
       return true;
+    },
+
+    syncAvailablePatients: (role, freshPatients) => {
+      const current = get();
+
+      // Un cambio de rol (ej. sesión distinta) no se resuelve aquí --
+      // eso pasa por hydrate() en el próximo login.
+      if (current.role !== role) {
+        return;
+      }
+
+      const stillAuthorized =
+        current.activePatient !== null &&
+        freshPatients.some(
+          (item) => item.patientId === current.activePatient?.patientId,
+        );
+
+      if (current.activePatient !== null && !stillAuthorized) {
+        set({
+          availablePatients: freshPatients,
+          activePatient: null,
+          status: 'needs-patient',
+          errorMessage:
+            'Tu acceso a ese paciente ya no está disponible. Elige otro paciente.',
+        });
+        return;
+      }
+
+      // El paciente activo (si hay uno) sigue autorizado -- solo
+      // refrescamos la lista con los datos más recientes (nombres,
+      // nivel de acceso, etc.) sin tocar la selección actual.
+      const refreshedActivePatient =
+        current.activePatient !== null
+          ? (freshPatients.find(
+              (item) => item.patientId === current.activePatient?.patientId,
+            ) ?? current.activePatient)
+          : null;
+
+      set({
+        availablePatients: freshPatients,
+        activePatient: refreshedActivePatient,
+      });
     },
 
     clear: () => {
