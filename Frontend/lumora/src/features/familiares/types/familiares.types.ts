@@ -33,3 +33,18 @@ export type RelacionPacienteUpdateInput = {
   recibir_notificaciones?: boolean;
   estado?: RelacionEstado;
 };
+
+export type RelacionPacienteCreateInput = {
+  paciente_id: number;
+  usuario_relacionado_id: number;
+  tipo_relacion_id: number;
+  nivel_acceso?: NivelAcceso;
+  recibir_notificaciones?: boolean;
+};
+
+export type TipoRelacionCatalogPage = {
+  items: TipoRelacionSummary[];
+  total: number;
+  limit: number;
+  offset: number;
+};

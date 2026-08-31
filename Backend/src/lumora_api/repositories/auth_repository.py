@@ -52,7 +52,13 @@ class AuthRepository:
         )
 
     async def patient_role(self) -> Rol | None:
-        return await self.session.scalar(select(Rol).where(Rol.nombre == "Paciente"))
+        return await self.role_by_name("Paciente")
+
+    async def caregiver_role(self) -> Rol | None:
+        return await self.role_by_name("Cuidador")
+
+    async def role_by_name(self, name: str) -> Rol | None:
+        return await self.session.scalar(select(Rol).where(Rol.nombre == name))
 
     async def sex_exists(self, sex_id: int) -> bool:
         return await self.session.get(Sexo, sex_id) is not None

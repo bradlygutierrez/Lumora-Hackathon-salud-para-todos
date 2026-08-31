@@ -84,3 +84,20 @@ export function canOpenWithoutPatientContext(
 
   return false;
 }
+
+/**
+ * Decide si el cache de queries patient-scoped debe limpiarse al
+ * cambiar de contexto (A12: "aislamiento de cache").
+ *
+ * Solo debe limpiarse cuando el paciente activo REALMENTE cambia --
+ * no cuando se re-selecciona el mismo paciente (ej. al volver a
+ * confirmar desde la pantalla de selección), ni la primera vez que se
+ * elige un paciente (previousPatientId es null, no hay nada que
+ * limpiar todavía).
+ */
+export function shouldClearPatientCache(
+  previousPatientId: number | null,
+  nextPatientId: number,
+): boolean {
+  return previousPatientId !== null && previousPatientId !== nextPatientId;
+}

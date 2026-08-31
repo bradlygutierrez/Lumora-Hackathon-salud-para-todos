@@ -8,6 +8,8 @@ from lumora_api.repositories.auth_repository import AuthRepository
 from lumora_api.schemas import (
     AccessToken,
     ChangePasswordRequest,
+    CaregiverRegistrationRequest,
+    CaregiverRegistrationResponse,
     ForgotPasswordRequest,
     LoginMfaResponse,
     LoginTokenResponse,
@@ -41,6 +43,16 @@ async def current_user_context(current_user: CurrentUser) -> CurrentUserRead:
 @router.post("/register", response_model=RegistrationResponse, status_code=status.HTTP_201_CREATED)
 async def register(data: PatientRegistrationRequest, session: SessionDep):
     return await AuthService(AuthRepository(session)).register_patient(data)
+
+
+@router.post(
+    "/register/caregiver",
+    response_model=CaregiverRegistrationResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Registrar una cuenta cuidadora",
+)
+async def register_caregiver(data: CaregiverRegistrationRequest, session: SessionDep):
+    return await AuthService(AuthRepository(session)).register_caregiver(data)
 
 
 @router.post("/login", response_model=LoginTokenResponse | LoginMfaResponse)

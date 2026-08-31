@@ -172,6 +172,9 @@ export class ShellContextService {
 
         relationship:
           null,
+
+        accessLevel:
+          null,
       },
     ];
   }
@@ -185,7 +188,12 @@ export class ShellContextService {
    * La validación de autorización real continúa
    * siendo responsabilidad del backend.
    */
-  private async caregiverPatientContexts():
+  /**
+   * Público para que useCaregiverPatientsSync pueda re-consultarlo
+   * periódicamente (A12: detectar cuando un paciente revoca el acceso
+   * a mitad de sesión).
+   */
+  public async caregiverPatientContexts():
     Promise<PatientContext[]> {
     try {
       const response =
@@ -213,6 +221,9 @@ export class ShellContextService {
 
             relationship:
               item.relationship,
+
+            accessLevel:
+              item.access_level,
           }),
         );
     } catch (error) {

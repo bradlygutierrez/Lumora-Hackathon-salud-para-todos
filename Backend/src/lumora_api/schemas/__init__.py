@@ -8,6 +8,8 @@ from lumora_api.schemas.appointments import (
 from lumora_api.schemas.auth import (
     AccessToken,
     ChangePasswordRequest,
+    CaregiverRegistrationRequest,
+    CaregiverRegistrationResponse,
     ForgotPasswordRequest,
     LoginMfaResponse,
     LoginRequest,
@@ -149,6 +151,8 @@ __all__ = [
     "HealthSummaryRead",
     "AccessToken",
     "ChangePasswordRequest",
+    "CaregiverRegistrationRequest",
+    "CaregiverRegistrationResponse",
     "ForgotPasswordRequest",
     "MessageResponse",
     "PermissionAssignment",

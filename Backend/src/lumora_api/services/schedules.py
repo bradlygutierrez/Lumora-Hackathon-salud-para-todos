@@ -92,7 +92,9 @@ class ScheduleService:
         paciente_id = await ScheduleService._paciente_id_for_horario(db, dosis_in.horario_id)
         if paciente_id is None:
             raise ResourceNotFoundError("Horario de medicamento no encontrado")
-        await ensure_can_access_patient_data(db, current_user, paciente_id)
+        # Registrar una dosis es una mutacion -- un cuidador con acceso de
+        # solo lectura no puede marcarla como tomada (A13).
+        await ensure_can_access_patient_data(db, current_user, paciente_id, action="write")
         db_dosis = DosisAdministrada(**dosis_in.model_dump())
         db.add(db_dosis)
         await db.commit()
@@ -124,7 +126,9 @@ class ScheduleService:
             raise ResourceNotFoundError("Registro de dosis no encontrado")
 
         paciente_id = await ScheduleService._paciente_id_for_horario(db, db_dosis.horario_id)
-        await ensure_can_access_patient_data(db, current_user, paciente_id)
+        # Cambiar el estado de una dosis (posponer/omitir/etc.) tambien es
+        # una mutacion -- misma regla que crear el registro (A13).
+        await ensure_can_access_patient_data(db, current_user, paciente_id, action="write")
 
         db_dosis.estado_dosis_id = estado_dosis_id
         if observaciones is not None:

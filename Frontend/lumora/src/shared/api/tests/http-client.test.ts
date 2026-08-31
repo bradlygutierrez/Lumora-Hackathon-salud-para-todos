@@ -133,4 +133,31 @@ describe('HttpClientManager', () => {
     expect(expired).toHaveBeenCalledTimes(1);
     localMock.restore();
   });
+
+  // A13: un 403 dispara el handler de permisos (además de propagar el error).
+  it('calls the forbidden handler on a 403 response', async () => {
+    const instance = axios.create();
+    const localMock = new MockAdapter(instance);
+    const localClient = new HttpClientManager(instance);
+    const forbidden = jest.fn().mockResolvedValue(undefined);
+    localClient.setForbiddenHandler(forbidden);
+    localMock.onGet('/patients/1/health-summary').reply(403, {});
+
+    await expect(localClient.get('/patients/1/health-summary')).rejects.toBeInstanceOf(ApiError);
+    expect(forbidden).toHaveBeenCalledTimes(1);
+    localMock.restore();
+  });
+
+  it('does not call the forbidden handler on other error statuses', async () => {
+    const instance = axios.create();
+    const localMock = new MockAdapter(instance);
+    const localClient = new HttpClientManager(instance);
+    const forbidden = jest.fn().mockResolvedValue(undefined);
+    localClient.setForbiddenHandler(forbidden);
+    localMock.onGet('/broken').reply(500, {});
+
+    await expect(localClient.get('/broken')).rejects.toBeInstanceOf(ApiError);
+    expect(forbidden).not.toHaveBeenCalled();
+    localMock.restore();
+  });
 });

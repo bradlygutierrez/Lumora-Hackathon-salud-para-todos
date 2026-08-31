@@ -12,7 +12,7 @@ async def test_seed_loads_all_catalogs_and_is_idempotent(session_factory, monkey
     await seed_module.seed()
 
     async with session_factory() as session:
-        assert await session.scalar(select(func.count()).select_from(Rol)) == 2
+        assert await session.scalar(select(func.count()).select_from(Rol)) == 3
         assert await session.scalar(select(func.count()).select_from(Permiso)) == 4
         assert await session.scalar(select(func.count()).select_from(EstadoCita)) == 4
         assert await session.scalar(select(func.count()).select_from(TipoCita)) == 2
@@ -25,3 +25,6 @@ async def test_seed_loads_all_catalogs_and_is_idempotent(session_factory, monkey
             "rbac:manage",
             "clinica:manage",
         }
+        caregiver = await session.scalar(select(Rol).where(Rol.nombre == "Cuidador"))
+        assert caregiver is not None
+        assert caregiver.permisos == []
