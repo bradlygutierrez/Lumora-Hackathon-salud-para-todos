@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 
 import { usePatientContextStore } from '@/features/shell/store/patient-context-store';
 import { patientQueryKeys } from '@/features/shell/query/patient-query-keys';
+import { shouldClearPatientCache } from '@/features/shell/navigation/shell-route-guard';
 
 export function useShellContext() {
   const queryClient = useQueryClient();
@@ -20,10 +21,7 @@ export function useShellContext() {
         return false;
       }
 
-      if (
-        currentPatientId !== null &&
-        currentPatientId !== patientId
-      ) {
+      if (shouldClearPatientCache(currentPatientId, patientId)) {
         queryClient.removeQueries({
           queryKey: patientQueryKeys.all,
         });

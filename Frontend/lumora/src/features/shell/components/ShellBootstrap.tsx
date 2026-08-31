@@ -19,6 +19,10 @@ import {
   usePatientContextStore,
 } from '@/features/shell/store/patient-context-store';
 
+import {
+  useCaregiverPatientsSync,
+} from '@/features/shell/hooks/useCaregiverPatientsSync';
+
 /**
  * Inicializa el contexto privado de Lumora después
  * de que existe una sesión autenticada.
@@ -32,6 +36,11 @@ export function ShellBootstrap({
   const authStatus = useAuthStore(
     (state) => state.status,
   );
+
+  // A12: revalida periódicamente el acceso del caregiver -- si el
+  // paciente activo ya no está autorizado, limpia el contexto y el
+  // guard de _layout.tsx redirige a /select-patient.
+  useCaregiverPatientsSync();
 
   useEffect(() => {
     if (
