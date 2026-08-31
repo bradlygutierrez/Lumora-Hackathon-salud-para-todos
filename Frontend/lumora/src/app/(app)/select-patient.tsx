@@ -104,7 +104,7 @@ export default function SelectPatientRoute() {
                 </View>
 
                 {isActive ? (
-                  <View className="rounded-full bg-[#0F7B83] px-3 py-1">
+                  <View className="rounded-full bg-[#78AEDD] px-3 py-1">
                     <Text className="text-xs font-semibold text-white">Activo</Text>
                   </View>
                 ) : null}
@@ -117,7 +117,7 @@ export default function SelectPatientRoute() {
               </View>
 
               <Pressable
-                className="mt-4 rounded-2xl bg-[#0F7B83] px-4 py-3 active:opacity-80"
+                className="mt-4 rounded-2xl bg-[#78AEDD] px-4 py-3 active:opacity-80"
                 onPress={() => {
                   const allowed = switchPatient(patient.patientId);
 
