@@ -4,8 +4,9 @@ from collections.abc import Iterable
 from datetime import date, datetime, time, timezone
 from typing import Any
 
-from sqlalchemy import and_, or_, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from lumora_api.models import (
     Alergia,
@@ -15,18 +16,30 @@ from lumora_api.models import (
     ConsultaMedica,
     Diagnostico,
     Discapacidad,
+    DetalleReceta,
+    EstadoCondicion,
+    EstadoExpediente,
+    EstadoReceta,
     EventoAuditoria,
     Expediente,
     HistorialCondicion,
     IndicadorMedico,
     MedicionIndicador,
+    MotivoConsulta,
     NivelSeveridad,
     NotaClinica,
     Paciente,
+    ProfesionalSalud,
     Receta,
     SignoVital,
     TipoAlerta,
+    TipoAntecedente,
+    TipoDiagnostico,
+    TipoSangre,
+    Sexo,
     UnidadMedida,
+    ViaAdministracion,
+    OrigenRegistro,
 )
 
 
@@ -92,6 +105,47 @@ class ClinicalIntegrationRepository:
             "measurements": await self._measurements(record.paciente_id, limit=5),
             "alerts": await self._active_alerts(record.paciente_id),
         }
+
+    async def document_payload(
+        self, patient: Paciente, record: Expediente | None
+    ) -> dict[str, Any]:
+        consultations = await self._consultations(record.id) if record else []
+        consultation_ids = [item.id for item in consultations]
+        diagnoses = await self._diagnoses(consultation_ids)
+        prescriptions = await self._document_prescriptions(patient.id)
+        professional_ids = {
+            *(item.profesional_id for item in consultations),
+            *(item.profesional_id for item in diagnoses),
+            *(item.profesional_id for item in prescriptions),
+        }
+        return {
+            'patient': patient,
+            'record': record,
+            'histories': await self._histories(record.id) if record else [],
+            'allergies': await self._allergies(patient.id),
+            'disabilities': await self._disabilities(patient.id),
+            'conditions': await self._conditions(record.id) if record else [],
+            'consultations': consultations,
+            'vital_signs': await self._vital_signs(consultation_ids),
+            'diagnoses': diagnoses,
+            'prescriptions': prescriptions,
+            'measurements': await self._latest_measurements_per_indicator(patient.id),
+            'professionals': await self._professionals(professional_ids),
+            'catalogs': await self._document_catalogs(),
+        }
+
+    async def add_pdf_export_audit(
+        self, *, patient_id: int, user_id: int, ip: str | None, user_agent: str | None
+    ) -> None:
+        self.session.add(EventoAuditoria(
+            usuario_id=user_id,
+            accion='EXPORT_PDF',
+            entidad='expediente_documental',
+            entidad_id=patient_id,
+            ip=ip,
+            user_agent=user_agent,
+        ))
+        await self.session.commit()
 
     async def timeline_items(
         self,
@@ -280,6 +334,85 @@ class ClinicalIntegrationRepository:
         return list(
             await self.session.scalars(query.order_by(Receta.fecha_emision, Receta.id))
         )
+
+    async def _document_prescriptions(self, patient_id: int) -> list[Receta]:
+        return list(await self.session.scalars(
+            select(Receta)
+            .options(
+                selectinload(Receta.detalles).selectinload(DetalleReceta.medicamento),
+                selectinload(Receta.detalles).selectinload(DetalleReceta.unidad_medida),
+                selectinload(Receta.detalles).selectinload(DetalleReceta.via_administracion),
+                selectinload(Receta.estado),
+            )
+            .where(Receta.paciente_id == patient_id)
+            .order_by(Receta.fecha_emision, Receta.id)
+        ))
+
+    async def _professionals(
+        self, professional_ids: Iterable[int]
+    ) -> dict[int, ProfesionalSalud]:
+        ids = list(professional_ids)
+        if not ids:
+            return {}
+        items = await self.session.scalars(
+            select(ProfesionalSalud)
+            .options(selectinload(ProfesionalSalud.persona))
+            .where(ProfesionalSalud.id.in_(ids))
+        )
+        return {item.id: item for item in items}
+
+    async def _document_catalogs(self) -> dict[type, dict[int, Any]]:
+        models = (
+            Sexo, TipoSangre, EstadoExpediente, EstadoCondicion, NivelSeveridad,
+            TipoAntecedente, MotivoConsulta, TipoDiagnostico, EstadoReceta,
+            UnidadMedida, ViaAdministracion, OrigenRegistro,
+        )
+        result: dict[type, dict[int, Any]] = {}
+        for model in models:
+            items = await self.session.scalars(select(model).order_by(model.id))
+            result[model] = {item.id: item for item in items}
+        return result
+
+    async def _latest_measurements_per_indicator(
+        self, patient_id: int
+    ) -> list[dict[str, Any]]:
+        ranked = (
+            select(
+                MedicionIndicador.id.label('measurement_id'),
+                func.row_number().over(
+                    partition_by=MedicionIndicador.indicador_id,
+                    order_by=(
+                        MedicionIndicador.fecha_medicion.desc(),
+                        MedicionIndicador.id.desc(),
+                    ),
+                ).label('position'),
+            )
+            .where(MedicionIndicador.paciente_id == patient_id)
+            .subquery()
+        )
+        rows = (await self.session.execute(
+            select(
+                MedicionIndicador,
+                IndicadorMedico.nombre,
+                UnidadMedida.nombre,
+                OrigenRegistro.nombre,
+            )
+            .join(ranked, ranked.c.measurement_id == MedicionIndicador.id)
+            .join(IndicadorMedico, IndicadorMedico.id == MedicionIndicador.indicador_id)
+            .join(UnidadMedida, UnidadMedida.id == MedicionIndicador.unidad_medida_id)
+            .join(OrigenRegistro, OrigenRegistro.id == MedicionIndicador.origen_registro_id)
+            .where(ranked.c.position == 1)
+            .order_by(IndicadorMedico.nombre, MedicionIndicador.indicador_id)
+        )).all()
+        return [
+            {
+                'measurement': measurement,
+                'indicador_nombre': indicator_name,
+                'unidad_nombre': unit_name,
+                'origen_nombre': origin_name,
+            }
+            for measurement, indicator_name, unit_name, origin_name in rows
+        ]
 
     async def _alerts(self, patient_id: int) -> list[AlertaClinica]:
         return list(
