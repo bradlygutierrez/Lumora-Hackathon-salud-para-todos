@@ -44,6 +44,7 @@ export type LoginMfaResponse = {
   mfa_required: true;
   challenge_token: string;
   expires_in: number;
+  method?: string | null;
 };
 
 export type LoginResponse = LoginTokenResponse | LoginMfaResponse;
@@ -51,6 +52,7 @@ export type LoginResponse = LoginTokenResponse | LoginMfaResponse;
 export type PendingMfaChallenge = {
   challengeToken: string;
   expiresIn: number;
+  method?: string | null;
 };
 
 export type MessageResponse = {

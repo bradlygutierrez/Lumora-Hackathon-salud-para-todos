@@ -63,6 +63,7 @@ describe('AuthSessionProvider', () => {
       mfa_required: true,
       challenge_token: 'challenge-from-login',
       expires_in: 300,
+      method: 'totp',
     });
 
     let authValue: AuthValue | undefined;
@@ -87,6 +88,7 @@ describe('AuthSessionProvider', () => {
     expect(authValue).toHaveProperty('pendingMfa', {
       challengeToken: 'challenge-from-login',
       expiresIn: 300,
+      method: 'totp',
     });
     expect(mockedSessionManager.saveTokenPair).not.toHaveBeenCalled();
     expect(authValue?.status).toBe('anonymous');

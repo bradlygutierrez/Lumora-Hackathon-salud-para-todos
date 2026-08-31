@@ -1,5 +1,6 @@
-import { forwardRef } from 'react';
+import { forwardRef, useState } from 'react';
 import {
+  Pressable,
   StyleSheet,
   Text,
   TextInput,
@@ -14,53 +15,109 @@ type TextFieldProps = TextInputProps & {
   label: string;
   error?: string;
   icon?: keyof typeof Ionicons.glyphMap;
+  rightAccessibilityLabel?: string;
+  rightIcon?: keyof typeof Ionicons.glyphMap;
+  onRightIconPress?: () => void;
 };
 
 export const TextField = forwardRef<TextInput, TextFieldProps>(
-  ({ error, icon, label, style, ...props }, ref) => (
-    <View style={styles.container}>
-      <Text style={styles.label}>{label}</Text>
-      <View style={[styles.inputShell, error ? styles.inputError : null]}>
-        {icon ? <Ionicons color={theme.color.mutedText} name={icon} size={20} /> : null}
-        <TextInput
-          ref={ref}
-          placeholderTextColor={theme.color.mutedText}
-          style={[styles.input, style]}
-          {...props}
-        />
+  (
+    {
+      error,
+      icon,
+      label,
+      onBlur,
+      onFocus,
+      onRightIconPress,
+      rightAccessibilityLabel,
+      rightIcon,
+      style,
+      ...props
+    },
+    ref,
+  ) => {
+    const [focused, setFocused] = useState(false);
+
+    return (
+      <View style={styles.container}>
+        <Text style={styles.label}>{label}</Text>
+        <View
+          style={[
+            styles.inputShell,
+            focused ? styles.inputFocused : null,
+            error ? styles.inputError : null,
+          ]}
+        >
+          {icon ? (
+            <Ionicons color={theme.color.mutedText} name={icon} size={22} />
+          ) : null}
+          <TextInput
+            ref={ref}
+            onBlur={(event) => {
+              setFocused(false);
+              onBlur?.(event);
+            }}
+            onFocus={(event) => {
+              setFocused(true);
+              onFocus?.(event);
+            }}
+            placeholderTextColor={theme.color.subtleText}
+            style={[styles.input, style]}
+            {...props}
+          />
+          {rightIcon ? (
+            <Pressable
+              accessibilityLabel={rightAccessibilityLabel}
+              accessibilityRole="button"
+              hitSlop={10}
+              onPress={onRightIconPress}
+            >
+              <Ionicons color={theme.color.mutedText} name={rightIcon} size={23} />
+            </Pressable>
+          ) : null}
+        </View>
+        {error ? (
+          <Text accessibilityRole="alert" style={styles.error}>
+            {error}
+          </Text>
+        ) : null}
       </View>
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-    </View>
-  ),
+    );
+  },
 );
 
 TextField.displayName = 'TextField';
 
 const styles = StyleSheet.create({
   container: {
-    gap: theme.spacing.xs,
+    gap: 7,
   },
   label: {
     color: theme.color.text,
-    fontSize: theme.typography.caption,
-    fontWeight: '700',
+    fontSize: 15,
+    fontWeight: '800',
+    letterSpacing: 0.2,
   },
   inputShell: {
     alignItems: 'center',
-    backgroundColor: theme.color.surface,
+    backgroundColor: theme.color.surfaceMuted,
     borderColor: theme.color.border,
-    borderRadius: theme.radius.md,
+    borderRadius: 10,
     borderWidth: 1,
     flexDirection: 'row',
-    gap: theme.spacing.xs,
-    minHeight: 48,
+    gap: theme.spacing.sm,
+    minHeight: 54,
     paddingHorizontal: theme.spacing.md,
   },
+  inputFocused: {
+    borderColor: theme.color.primaryPressed,
+    borderWidth: 2,
+  },
   input: {
-    flex: 1,
     color: theme.color.text,
+    flex: 1,
     fontSize: theme.typography.body,
-    minHeight: 46,
+    minHeight: 50,
   },
   inputError: {
     borderColor: theme.color.danger,
@@ -68,5 +125,6 @@ const styles = StyleSheet.create({
   error: {
     color: theme.color.danger,
     fontSize: theme.typography.caption,
+    lineHeight: 18,
   },
 });

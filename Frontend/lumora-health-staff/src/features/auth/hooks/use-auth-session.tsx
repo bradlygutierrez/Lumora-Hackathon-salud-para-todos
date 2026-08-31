@@ -157,6 +157,7 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
       setPendingMfa({
         challengeToken: response.challenge_token,
         expiresIn: response.expires_in,
+        method: response.method,
       });
       return 'mfa_required';
     }
