@@ -104,6 +104,12 @@ export default function ProfileRoute() {
           </ProfileSection>
         ) : null}
 
+        {role !== 'caregiver' ? (
+          <ProfileSection title="Familiares Autorizados">
+            <ActionRow label="Gestionar familiares y permisos" href="/(app)/familiares" />
+          </ProfileSection>
+        ) : null}
+
         <ProfileSection title="Seguridad">
           <ActionRow label="Contraseña" href="/(app)/security/change-password" />
           <ActionRow label="Autenticación multifactor" href="/(app)/security/mfa" />
