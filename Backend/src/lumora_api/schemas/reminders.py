@@ -220,8 +220,31 @@ class RelacionPacienteCreate(RelacionPacienteBase):
     pass
 
 
+class RelacionPacienteUpdate(BaseModel):
+    nivel_acceso: Optional[Literal["read", "write"]] = None
+    recibir_notificaciones: Optional[bool] = None
+    estado: Optional[Literal["pending", "active", "revoked", "inactive", "rejected"]] = None
+
+
+class UsuarioRelacionadoSummary(BaseModel):
+    id: int
+    full_name: str
+    email: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class TipoRelacionSummary(BaseModel):
+    id: int
+    nombre: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class RelacionPacienteResponse(RelacionPacienteBase):
     id: int
     creado_en: datetime
+    usuario_relacionado: Optional[UsuarioRelacionadoSummary] = None
+    tipo_relacion: Optional[TipoRelacionSummary] = None
 
     model_config = ConfigDict(from_attributes=True)

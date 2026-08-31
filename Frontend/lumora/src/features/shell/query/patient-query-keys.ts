@@ -18,4 +18,7 @@ export const patientQueryKeys = {
 
   reminders: (patientId: number) =>
     [...patientQueryKeys.scope(patientId), 'reminders'] as const,
+
+  familiares: (patientId: number) =>
+    [...patientQueryKeys.scope(patientId), 'familiares'] as const,
 };

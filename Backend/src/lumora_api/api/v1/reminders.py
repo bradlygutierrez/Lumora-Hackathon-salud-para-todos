@@ -19,6 +19,7 @@ from lumora_api.schemas.reminders import (
     PreferenciaNotificacionUpdate,
     PreferenciaNotificacionResponse,
     RelacionPacienteCreate,
+    RelacionPacienteUpdate,
     RelacionPacienteResponse,
 )
 
@@ -233,3 +234,8 @@ async def crear_relacion(paciente_id: int, data: RelacionPacienteCreate, current
 async def listar_relaciones(paciente_id: int, current_user: CurrentUser, db: AsyncSession = Depends(get_db)):
     await PatientAccessService(PatientAccessRepository(db)).require_access(current_user, paciente_id)
     return await ReminderService(db).obtener_relaciones_paciente(paciente_id)
+
+@router.patch("/pacientes/{paciente_id}/relaciones/{relacion_id}", response_model=RelacionPacienteResponse)
+async def actualizar_relacion(paciente_id: int, relacion_id: int, data: RelacionPacienteUpdate, current_user: CurrentUser, db: AsyncSession = Depends(get_db)):
+    await PatientAccessService(PatientAccessRepository(db)).require_relationship_management(current_user, paciente_id)
+    return await ReminderService(db).actualizar_relacion_paciente(paciente_id, relacion_id, data)

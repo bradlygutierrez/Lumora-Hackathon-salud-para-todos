@@ -22,6 +22,7 @@ from lumora_api.schemas.reminders import (
     NotificacionResponse,
     PreferenciaNotificacionUpdate,
     RelacionPacienteCreate,
+    RelacionPacienteUpdate,
 )
 
 # A09: misma ventana de 48h que HealthAlertsService usa para "dosis
@@ -459,3 +460,18 @@ class ReminderService:
 
     async def obtener_relaciones_paciente(self, paciente_id: int) -> Sequence[RelacionPaciente]:
         return await self.repo.get_relaciones_by_paciente(paciente_id)
+
+    async def actualizar_relacion_paciente(
+        self, paciente_id: int, relacion_id: int, data: RelacionPacienteUpdate
+    ) -> RelacionPaciente:
+        relacion = await self.repo.get_relacion_by_id(relacion_id)
+        if relacion is None or relacion.paciente_id != paciente_id:
+            raise HTTPException(status_code=404, detail="Relación no encontrada")
+        if data.estado == "revoked" and relacion.estado == "revoked":
+            raise HTTPException(status_code=409, detail="La relación ya está revocada")
+        payload = data.model_dump(exclude_unset=True)
+        for key, value in payload.items():
+            setattr(relacion, key, value)
+        if data.estado == "revoked":
+            relacion.activo = False
+        return await self.repo.update_relacion(relacion)
