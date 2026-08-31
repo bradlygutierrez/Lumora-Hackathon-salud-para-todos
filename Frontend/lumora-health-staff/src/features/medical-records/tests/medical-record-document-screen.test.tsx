@@ -209,8 +209,8 @@ describe('MedicalRecordDocumentScreen', () => {
     defaults();
   });
 
-  it('renders only the consolidated fields supplied by B15', () => {
-    const screen = render(<MedicalRecordDocumentScreen patientId={9} />);
+  it('renders only the consolidated fields supplied by B15', async () => {
+    const screen = await render(<MedicalRecordDocumentScreen patientId={9} />);
 
     expect(screen.getByText('Ana Segura')).toBeTruthy();
     expect(screen.getByText('EXP-B15-17')).toBeTruthy();
@@ -218,31 +218,31 @@ describe('MedicalRecordDocumentScreen', () => {
     expect(screen.getByText('Hipertensión')).toBeTruthy();
     expect(screen.getByText('Control general')).toBeTruthy();
     expect(screen.getByText('Hipertensión primaria · Principal')).toBeTruthy();
-    expect(screen.getByText('Metformina')).toBeTruthy();
+    expect(screen.getAllByText('Metformina')).toHaveLength(2);
     expect(screen.getByText('96 mg/dL')).toBeTruthy();
   });
 
-  it('keeps navigation to existing editable clinical sections', () => {
-    const screen = render(<MedicalRecordDocumentScreen patientId={9} />);
+  it('keeps navigation to existing editable clinical sections', async () => {
+    const screen = await render(<MedicalRecordDocumentScreen patientId={9} />);
 
-    fireEvent.press(screen.getByLabelText('Gestionar condiciones'));
+    await fireEvent.press(screen.getByLabelText('Gestionar condiciones'));
     expect(mockPush).toHaveBeenCalledWith(
       '/(staff)/patients/9/record/conditions?recordId=17',
     );
 
-    fireEvent.press(screen.getByLabelText('Ver consultas'));
+    await fireEvent.press(screen.getByLabelText('Ver consultas'));
     expect(mockPush).toHaveBeenCalledWith(
       '/(staff)/patients/9/record/consultations?recordId=17',
     );
 
-    fireEvent.press(screen.getByLabelText('Ver historial de mediciones'));
+    await fireEvent.press(screen.getByLabelText('Ver historial de mediciones'));
     expect(mockPush).toHaveBeenCalledWith('/(staff)/patients/9/measurements');
   });
 
   it('downloads the PDF through the authenticated B15 request', async () => {
-    const screen = render(<MedicalRecordDocumentScreen patientId={9} />);
+    const screen = await render(<MedicalRecordDocumentScreen patientId={9} />);
 
-    fireEvent.press(screen.getByLabelText('Descargar PDF del expediente'));
+    await fireEvent.press(screen.getByLabelText('Descargar PDF del expediente'));
 
     await waitFor(() => {
       expect(mockMutateAsync).toHaveBeenCalledTimes(1);
@@ -254,9 +254,9 @@ describe('MedicalRecordDocumentScreen', () => {
   });
 
   it('shares the PDF only through the platform action', async () => {
-    const screen = render(<MedicalRecordDocumentScreen patientId={9} />);
+    const screen = await render(<MedicalRecordDocumentScreen patientId={9} />);
 
-    fireEvent.press(screen.getByLabelText('Compartir o abrir PDF del expediente'));
+    await fireEvent.press(screen.getByLabelText('Compartir o abrir PDF del expediente'));
 
     await waitFor(() => {
       expect(mockSharePdf).toHaveBeenCalledTimes(1);
@@ -264,15 +264,15 @@ describe('MedicalRecordDocumentScreen', () => {
     });
   });
 
-  it('blocks direct access when the frontend permission is absent', () => {
+  it('blocks direct access when the frontend permission is absent', async () => {
     mockUseAuthSession.mockReturnValue({ permissions: new Set() });
 
-    const screen = render(<MedicalRecordDocumentScreen patientId={9} />);
+    const screen = await render(<MedicalRecordDocumentScreen patientId={9} />);
 
     expect(screen.getByText('Acceso restringido')).toBeTruthy();
   });
 
-  it('renders backend 403 without leaving clinical data visible', () => {
+  it('renders backend 403 without leaving clinical data visible', async () => {
     mockUseMedicalRecordDocument.mockReturnValue({
       data: undefined,
       isLoading: false,
@@ -281,13 +281,13 @@ describe('MedicalRecordDocumentScreen', () => {
       refetch: mockRefetch,
     });
 
-    const screen = render(<MedicalRecordDocumentScreen patientId={9} />);
+    const screen = await render(<MedicalRecordDocumentScreen patientId={9} />);
 
     expect(screen.getByText('Acceso denegado')).toBeTruthy();
     expect(screen.queryByText('Penicilina')).toBeNull();
   });
 
-  it('keeps patient-scoped sections when B15 returns no formal record', () => {
+  it('keeps patient-scoped sections when B15 returns no formal record', async () => {
     mockUseMedicalRecordDocument.mockReturnValue({
       data: {
         ...document,
@@ -303,7 +303,7 @@ describe('MedicalRecordDocumentScreen', () => {
       refetch: mockRefetch,
     });
 
-    const screen = render(<MedicalRecordDocumentScreen patientId={9} />);
+    const screen = await render(<MedicalRecordDocumentScreen patientId={9} />);
 
     expect(screen.getByText('Penicilina')).toBeTruthy();
     expect(screen.getByText('96 mg/dL')).toBeTruthy();
