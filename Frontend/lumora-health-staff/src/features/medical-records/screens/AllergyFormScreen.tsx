@@ -2,15 +2,18 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { type Href, useRouter } from 'expo-router';
 import { useEffect, useRef } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { useAuthSession } from '@/src/features/auth/hooks/use-auth-session';
 import { ChoiceField } from '@/src/features/patients/components/ChoiceField';
 import { Button } from '@/src/shared/components/Button';
-import { ErrorState, LoadingState } from '@/src/shared/components/RemoteState';
-import { Screen } from '@/src/shared/components/Screen';
+import {
+  ErrorState,
+  LoadingState,
+} from '@/src/shared/components/RemoteState';
 import { TextField } from '@/src/shared/components/TextField';
 import { theme } from '@/src/shared/constants/theme';
+import { ClinicalFormShell } from '../components/ClinicalFormShell';
 import { structuredHistoryErrorMessage } from '../components/structured-history.ui';
 import {
   useAllergy,
@@ -24,7 +27,10 @@ import {
   type AllergyForm,
   type AllergyFormInput,
 } from '../schemas/structured-history.schemas';
-import type { AllergyCreate, AllergyUpdate } from '../types/structured-history.types';
+import type {
+  AllergyCreate,
+  AllergyUpdate,
+} from '../types/structured-history.types';
 
 const emptyValues: AllergyFormInput = {
   nombre: '',
@@ -54,9 +60,17 @@ export function AllergyFormScreen({
   const isEditing = typeof allergyId === 'number';
   const statuses = useConditionStatuses(allowed);
   const severities = useSeverityLevels(allowed);
-  const detail = useAllergy(patientId, allergyId ?? 0, allowed && isEditing);
+  const detail = useAllergy(
+    patientId,
+    allergyId ?? 0,
+    allowed && isEditing,
+  );
   const creation = useCreateAllergy(patientId, recordId);
-  const update = useUpdateAllergy(patientId, recordId, allergyId ?? 0);
+  const update = useUpdateAllergy(
+    patientId,
+    recordId,
+    allergyId ?? 0,
+  );
   const loadedId = useRef<number | null>(null);
 
   const {
@@ -70,12 +84,20 @@ export function AllergyFormScreen({
   });
 
   useEffect(() => {
-    if (!isEditing || !detail.data || loadedId.current === detail.data.id) return;
+    if (
+      !isEditing ||
+      !detail.data ||
+      loadedId.current === detail.data.id
+    ) {
+      return;
+    }
     loadedId.current = detail.data.id;
     reset({
       nombre: detail.data.nombre,
-      nivel_severidad_id: detail.data.nivel_severidad_id ?? undefined,
-      estado_condicion_id: detail.data.estado_condicion_id ?? undefined,
+      nivel_severidad_id:
+        detail.data.nivel_severidad_id ?? undefined,
+      estado_condicion_id:
+        detail.data.estado_condicion_id ?? undefined,
       observaciones: detail.data.observaciones ?? '',
       activo: detail.data.activo,
     });
@@ -89,7 +111,11 @@ export function AllergyFormScreen({
       />
     );
   }
-  if (statuses.isLoading || severities.isLoading || (isEditing && detail.isLoading)) {
+  if (
+    statuses.isLoading ||
+    severities.isLoading ||
+    (isEditing && detail.isLoading)
+  ) {
     return <LoadingState title="Preparando alergia" />;
   }
   if (statuses.isError || severities.isError) {
@@ -117,7 +143,8 @@ export function AllergyFormScreen({
         const payload: AllergyUpdate = {
           nombre: values.nombre,
           nivel_severidad_id: values.nivel_severidad_id ?? null,
-          estado_condicion_id: values.estado_condicion_id ?? null,
+          estado_condicion_id:
+            values.estado_condicion_id ?? null,
           observaciones: nullable(values.observaciones),
           activo: values.activo,
         };
@@ -126,7 +153,8 @@ export function AllergyFormScreen({
         const payload: AllergyCreate = {
           nombre: values.nombre,
           nivel_severidad_id: values.nivel_severidad_id ?? null,
-          estado_condicion_id: values.estado_condicion_id ?? null,
+          estado_condicion_id:
+            values.estado_condicion_id ?? null,
           observaciones: nullable(values.observaciones),
           activo: values.activo,
         };
@@ -146,115 +174,123 @@ export function AllergyFormScreen({
   );
 
   return (
-    <Screen>
-      <View style={styles.header}>
-        <Button icon="arrow-back" onPress={() => router.back()} variant="ghost">
-          Volver
-        </Button>
-        <View style={styles.headerCopy}>
-          <Text style={styles.title}>{isEditing ? 'Editar Alergia' : 'Añadir Alergia'}</Text>
-          <Text style={styles.subtitle}>Paciente #{patientId}</Text>
-        </View>
-      </View>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Controller
-          control={control}
-          name="nombre"
-          render={({ field }) => (
-            <TextField
-              accessibilityLabel="Nombre de alergia"
-              error={errors.nombre?.message}
-              label="Alergia *"
-              onBlur={field.onBlur}
-              onChangeText={field.onChange}
-              placeholder="Ej. Penicilina"
-              value={field.value}
-            />
-          )}
-        />
-        <Controller
-          control={control}
-          name="nivel_severidad_id"
-          render={({ field }) => (
-            <ChoiceField
-              clearLabel="Sin severidad"
-              items={severities.data?.items ?? []}
-              label="Severidad"
-              onChange={field.onChange}
-              optional
-              value={field.value}
-            />
-          )}
-        />
-        <Controller
-          control={control}
-          name="estado_condicion_id"
-          render={({ field }) => (
-            <ChoiceField
-              clearLabel="Sin estado"
-              items={statuses.data?.items ?? []}
-              label="Estado clínico"
-              onChange={field.onChange}
-              optional
-              value={field.value}
-            />
-          )}
-        />
-        <Controller
-          control={control}
-          name="observaciones"
-          render={({ field }) => (
-            <TextField
-              accessibilityLabel="Observaciones de alergia"
-              error={errors.observaciones?.message}
-              label="Observaciones"
-              multiline
-              onBlur={field.onBlur}
-              onChangeText={field.onChange}
-              placeholder="Reacción documentada u otra información"
-              value={field.value}
-            />
-          )}
-        />
-        {isEditing ? (
-          <Controller
-            control={control}
-            name="activo"
-            render={({ field }) => (
-              <ChoiceField
-                items={[
-                  { id: 1, nombre: 'Activa' },
-                  { id: 2, nombre: 'Inactiva' },
-                ]}
-                label="Visibilidad del registro"
-                onChange={(value) => field.onChange(value !== 2)}
-                value={field.value ? 1 : 2}
-              />
-            )}
+    <ClinicalFormShell
+      eyebrow="ALERGIAS DOCUMENTADAS"
+      onBack={() => router.back()}
+      subtitle={`Paciente #${patientId} · Expediente #${recordId}`}
+      title={isEditing ? 'Editar Alergia' : 'Añadir Alergia'}
+    >
+      <Controller
+        control={control}
+        name="nombre"
+        render={({ field }) => (
+          <TextField
+            accessibilityLabel="Nombre de alergia"
+            error={errors.nombre?.message}
+            label="Alergia *"
+            onBlur={field.onBlur}
+            onChangeText={field.onChange}
+            placeholder="Ej. Penicilina"
+            value={field.value}
           />
-        ) : null}
-        {serverError ? (
-          <View accessibilityRole="alert" style={styles.errorBox}>
-            <Text style={styles.errorText}>{serverError}</Text>
-          </View>
-        ) : null}
-        <Button disabled={busy} icon="save-outline" loading={busy} onPress={onSubmit}>
-          {isEditing ? 'Guardar cambios' : 'Registrar alergia'}
-        </Button>
-        <Button disabled={busy} onPress={() => router.back()} variant="secondary">
-          Cancelar
-        </Button>
-      </ScrollView>
-    </Screen>
+        )}
+      />
+      <Controller
+        control={control}
+        name="nivel_severidad_id"
+        render={({ field }) => (
+          <ChoiceField
+            clearLabel="Sin severidad"
+            items={severities.data?.items ?? []}
+            label="Severidad"
+            onChange={field.onChange}
+            optional
+            value={field.value}
+          />
+        )}
+      />
+      <Controller
+        control={control}
+        name="estado_condicion_id"
+        render={({ field }) => (
+          <ChoiceField
+            clearLabel="Sin estado"
+            items={statuses.data?.items ?? []}
+            label="Estado clínico"
+            onChange={field.onChange}
+            optional
+            value={field.value}
+          />
+        )}
+      />
+      <Controller
+        control={control}
+        name="observaciones"
+        render={({ field }) => (
+          <TextField
+            accessibilityLabel="Observaciones de alergia"
+            error={errors.observaciones?.message}
+            label="Observaciones"
+            multiline
+            onBlur={field.onBlur}
+            onChangeText={field.onChange}
+            placeholder="Reacción documentada u otra información"
+            value={field.value}
+          />
+        )}
+      />
+      {isEditing ? (
+        <Controller
+          control={control}
+          name="activo"
+          render={({ field }) => (
+            <ChoiceField
+              items={[
+                { id: 1, nombre: 'Activa' },
+                { id: 2, nombre: 'Inactiva' },
+              ]}
+              label="Visibilidad del registro"
+              onChange={(value) => field.onChange(value !== 2)}
+              value={field.value ? 1 : 2}
+            />
+          )}
+        />
+      ) : null}
+      {serverError ? (
+        <View accessibilityRole="alert" style={styles.errorBox}>
+          <Text style={styles.errorText}>{serverError}</Text>
+        </View>
+      ) : null}
+      <Button
+        disabled={busy}
+        icon="save-outline"
+        loading={busy}
+        onPress={onSubmit}
+      >
+        {isEditing ? 'Guardar cambios' : 'Registrar alergia'}
+      </Button>
+      <Button
+        disabled={busy}
+        onPress={() => router.back()}
+        variant="secondary"
+      >
+        Cancelar
+      </Button>
+    </ClinicalFormShell>
   );
 }
 
 const styles = StyleSheet.create({
-  header: { alignItems: 'center', flexDirection: 'row', gap: theme.spacing.sm },
-  headerCopy: { flex: 1, gap: 2 },
-  title: { color: theme.color.text, fontSize: 24, fontWeight: '900' },
-  subtitle: { color: theme.color.mutedText, fontSize: 12 },
-  content: { gap: theme.spacing.lg, paddingBottom: theme.spacing.xxl, paddingTop: theme.spacing.lg },
-  errorBox: { backgroundColor: '#FFD7D2', borderRadius: theme.radius.md, padding: theme.spacing.md },
-  errorText: { color: theme.color.danger, fontSize: 13, fontWeight: '700' },
+  errorBox: {
+    backgroundColor: theme.color.dangerSoft,
+    borderLeftColor: theme.color.danger,
+    borderLeftWidth: 4,
+    borderRadius: theme.radius.md,
+    padding: theme.spacing.md,
+  },
+  errorText: {
+    color: theme.color.dangerText,
+    fontSize: 13,
+    fontWeight: '700',
+  },
 });

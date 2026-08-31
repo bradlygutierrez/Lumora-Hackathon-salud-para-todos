@@ -1,11 +1,22 @@
 import { Ionicons } from '@expo/vector-icons';
 import { type Href, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
 import { useAuthSession } from '@/src/features/auth/hooks/use-auth-session';
+import { AppTopBar } from '@/src/shared/components/AppTopBar';
 import { Button } from '@/src/shared/components/Button';
-import { EmptyState, ErrorState, LoadingState } from '@/src/shared/components/RemoteState';
+import {
+  EmptyState,
+  ErrorState,
+  LoadingState,
+} from '@/src/shared/components/RemoteState';
 import { Screen } from '@/src/shared/components/Screen';
 import { theme } from '@/src/shared/constants/theme';
 import { ClinicalSectionCard } from '../components/ClinicalSectionCard';
@@ -29,29 +40,80 @@ type SectionDefinition = {
 };
 
 const sections: SectionDefinition[] = [
-  { id: 'condiciones', title: 'Condiciones', icon: 'heart-outline', count: (s) => s.condiciones.length },
-  { id: 'alergias', title: 'Alergias', icon: 'warning-outline', count: (s) => s.alergias.length },
-  { id: 'discapacidades', title: 'Discapacidades', icon: 'accessibility-outline', count: (s) => s.discapacidades.length },
-  { id: 'historial', title: 'Historial médico', icon: 'reader-outline', count: (s) => s.antecedentes.length },
-  { id: 'consultas', title: 'Consultas', icon: 'medkit-outline', count: (s) => s.consultas.length },
+  {
+    id: 'condiciones',
+    title: 'Condiciones',
+    icon: 'heart-outline',
+    count: (s) => s.condiciones.length,
+  },
+  {
+    id: 'alergias',
+    title: 'Alergias',
+    icon: 'warning-outline',
+    count: (s) => s.alergias.length,
+  },
+  {
+    id: 'discapacidades',
+    title: 'Discapacidades',
+    icon: 'accessibility-outline',
+    count: (s) => s.discapacidades.length,
+  },
+  {
+    id: 'historial',
+    title: 'Historial médico',
+    icon: 'reader-outline',
+    count: (s) => s.antecedentes.length,
+  },
+  {
+    id: 'consultas',
+    title: 'Consultas',
+    icon: 'medkit-outline',
+    count: (s) => s.consultas.length,
+  },
   {
     id: 'diagnosticos',
     title: 'Diagnósticos',
     icon: 'clipboard-outline',
-    count: (s) => s.consultas.reduce((total, item) => total + item.diagnosticos.length, 0),
+    count: (s) =>
+      s.consultas.reduce(
+        (total, item) => total + item.diagnosticos.length,
+        0,
+      ),
   },
-  { id: 'recetas', title: 'Recetas', icon: 'document-text-outline', count: (s) => s.recetas.length },
-  { id: 'indicadores', title: 'Indicadores', icon: 'pulse-outline', count: (s) => s.mediciones.length },
-  { id: 'alertas', title: 'Alertas', icon: 'notifications-outline', count: (s) => s.alertas.length },
+  {
+    id: 'recetas',
+    title: 'Recetas',
+    icon: 'document-text-outline',
+    count: (s) => s.recetas.length,
+  },
+  {
+    id: 'indicadores',
+    title: 'Indicadores',
+    icon: 'pulse-outline',
+    count: (s) => s.mediciones.length,
+  },
+  {
+    id: 'alertas',
+    title: 'Alertas',
+    icon: 'notifications-outline',
+    count: (s) => s.alertas.length,
+  },
 ];
 
 function formatDate(value: string | null) {
   if (!value) return 'Fecha no registrada';
-  const parsed = new Date(value.includes('T') ? value : `${value}T00:00:00`);
-  return new Intl.DateTimeFormat('es-NI', { dateStyle: 'medium' }).format(parsed);
+  const parsed = new Date(
+    value.includes('T') ? value : `${value}T00:00:00`,
+  );
+  return new Intl.DateTimeFormat('es-NI', {
+    dateStyle: 'medium',
+  }).format(parsed);
 }
 
-function sectionItems(summary: PatientClinicalSummary, section: ClinicalSectionId): string[] {
+function sectionItems(
+  summary: PatientClinicalSummary,
+  section: ClinicalSectionId,
+): string[] {
   switch (section) {
     case 'condiciones':
       return summary.condiciones.map((item) => item.nombre);
@@ -63,28 +125,40 @@ function sectionItems(summary: PatientClinicalSummary, section: ClinicalSectionI
       return summary.antecedentes.map((item) => item.descripcion);
     case 'consultas':
       return summary.consultas.map(
-        (item) => `${item.consulta.motivo ?? 'Consulta médica'} · ${formatDate(item.consulta.fecha_consulta)}`,
+        (item) =>
+          `${item.consulta.motivo ?? 'Consulta médica'} · ${formatDate(
+            item.consulta.fecha_consulta,
+          )}`,
       );
     case 'diagnosticos':
-      return summary.consultas.flatMap((item) => item.diagnosticos.map((diagnosis) => diagnosis.descripcion));
+      return summary.consultas.flatMap((item) =>
+        item.diagnosticos.map((diagnosis) => diagnosis.descripcion),
+      );
     case 'recetas':
-      return summary.recetas.map((item) => item.titulo ?? `Receta ${item.id}`);
+      return summary.recetas.map(
+        (item) => item.titulo ?? `Receta ${item.id}`,
+      );
     case 'indicadores':
       return summary.mediciones.map(
-        (item) => `${item.indicador_nombre}: ${item.valor} ${item.unidad_medida}`,
+        (item) =>
+          `${item.indicador_nombre}: ${item.valor} ${item.unidad_medida}`,
       );
     case 'alertas':
-      return summary.alertas.map((item) => `${item.nivel_severidad}: ${item.mensaje}`);
+      return summary.alertas.map(
+        (item) => `${item.nivel_severidad}: ${item.mensaje}`,
+      );
   }
 }
 
-export function MedicalRecordSummaryScreen({ patientId, initialSection }: Props) {
+export function MedicalRecordSummaryScreen({
+  patientId,
+  initialSection,
+}: Props) {
   const router = useRouter();
   const { permissions } = useAuthSession();
   const summaryQuery = useMedicalRecordSummary(patientId);
-  const [selectedSection, setSelectedSection] = useState<ClinicalSectionId | null>(
-    initialSection ?? null,
-  );
+  const [selectedSection, setSelectedSection] =
+    useState<ClinicalSectionId | null>(initialSection ?? null);
 
   if (!permissions.has('clinica:manage')) {
     return (
@@ -94,7 +168,9 @@ export function MedicalRecordSummaryScreen({ patientId, initialSection }: Props)
       />
     );
   }
-  if (summaryQuery.isLoading) return <LoadingState title="Cargando expediente" />;
+  if (summaryQuery.isLoading) {
+    return <LoadingState title="Cargando expediente" />;
+  }
   if (summaryQuery.isError || !summaryQuery.data) {
     return (
       <ErrorState
@@ -111,7 +187,11 @@ export function MedicalRecordSummaryScreen({ patientId, initialSection }: Props)
     return (
       <Screen>
         <View style={styles.emptyScreen}>
-          <Button icon="arrow-back" onPress={() => router.back()} variant="ghost">
+          <Button
+            icon="arrow-back"
+            onPress={() => router.back()}
+            variant="ghost"
+          >
             Volver
           </Button>
           <EmptyState
@@ -123,37 +203,81 @@ export function MedicalRecordSummaryScreen({ patientId, initialSection }: Props)
     );
   }
 
-  const selectedItems = selectedSection ? sectionItems(summary, selectedSection) : [];
-  const selectedTitle = sections.find((item) => item.id === selectedSection)?.title;
+  const selectedItems = selectedSection
+    ? sectionItems(summary, selectedSection)
+    : [];
+  const selectedTitle = sections.find(
+    (item) => item.id === selectedSection,
+  )?.title;
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Button icon="arrow-back" onPress={() => router.back()} variant="ghost">
+      <AppTopBar />
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <Button
+          icon="arrow-back"
+          onPress={() => router.back()}
+          variant="ghost"
+        >
           Volver al paciente
         </Button>
 
         <View style={styles.patientCard}>
           <View style={styles.avatar}>
-            <Ionicons color={theme.color.primaryPressed} name="person" size={28} />
+            <Ionicons
+              color={theme.color.primaryPressed}
+              name="person"
+              size={28}
+            />
           </View>
           <View style={styles.patientCopy}>
+            <Text style={styles.eyebrow}>PERFIL DEL PACIENTE</Text>
             <Text style={styles.patientName}>
               {summary.paciente.nombres} {summary.paciente.apellidos}
             </Text>
             <Text style={styles.patientMeta}>
-              {formatDate(summary.paciente.fecha_nacimiento)} · Paciente #{summary.paciente_id}
+              {formatDate(summary.paciente.fecha_nacimiento)} · Paciente #
+              {summary.paciente_id}
             </Text>
+            <View style={styles.recordBadge}>
+              <Ionicons
+                color={theme.color.primaryPressed}
+                name="folder-open-outline"
+                size={14}
+              />
+              <Text style={styles.recordBadgeText}>
+                {record.numero_expediente}
+              </Text>
+            </View>
           </View>
-          <View style={[styles.statusBadge, record.activo ? styles.activeBadge : styles.inactiveBadge]}>
-            <Text style={styles.statusText}>{record.activo ? 'Activo' : 'Inactivo'}</Text>
+          <View
+            style={[
+              styles.statusBadge,
+              record.activo ? styles.activeBadge : styles.inactiveBadge,
+            ]}
+          >
+            <Text
+              style={[
+                styles.statusText,
+                record.activo
+                  ? styles.activeStatusText
+                  : styles.inactiveStatusText,
+              ]}
+            >
+              {record.activo ? 'Activo' : 'Inactivo'}
+            </Text>
           </View>
         </View>
 
         <View style={styles.recordHeader}>
-          <View>
-            <Text style={styles.eyebrow}>EXPEDIENTE MÉDICO</Text>
-            <Text style={styles.recordNumber}>{record.numero_expediente}</Text>
+          <View style={styles.recordHeading}>
+            <Text style={styles.recordTitle}>Expediente Médico</Text>
+            <Text style={styles.recordSubtitle}>
+              Información clínica consolidada por FastAPI.
+            </Text>
           </View>
           <View style={styles.recordActions}>
             <Button
@@ -197,23 +321,69 @@ export function MedicalRecordSummaryScreen({ patientId, initialSection }: Props)
 
         {summary.alertas.length > 0 ? (
           <View style={styles.alertArea}>
-            <View style={styles.sectionHeadingRow}>
-              <Ionicons color={theme.color.warning} name="warning-outline" size={20} />
-              <Text style={styles.alertHeading}>Alertas clínicas activas</Text>
+            <View style={styles.alertHeader}>
+              <View style={styles.alertIcon}>
+                <Ionicons
+                  color={theme.color.danger}
+                  name="warning"
+                  size={21}
+                />
+              </View>
+              <View style={styles.alertHeaderCopy}>
+                <Text style={styles.alertHeading}>Alertas clínicas</Text>
+                <Text style={styles.alertSubtitle}>
+                  Revisá los eventos señalados antes de continuar el flujo
+                  clínico.
+                </Text>
+              </View>
+              <View style={styles.alertCount}>
+                <Text style={styles.alertCountText}>
+                  {summary.alertas.length}
+                </Text>
+              </View>
             </View>
-            {summary.alertas.map((alert) => (
+            {summary.alertas.slice(0, 3).map((alert) => (
               <View key={alert.id} style={styles.alertCard}>
-                <Text style={styles.alertSeverity}>{alert.nivel_severidad}</Text>
+                <Text style={styles.alertSeverity}>
+                  {alert.nivel_severidad}
+                </Text>
                 <Text style={styles.alertText}>{alert.mensaje}</Text>
               </View>
             ))}
+            {summary.alertas.length > 3 ? (
+              <Pressable
+                accessibilityLabel="Abrir sección Alertas"
+                accessibilityRole="button"
+                onPress={() => {
+                  const path = structuredHistoryPathForSection(
+                    patientId,
+                    record.id,
+                    'alertas',
+                  );
+                  if (path) router.push(path as Href);
+                }}
+                style={({ pressed }) => [
+                  styles.alertMore,
+                  pressed ? styles.pressed : null,
+                ]}
+              >
+                <Text style={styles.alertMoreText}>
+                  Ver todas las alertas
+                </Text>
+                <Ionicons
+                  color={theme.color.danger}
+                  name="arrow-forward"
+                  size={16}
+                />
+              </Pressable>
+            ) : null}
           </View>
         ) : null}
 
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Resumen clínico</Text>
           <Text style={styles.sectionSubtitle}>
-            Información consolidada por FastAPI para este expediente.
+            Acceso rápido a cada sección estructurada del expediente.
           </Text>
         </View>
 
@@ -230,7 +400,9 @@ export function MedicalRecordSummaryScreen({ patientId, initialSection }: Props)
                     record.id,
                     sectionId,
                   );
-                  if (structuredPath) return router.push(structuredPath as Href);
+                  if (structuredPath) {
+                    return router.push(structuredPath as Href);
+                  }
                   setSelectedSection(sectionId);
                 }}
                 selected={selectedSection === section.id}
@@ -244,9 +416,12 @@ export function MedicalRecordSummaryScreen({ patientId, initialSection }: Props)
           <View style={styles.detailCard}>
             <View style={styles.sectionHeadingRow}>
               <Text style={styles.detailTitle}>{selectedTitle}</Text>
-              <Text style={styles.detailCount}>{selectedItems.length}</Text>
+              <Text style={styles.detailCount}>
+                {selectedItems.length}
+              </Text>
             </View>
-            {selectedSection === 'consultas' && summary.consultas.length > 0 ? (
+            {selectedSection === 'consultas' &&
+            summary.consultas.length > 0 ? (
               summary.consultas.map((entry) => (
                 <Pressable
                   accessibilityLabel={`Abrir consulta ${entry.consulta.id}`}
@@ -257,27 +432,43 @@ export function MedicalRecordSummaryScreen({ patientId, initialSection }: Props)
                       `/(staff)/patients/${patientId}/record/consultations/${entry.consulta.id}` as Href,
                     )
                   }
-                  style={({ pressed }) => [styles.consultationRow, pressed ? styles.pressed : null]}
+                  style={({ pressed }) => [
+                    styles.consultationRow,
+                    pressed ? styles.pressed : null,
+                  ]}
                 >
                   <View style={styles.dot} />
                   <View style={styles.consultationCopy}>
-                    <Text style={styles.detailText}>{entry.consulta.motivo ?? 'Consulta médica'}</Text>
+                    <Text style={styles.detailText}>
+                      {entry.consulta.motivo ?? 'Consulta médica'}
+                    </Text>
                     <Text style={styles.consultationMeta}>
-                      {formatDate(entry.consulta.fecha_consulta)} · {entry.signos_vitales.length} signo(s) · {entry.notas.length} nota(s)
+                      {formatDate(entry.consulta.fecha_consulta)} ·{' '}
+                      {entry.signos_vitales.length} signo(s) ·{' '}
+                      {entry.notas.length} nota(s)
                     </Text>
                   </View>
-                  <Ionicons color={theme.color.primaryPressed} name="chevron-forward" size={18} />
+                  <Ionicons
+                    color={theme.color.primaryPressed}
+                    name="chevron-forward"
+                    size={18}
+                  />
                 </Pressable>
               ))
             ) : selectedItems.length > 0 ? (
               selectedItems.map((item, index) => (
-                <View key={`${selectedSection}-${index}`} style={styles.detailRow}>
+                <View
+                  key={`${selectedSection}-${index}`}
+                  style={styles.detailRow}
+                >
                   <View style={styles.dot} />
                   <Text style={styles.detailText}>{item}</Text>
                 </View>
               ))
             ) : (
-              <Text style={styles.emptyText}>Sin registros en esta sección.</Text>
+              <Text style={styles.emptyText}>
+                Sin registros en esta sección.
+              </Text>
             )}
           </View>
         ) : null}
@@ -294,69 +485,236 @@ export function MedicalRecordSummaryScreen({ patientId, initialSection }: Props)
 }
 
 const styles = StyleSheet.create({
-  content: { gap: theme.spacing.xl, paddingBottom: theme.spacing.xxl },
-  emptyScreen: { flex: 1, gap: theme.spacing.lg },
+  content: {
+    gap: theme.spacing.lg,
+    paddingBottom: theme.spacing.xxl,
+    paddingTop: theme.spacing.lg,
+  },
+  emptyScreen: {
+    flex: 1,
+    gap: theme.spacing.lg,
+  },
   patientCard: {
     alignItems: 'center',
     backgroundColor: theme.color.surface,
     borderColor: theme.color.softBorder,
+    borderLeftColor: theme.color.primary,
+    borderLeftWidth: 5,
     borderRadius: theme.radius.lg,
     borderWidth: 1,
     flexDirection: 'row',
     gap: theme.spacing.md,
     padding: theme.spacing.lg,
+    shadowColor: '#003C90',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
   },
   avatar: {
     alignItems: 'center',
     backgroundColor: theme.color.primarySoft,
-    borderRadius: theme.radius.pill,
-    height: 52,
+    borderRadius: 38,
+    height: 76,
     justifyContent: 'center',
-    width: 52,
+    width: 76,
   },
-  patientCopy: { flex: 1, gap: theme.spacing.xs },
-  patientName: { color: theme.color.text, fontSize: 22, fontWeight: '900' },
-  patientMeta: { color: theme.color.mutedText, fontSize: theme.typography.caption },
-  statusBadge: { borderRadius: theme.radius.pill, paddingHorizontal: 12, paddingVertical: 7 },
-  activeBadge: { backgroundColor: theme.color.successSoft },
-  inactiveBadge: { backgroundColor: theme.color.dangerSoft },
-  statusText: { color: theme.color.text, fontSize: 12, fontWeight: '800' },
-  recordHeader: {
+  patientCopy: {
+    flex: 1,
+    gap: 5,
+  },
+  eyebrow: {
+    color: theme.color.subtleText,
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 1,
+  },
+  patientName: {
+    color: theme.color.text,
+    fontSize: 24,
+    fontWeight: '900',
+  },
+  patientMeta: {
+    color: theme.color.mutedText,
+    fontSize: 12,
+  },
+  recordBadge: {
     alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: theme.color.primarySoft,
+    borderRadius: theme.radius.pill,
+    flexDirection: 'row',
+    gap: 5,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+  },
+  recordBadgeText: {
+    color: theme.color.primaryPressed,
+    fontSize: 11,
+    fontWeight: '900',
+  },
+  statusBadge: {
+    borderRadius: theme.radius.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  activeBadge: {
+    backgroundColor: theme.color.successSoft,
+  },
+  inactiveBadge: {
+    backgroundColor: theme.color.dangerSoft,
+  },
+  statusText: {
+    fontSize: 11,
+    fontWeight: '900',
+  },
+  activeStatusText: {
+    color: theme.color.success,
+  },
+  inactiveStatusText: {
+    color: theme.color.danger,
+  },
+  recordHeader: {
+    gap: theme.spacing.md,
+  },
+  recordHeading: {
+    gap: 3,
+  },
+  recordTitle: {
+    color: theme.color.text,
+    fontSize: 23,
+    fontWeight: '900',
+  },
+  recordSubtitle: {
+    color: theme.color.mutedText,
+    fontSize: 13,
+  },
+  recordActions: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: theme.spacing.lg,
-    justifyContent: 'space-between',
+    gap: theme.spacing.sm,
   },
-  eyebrow: { color: theme.color.subtleText, fontSize: 11, fontWeight: '900', letterSpacing: 1.2 },
-  recordNumber: { color: theme.color.primaryPressed, fontSize: 28, fontWeight: '900', marginTop: 3 },
-  alertArea: { gap: theme.spacing.sm },
-  sectionHeadingRow: { alignItems: 'center', flexDirection: 'row', gap: theme.spacing.sm },
-  alertHeading: { color: theme.color.warning, fontSize: 15, fontWeight: '900' },
-  alertCard: {
-    backgroundColor: '#FFF4E5',
-    borderColor: '#FEDF89',
-    borderRadius: theme.radius.md,
+  alertArea: {
+    backgroundColor: theme.color.dangerSoft,
+    borderColor: '#FFB5AC',
+    borderLeftColor: theme.color.danger,
+    borderLeftWidth: 5,
+    borderRadius: theme.radius.lg,
     borderWidth: 1,
+    gap: theme.spacing.sm,
+    padding: theme.spacing.lg,
+  },
+  alertHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
+  },
+  alertIcon: {
+    alignItems: 'center',
+    backgroundColor: theme.color.surface,
+    borderRadius: 18,
+    height: 36,
+    justifyContent: 'center',
+    width: 36,
+  },
+  alertHeaderCopy: {
+    flex: 1,
+    gap: 2,
+  },
+  alertHeading: {
+    color: theme.color.dangerText,
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  alertSubtitle: {
+    color: theme.color.dangerText,
+    fontSize: 11,
+    lineHeight: 16,
+  },
+  alertCount: {
+    alignItems: 'center',
+    backgroundColor: theme.color.danger,
+    borderRadius: theme.radius.pill,
+    justifyContent: 'center',
+    minWidth: 29,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+  },
+  alertCountText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '900',
+  },
+  alertCard: {
+    backgroundColor: theme.color.surface,
+    borderRadius: theme.radius.md,
     gap: 4,
     padding: theme.spacing.md,
   },
-  alertSeverity: { color: theme.color.warning, fontSize: 12, fontWeight: '900', textTransform: 'uppercase' },
-  alertText: { color: theme.color.text, fontSize: 14, lineHeight: 20 },
-  sectionHeader: { gap: 4 },
-  sectionTitle: { color: theme.color.text, fontSize: 21, fontWeight: '900' },
-  sectionSubtitle: { color: theme.color.mutedText, fontSize: 14, lineHeight: 20 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.md },
-  gridItem: { minWidth: 250, flexBasis: '47%', flexGrow: 1 },
+  alertSeverity: {
+    color: theme.color.danger,
+    fontSize: 11,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+  alertText: {
+    color: theme.color.text,
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  alertMore: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 6,
+    justifyContent: 'flex-end',
+    paddingTop: 2,
+  },
+  alertMoreText: {
+    color: theme.color.danger,
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  sectionHeader: {
+    gap: 4,
+  },
+  sectionTitle: {
+    color: theme.color.text,
+    fontSize: 22,
+    fontWeight: '900',
+  },
+  sectionSubtitle: {
+    color: theme.color.mutedText,
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: theme.spacing.md,
+  },
+  gridItem: {
+    flexBasis: '47%',
+    flexGrow: 1,
+    minWidth: 250,
+  },
   detailCard: {
-    backgroundColor: theme.color.appBackground,
+    backgroundColor: theme.color.surface,
     borderColor: theme.color.border,
     borderRadius: theme.radius.lg,
     borderWidth: 1,
     gap: theme.spacing.md,
     padding: theme.spacing.lg,
   },
-  detailTitle: { color: theme.color.text, flex: 1, fontSize: 18, fontWeight: '900' },
+  sectionHeadingRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
+  },
+  detailTitle: {
+    color: theme.color.text,
+    flex: 1,
+    fontSize: 18,
+    fontWeight: '900',
+  },
   detailCount: {
     backgroundColor: theme.color.primarySoft,
     borderRadius: theme.radius.pill,
@@ -368,21 +726,61 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     textAlign: 'center',
   },
-  detailRow: { alignItems: 'flex-start', flexDirection: 'row', gap: theme.spacing.sm },
-  dot: { backgroundColor: theme.color.primary, borderRadius: 4, height: 7, marginTop: 7, width: 7 },
-  detailText: { color: theme.color.text, flex: 1, fontSize: 14, lineHeight: 21 },
-  emptyText: { color: theme.color.mutedText, fontSize: 14 },
-  recordActions: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm },
-  consultationRow: { alignItems: 'center', flexDirection: 'row', gap: theme.spacing.sm, paddingVertical: theme.spacing.sm },
-  consultationCopy: { flex: 1, gap: 2 },
-  consultationMeta: { color: theme.color.subtleText, fontSize: 11 },
-  pressed: { opacity: 0.72 },
+  detailRow: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
+  },
+  dot: {
+    backgroundColor: theme.color.primary,
+    borderRadius: 4,
+    height: 7,
+    marginTop: 7,
+    width: 7,
+  },
+  detailText: {
+    color: theme.color.text,
+    flex: 1,
+    fontSize: 14,
+    lineHeight: 21,
+  },
+  emptyText: {
+    color: theme.color.mutedText,
+    fontSize: 14,
+  },
+  consultationRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
+    paddingVertical: theme.spacing.sm,
+  },
+  consultationCopy: {
+    flex: 1,
+    gap: 2,
+  },
+  consultationMeta: {
+    color: theme.color.subtleText,
+    fontSize: 11,
+  },
+  pressed: {
+    opacity: 0.72,
+  },
   notesCard: {
     backgroundColor: theme.color.surfaceMuted,
+    borderLeftColor: theme.color.primary,
+    borderLeftWidth: 4,
     borderRadius: theme.radius.lg,
     gap: theme.spacing.sm,
     padding: theme.spacing.lg,
   },
-  notesTitle: { color: theme.color.text, fontSize: 15, fontWeight: '900' },
-  notesText: { color: theme.color.mutedText, fontSize: 14, lineHeight: 21 },
+  notesTitle: {
+    color: theme.color.text,
+    fontSize: 15,
+    fontWeight: '900',
+  },
+  notesText: {
+    color: theme.color.mutedText,
+    fontSize: 14,
+    lineHeight: 21,
+  },
 });
