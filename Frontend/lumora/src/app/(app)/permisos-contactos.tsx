@@ -120,22 +120,18 @@ export default function PermisosContactosRoute() {
           <PermisoRow
             label="Expediente médico"
             value={permisoNivelLabel(nivel)}
-            granted={puedeGestionar}
           />
           <PermisoRow
             label="Recibe alertas críticas"
             value={recibeAlertas ? 'Sí' : 'No'}
-            granted={recibeAlertas}
           />
           <PermisoRow
             label="Medicación"
             value={permisoNivelLabel(nivel)}
-            granted={puedeGestionar}
           />
           <PermisoRow
             label="Citas"
             value={permisoNivelLabel(nivel)}
-            granted={puedeGestionar}
           />
 
           <Pressable
@@ -189,23 +185,14 @@ export default function PermisosContactosRoute() {
 function PermisoRow({
   label,
   value,
-  granted,
 }: {
   label: string;
   value: string;
-  granted: boolean;
 }) {
   return (
     <View className="flex-row items-center justify-between">
       <Text className="text-sm font-medium text-coal-900">{label}</Text>
-      <View className="flex-row items-center gap-2">
-        <Text className="text-sm text-coal-500">{value}</Text>
-        <Ionicons
-          name={granted ? 'checkmark-circle' : 'close-circle'}
-          size={18}
-          color={granted ? '#3E9C6F' : '#B0525A'}
-        />
-      </View>
+      <Text className="text-sm text-coal-500">{value}</Text>
     </View>
   );
 }
