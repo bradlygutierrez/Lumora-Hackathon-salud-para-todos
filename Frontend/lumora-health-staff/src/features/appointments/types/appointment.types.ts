@@ -42,9 +42,9 @@ export type ProfessionalSchedulePayload = {
 
 export type ProfessionalAvailability = {
   fecha: string;
-  slots: Array<{
+  slots: {
     inicio: string;
     fin: string;
     disponible: boolean;
-  }>;
+  }[];
 };
