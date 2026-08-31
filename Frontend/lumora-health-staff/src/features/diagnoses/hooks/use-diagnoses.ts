@@ -58,6 +58,9 @@ export async function invalidateDiagnosisViews(
     queryClient.invalidateQueries({ queryKey: diagnosisKeys.all }),
     queryClient.invalidateQueries({ queryKey: queryKeys.clinical.patientSummary(patientId) }),
     queryClient.invalidateQueries({
+      queryKey: queryKeys.clinical.medicalRecordDocument(patientId),
+    }),
+    queryClient.invalidateQueries({
       queryKey: queryKeys.clinical.patientsDirectory.clinicalSummary(patientId),
     }),
     queryClient.invalidateQueries({

@@ -42,10 +42,16 @@ import type {
 } from '../types/consultation.types';
 
 
-async function invalidateClinicalViews(queryClient: QueryClient, consultation: Consultation) {
+export async function invalidateClinicalViews(
+  queryClient: QueryClient,
+  consultation: Consultation,
+) {
   await Promise.all([
     queryClient.invalidateQueries({
       queryKey: queryKeys.clinical.patientSummary(consultation.paciente_id),
+    }),
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.clinical.medicalRecordDocument(consultation.paciente_id),
     }),
     queryClient.invalidateQueries({
       queryKey: queryKeys.clinical.patientsDirectory.clinicalSummary(consultation.paciente_id),
