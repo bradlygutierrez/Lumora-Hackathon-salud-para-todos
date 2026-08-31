@@ -100,7 +100,7 @@ async def _setup(client, session_factory, *, with_record: bool = True) -> dict:
             await session.flush()
             session.add(DetalleReceta(receta_id=prescription.id, medicamento_id=medication.id, unidad_medida_id=unit.id, via_administracion_id=route.id, dosis='500 mg', frecuencia='Cada 12 horas', duracion_dias=30, cantidad_total=60, instrucciones='Con alimentos'))
         await session.commit()
-        ids = {'patient_id': patient.id, 'other_patient_id': other_patient.id, 'relationship_id': relationship.id, 'patient_user_id': users[0].id, 'caregiver_user_id': users[1].id, 'staff_user_id': users[2].id}
+        ids = {'patient_id': patient.id, 'other_patient_id': other_patient.id, 'relationship_id': relationship.id, 'patient_user_id': users[0].id, 'caregiver_user_id': users[1].id, 'staff_user_id': users[2].id, 'professional_id': professional.id}
     ids['patient_token'] = await _login(client, 'patient-b15')
     ids['caregiver_token'] = await _login(client, 'caregiver-b15')
     ids['staff_token'] = await _login(client, 'staff-b15')
@@ -171,6 +171,60 @@ async def test_patient_without_record_keeps_patient_scoped_sections(client, sess
     assert body['antecedentes'] == body['condiciones'] == body['consultas'] == []
     assert body['alergias'][0]['nombre'] == 'Penicilina'
     assert body['indicadores'][0]['valor'] == 110
+
+
+@pytest.mark.asyncio
+async def test_soft_deleted_professional_remains_historical_author(client, session_factory):
+    data = await _setup(client, session_factory)
+    async with session_factory() as session:
+        professional = await session.get(ProfesionalSalud, data['professional_id'])
+        professional.deleted_at = datetime.now(timezone.utc)
+        await session.commit()
+
+    url = f"/api/v1/patients/{data['patient_id']}/medical-record-document"
+    response = await client.get(url, headers=_headers(data['patient_token']))
+    assert response.status_code == 200
+    body = response.json()
+    expected = {
+        'id': data['professional_id'],
+        'nombre_completo': 'Dra. Álvarez',
+        'especialidad': 'Medicina familiar',
+    }
+    assert body['consultas'][0]['profesional'] == expected
+    assert body['consultas'][0]['diagnosticos'][0]['profesional'] == expected
+    assert body['recetas'][0]['profesional'] == expected
+
+    pdf = await client.get(f'{url}/pdf', headers=_headers(data['patient_token']))
+    assert pdf.status_code == 200
+    assert pdf.headers['content-type'] == 'application/pdf'
+    assert pdf.content.startswith(b'%PDF-')
+
+
+@pytest.mark.asyncio
+async def test_document_returns_latest_measurement_for_each_indicator(client, session_factory):
+    data = await _setup(client, session_factory)
+    now = datetime(2026, 8, 30, 12, tzinfo=timezone.utc)
+    async with session_factory() as session:
+        unit = await session.scalar(select(UnidadMedida).where(UnidadMedida.nombre == 'mg/dL'))
+        origin = await session.scalar(select(OrigenRegistro).where(OrigenRegistro.nombre == 'Paciente'))
+        weight = IndicadorMedico(id=uuid4(), codigo='WEIGHT-B15', nombre='Peso', unidad_medida_id=unit.id)
+        spo2 = IndicadorMedico(id=uuid4(), codigo='SPO2-B15', nombre='SpO2', unidad_medida_id=unit.id)
+        session.add_all([weight, spo2])
+        await session.flush()
+        session.add_all([
+            MedicionIndicador(id=uuid4(), paciente_id=data['patient_id'], indicador_id=weight.id, valor=70, unidad_medida_id=unit.id, origen_registro_id=origin.id, registrado_por_id=data['patient_user_id'], fecha_medicion=now - timedelta(days=2)),
+            MedicionIndicador(id=uuid4(), paciente_id=data['patient_id'], indicador_id=weight.id, valor=72, unidad_medida_id=unit.id, origen_registro_id=origin.id, registrado_por_id=data['patient_user_id'], fecha_medicion=now),
+            MedicionIndicador(id=uuid4(), paciente_id=data['patient_id'], indicador_id=spo2.id, valor=98, unidad_medida_id=unit.id, origen_registro_id=origin.id, registrado_por_id=data['patient_user_id'], fecha_medicion=now),
+        ])
+        await session.commit()
+
+    response = await client.get(
+        f"/api/v1/patients/{data['patient_id']}/medical-record-document",
+        headers=_headers(data['patient_token']),
+    )
+    assert response.status_code == 200
+    measurements = {item['indicador_nombre']: item['valor'] for item in response.json()['indicadores']}
+    assert measurements == {'Glucosa': 110, 'Peso': 72, 'SpO2': 98}
 
 
 @pytest.mark.asyncio

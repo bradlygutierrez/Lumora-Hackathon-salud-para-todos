@@ -357,7 +357,7 @@ class ClinicalIntegrationRepository:
         items = await self.session.scalars(
             select(ProfesionalSalud)
             .options(selectinload(ProfesionalSalud.persona))
-            .where(ProfesionalSalud.id.in_(ids), ProfesionalSalud.deleted_at.is_(None))
+            .where(ProfesionalSalud.id.in_(ids))
         )
         return {item.id: item for item in items}
 
