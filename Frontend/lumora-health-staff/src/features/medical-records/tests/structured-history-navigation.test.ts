@@ -21,7 +21,13 @@ describe('J12/J13 medical record navigation', () => {
       '/(staff)/patients/9/prescriptions?recordId=17',
     );
     expect(structuredHistoryPathForSection(9, 17, 'diagnosticos')).toBe(
-      '/(staff)/patients/9/record/consultations?recordId=17',
+      '/(staff)/patients/9/record/diagnoses?recordId=17',
+    );
+    expect(structuredHistoryPathForSection(9, 17, 'indicadores')).toBe(
+      '/(staff)/patients/9/measurements',
+    );
+    expect(structuredHistoryPathForSection(9, 17, 'alertas')).toBe(
+      '/(staff)/patients/9/record/alerts?recordId=17',
     );
   });
 
