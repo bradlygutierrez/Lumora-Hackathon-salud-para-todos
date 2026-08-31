@@ -134,6 +134,10 @@ class AppointmentService:
         before = snapshot(item)
         values = {
             **before,
+            "paciente_id": item.paciente_id,
+            "profesional_id": item.profesional_id,
+            "tipo_cita_id": item.tipo_cita_id,
+            "ubicacion_id": item.ubicacion_id,
             "inicio": data.inicio,
             "fin": data.fin,
         }
