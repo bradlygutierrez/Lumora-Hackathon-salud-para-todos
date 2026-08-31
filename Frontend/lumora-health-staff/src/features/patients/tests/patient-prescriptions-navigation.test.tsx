@@ -5,11 +5,33 @@ import { PatientDetailScreen } from '../screens/PatientDetailScreen';
 const mockUsePatient = jest.fn();
 const mockUsePatientCatalogs = jest.fn();
 const mockUsePatientClinicalSummary = jest.fn();
+const mockUseMedicalRecordSummary = jest.fn();
+const mockUseMyPatients = jest.fn();
 const mockUseAuthSession = jest.fn();
+const mockUseCurrentProfessional = jest.fn();
+const mockUseProfessionalAgenda = jest.fn();
+const mockUsePatientMeasurements = jest.fn();
+const mockUseMeasurementCatalogs = jest.fn();
 const mockPush = jest.fn();
 
 jest.mock('@/src/features/auth/hooks/use-auth-session', () => ({
   useAuthSession: () => mockUseAuthSession(),
+}));
+jest.mock('@/src/features/medical-records/hooks/use-medical-record', () => ({
+  useMedicalRecordSummary: () => mockUseMedicalRecordSummary(),
+}));
+jest.mock('@/src/features/profile/hooks/use-professionals', () => ({
+  useCurrentProfessional: () => mockUseCurrentProfessional(),
+}));
+jest.mock('@/src/features/appointments/hooks/use-appointments', () => ({
+  useProfessionalAgenda: () => mockUseProfessionalAgenda(),
+}));
+jest.mock('@/src/features/measurements/hooks/use-measurements', () => ({
+  usePatientMeasurements: () => mockUsePatientMeasurements(),
+  useMeasurementCatalogs: () => mockUseMeasurementCatalogs(),
+}));
+jest.mock('../hooks/use-my-patients', () => ({
+  useMyPatients: () => mockUseMyPatients(),
 }));
 jest.mock('../hooks/use-patients', () => ({
   usePatient: () => mockUsePatient(),
@@ -33,6 +55,16 @@ describe('PatientDetail prescription navigation J13', () => {
     jest.clearAllMocks();
     mockUseAuthSession.mockReturnValue({
       permissions: new Set(['clinica:manage']),
+    });
+    mockUseMedicalRecordSummary.mockImplementation(() => mockUsePatientClinicalSummary());
+    mockUseMyPatients.mockReturnValue({ data: [] });
+    mockUseCurrentProfessional.mockReturnValue({ data: undefined });
+    mockUseProfessionalAgenda.mockReturnValue({ data: [] });
+    mockUsePatientMeasurements.mockReturnValue({ data: [] });
+    mockUseMeasurementCatalogs.mockReturnValue({
+      indicators: { data: [] },
+      units: { data: { items: [] } },
+      origins: { data: { items: [] } },
     });
     mockUsePatient.mockReturnValue({
       data: {

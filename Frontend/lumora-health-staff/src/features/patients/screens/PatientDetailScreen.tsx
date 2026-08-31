@@ -1,23 +1,64 @@
 import { Ionicons } from '@expo/vector-icons';
 import { type Href, useRouter } from 'expo-router';
+import { useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { formatWorkspaceDateTime } from '@/src/features/appointments/utils/workspace-date-time';
 import { useAuthSession } from '@/src/features/auth/hooks/use-auth-session';
+import { useMedicalRecordSummary } from '@/src/features/medical-records/hooks/use-medical-record';
+import { useMeasurementCatalogs, usePatientMeasurements } from '@/src/features/measurements/hooks/use-measurements';
+import { enrichMeasurements } from '@/src/features/measurements/utils/measurement-format';
 import { Button } from '@/src/shared/components/Button';
 import { EmptyState, ErrorState, LoadingState } from '@/src/shared/components/RemoteState';
 import { Screen } from '@/src/shared/components/Screen';
 import { theme } from '@/src/shared/constants/theme';
-import { usePatient, usePatientCatalogs, usePatientClinicalSummary } from '../hooks/use-patients';
+import { useMyPatients } from '../hooks/use-my-patients';
+import { usePatient, usePatientCatalogs } from '../hooks/use-patients';
 import { fullPatientName, patientAge, principalAddress } from '../utils/patient-format';
 
 type Props = { patientId: number };
+
+function formatDate(value: string | undefined) {
+  if (!value) return 'No disponible';
+  return new Intl.DateTimeFormat('es-NI', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(value));
+}
 
 export function PatientDetailScreen({ patientId }: Props) {
   const router = useRouter();
   const { permissions } = useAuthSession();
   const patientQuery = usePatient(patientId);
   const catalogs = usePatientCatalogs();
-  const clinicalSummary = usePatientClinicalSummary(patientId);
+  const clinicalSummary = useMedicalRecordSummary(patientId);
+  const myPatients = useMyPatients();
+  const measurements = usePatientMeasurements(patientId);
+  const measurementCatalogs = useMeasurementCatalogs();
+
+  const richSummary = clinicalSummary.data;
+  const latestMeasurements = useMemo(
+    () =>
+      enrichMeasurements(
+        measurements.data ?? [],
+        measurementCatalogs.indicators.data ?? [],
+        measurementCatalogs.units.data?.items ?? [],
+        measurementCatalogs.origins.data?.items ?? [],
+      ).slice(0, 5),
+    [
+      measurements.data,
+      measurementCatalogs.indicators.data,
+      measurementCatalogs.units.data?.items,
+      measurementCatalogs.origins.data?.items,
+    ],
+  );
+  const latestVital = useMemo(() => {
+    const items = (richSummary?.consultas ?? []).flatMap((item) => item.signos_vitales);
+    return [...items].sort(
+      (a, b) =>
+        new Date(b.registrado_at).getTime() - new Date(a.registrado_at).getTime(),
+    )[0];
+  }, [richSummary?.consultas]);
 
   if (!permissions.has('clinica:manage')) {
     return <ErrorState title="Acceso restringido" message="No tenés permiso para consultar este paciente." />;
@@ -37,6 +78,9 @@ export function PatientDetailScreen({ patientId }: Props) {
   const age = patientAge(patient.persona.fecha_nacimiento);
   const address = principalAddress(patient.persona.direcciones);
   const emergency = patient.contactos_emergencia[0];
+  const workspacePatient = myPatients.data?.find((item) => item.paciente.id === patientId);
+  const nextAppointment = workspacePatient?.proxima_cita;
+  const lastConsultation = workspacePatient?.ultima_consulta;
 
   return (
     <Screen>
@@ -85,6 +129,13 @@ export function PatientDetailScreen({ patientId }: Props) {
             Recetas y medicamentos
           </Button>
           <Button
+            icon="analytics-outline"
+            onPress={() => router.push(`/(staff)/patients/${patientId}/measurements` as Href)}
+            variant="secondary"
+          >
+            Ver historial de mediciones
+          </Button>
+          <Button
             icon="people-outline"
             onPress={() => router.push(`/(staff)/patients/${patientId}/family` as Href)}
             variant="secondary"
@@ -93,7 +144,76 @@ export function PatientDetailScreen({ patientId }: Props) {
           </Button>
         </View>
 
-        <InfoCard icon="pulse-outline" title="Resumen del Paciente" accent>
+        <InfoCard icon="calendar-outline" title="Seguimiento profesional">
+          <InfoRow
+            icon="calendar-number-outline"
+            label="Próxima cita"
+            value={formatWorkspaceDateTime(nextAppointment?.inicio)}
+          />
+          <InfoRow
+            icon="time-outline"
+            label="Última consulta"
+            value={formatDate(lastConsultation?.fecha_consulta)}
+          />
+        </InfoCard>
+
+        <InfoCard icon="pulse-outline" title="Últimos signos y mediciones" accent>
+          {latestVital ? (
+            <>
+              {latestVital.presion_sistolica !== null && latestVital.presion_diastolica !== null ? (
+                <InfoRow
+                  icon="heart-outline"
+                  label="Presión arterial"
+                  value={`${latestVital.presion_sistolica}/${latestVital.presion_diastolica} mmHg · ${formatDate(latestVital.registrado_at)}`}
+                />
+              ) : null}
+              {latestVital.glucosa_mg_dl !== null ? (
+                <InfoRow
+                  icon="water-outline"
+                  label="Glucosa"
+                  value={`${latestVital.glucosa_mg_dl} mg/dL · ${formatDate(latestVital.registrado_at)}`}
+                />
+              ) : null}
+              {latestVital.peso_kg !== null ? (
+                <InfoRow
+                  icon="fitness-outline"
+                  label="Peso"
+                  value={`${latestVital.peso_kg} kg · ${formatDate(latestVital.registrado_at)}`}
+                />
+              ) : null}
+              {latestVital.saturacion_oxigeno !== null ? (
+                <InfoRow
+                  icon="pulse-outline"
+                  label="SpO₂"
+                  value={`${latestVital.saturacion_oxigeno}% · ${formatDate(latestVital.registrado_at)}`}
+                />
+              ) : null}
+              {latestVital.temperatura_c !== null ? (
+                <InfoRow
+                  icon="thermometer-outline"
+                  label="Temperatura"
+                  value={`${latestVital.temperatura_c} °C · ${formatDate(latestVital.registrado_at)}`}
+                />
+              ) : null}
+            </>
+          ) : null}
+          {latestMeasurements.map((item) => (
+            <InfoRow
+              icon="analytics-outline"
+              key={item.id}
+              label={item.indicador}
+              value={`${item.valor} ${item.unidad} · ${formatDate(item.fecha_medicion)} · ${item.origen}`}
+            />
+          ))}
+          {!latestVital && latestMeasurements.length === 0 ? (
+            <EmptyState
+              title="Sin signos o mediciones"
+              message="Todavía no hay datos clínicos registrados para este paciente."
+            />
+          ) : null}
+        </InfoCard>
+
+        <InfoCard icon="document-text-outline" title="Resumen del Paciente">
           <InfoRow icon="alert-circle-outline" label="Alergias registradas" value={patient.alergias ?? 'No indicadas'} />
           {clinicalSummary.data?.expediente ? (
             <InfoRow
@@ -199,7 +319,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 6,
   },
-  cardAccent: { borderLeftColor: theme.color.danger, borderLeftWidth: 5 },
+  cardAccent: { borderLeftColor: theme.color.primary, borderLeftWidth: 5 },
   cardTitleRow: { alignItems: 'center', flexDirection: 'row', gap: theme.spacing.sm },
   cardTitle: { color: theme.color.text, fontSize: 20, fontWeight: '800' },
   cardBody: { gap: theme.spacing.lg },

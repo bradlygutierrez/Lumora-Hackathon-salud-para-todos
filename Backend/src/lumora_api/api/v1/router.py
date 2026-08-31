@@ -31,6 +31,7 @@ from lumora_api.api.v1 import (
     permisos,
     prescriptions,
     professionals,
+    professional_workspace,
     reminders,
     role_permissions,
     roles,
@@ -68,6 +69,7 @@ api_router.include_router(user_roles.router)
 api_router.include_router(role_permissions.router)
 api_router.include_router(mfa.router)
 api_router.include_router(appointments.router)
+api_router.include_router(professional_workspace.router)
 api_router.include_router(medical_records.router)
 api_router.include_router(medical_record_document.router)
 api_router.include_router(patient_clinical.router)

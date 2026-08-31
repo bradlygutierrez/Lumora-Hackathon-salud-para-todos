@@ -18,6 +18,7 @@ OPENAPI_TAGS = [
     {"name": "Cuenta", "description": "Perfil propio de la cuenta autenticada."},
     {"name": "Pacientes", "description": "Perfiles clínicos de pacientes."},
     {"name": "Profesionales de salud", "description": "Profesionales y licencias."},
+    {"name": "Espacio profesional", "description": "Agenda, disponibilidad y pacientes vinculados del profesional autenticado."},
     {"name": "Citas", "description": "Agenda clínica."},
     {"name": "Contactos de emergencia", "description": "Contactos de pacientes."},
     {"name": "Roles", "description": "Catálogo de roles."},

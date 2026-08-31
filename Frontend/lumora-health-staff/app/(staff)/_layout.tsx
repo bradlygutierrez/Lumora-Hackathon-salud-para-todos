@@ -47,6 +47,15 @@ export default function StaffLayout() {
         }}
       />
       <Tabs.Screen
+        name="agenda"
+        options={{
+          title: 'Agenda',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons color={color} name="calendar-outline" size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="directory"
         options={{
           title: 'Personal',
