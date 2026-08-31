@@ -4,7 +4,13 @@ import { useQuery } from '@tanstack/react-query';
 import { shellContextService } from '@/features/shell/api/ShellContextService';
 import { usePatientContextStore } from '@/features/shell/store/patient-context-store';
 
-const CAREGIVER_PATIENTS_QUERY_KEY = ['shell', 'caregiver-patients'] as const;
+/**
+ * Exportada para que AppProviders pueda invalidar esta query cuando el
+ * interceptor HTTP detecta un 403 (A13): eso fuerza un refetch inmediato
+ * y, a través del useEffect de este hook, una llamada a
+ * syncAvailablePatients con datos frescos.
+ */
+export const CAREGIVER_PATIENTS_QUERY_KEY = ['shell', 'caregiver-patients'] as const;
 
 /** Cada cuánto se revalida la lista de pacientes autorizados de un caregiver. */
 const REVALIDATE_INTERVAL_MS = 60_000;

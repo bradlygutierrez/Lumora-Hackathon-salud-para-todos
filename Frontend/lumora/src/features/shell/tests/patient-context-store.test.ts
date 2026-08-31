@@ -18,6 +18,7 @@ describe('patient-context-store', () => {
           accessLevel: null,
         },
       ],
+      1,
     );
 
     expect(
@@ -28,6 +29,7 @@ describe('patient-context-store', () => {
       activePatient: {
         patientId: 7,
       },
+      currentUserId: 1,
     });
   });
 
@@ -48,6 +50,7 @@ describe('patient-context-store', () => {
           accessLevel: 'read',
         },
       ],
+      1,
     );
 
     expect(
@@ -75,6 +78,7 @@ describe('patient-context-store', () => {
           accessLevel: 'read',
         },
       ],
+      1,
     );
 
     const accepted = usePatientContextStore.getState().selectPatient(999);
@@ -100,6 +104,7 @@ describe('patient-context-store', () => {
           accessLevel: 'read',
         },
       ],
+      1,
     );
 
     const accepted = usePatientContextStore.getState().selectPatient(8);
@@ -128,6 +133,7 @@ describe('patient-context-store', () => {
             accessLevel: 'read',
           },
         ],
+        1,
       );
       usePatientContextStore.getState().selectPatient(8);
 
@@ -170,6 +176,7 @@ describe('patient-context-store', () => {
             accessLevel: 'read',
           },
         ],
+        1,
       );
       usePatientContextStore.getState().selectPatient(7);
 
@@ -207,6 +214,7 @@ describe('patient-context-store', () => {
             accessLevel: 'read',
           },
         ],
+        1,
       );
       usePatientContextStore.getState().selectPatient(7);
 

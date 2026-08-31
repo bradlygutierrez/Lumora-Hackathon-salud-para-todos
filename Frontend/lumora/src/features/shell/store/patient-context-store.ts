@@ -19,10 +19,18 @@ type PatientContextState = {
   availablePatients: PatientContext[];
   activePatient: PatientContext | null;
   errorMessage: string | null;
+  /**
+   * Id del usuario autenticado (A13). Lo necesita, por ejemplo, la
+   * pantalla "Permisos y Contactos" para encontrar -- dentro de la
+   * lista de relaciones de un paciente -- cuál relación es la propia
+   * del cuidador actual.
+   */
+  currentUserId: number | null;
   beginLoading: () => void;
   hydrate: (
     role: LumoraRole,
     availablePatients: PatientContext[],
+    currentUserId: number,
   ) => void;
   selectPatient: (patientId: number) => boolean;
   /**
@@ -50,6 +58,7 @@ export const usePatientContextStore =
     availablePatients: [],
     activePatient: null,
     errorMessage: null,
+    currentUserId: null,
 
     beginLoading: () => {
       set({
@@ -58,7 +67,7 @@ export const usePatientContextStore =
       });
     },
 
-    hydrate: (role, availablePatients) => {
+    hydrate: (role, availablePatients, currentUserId) => {
       if (role === 'unsupported') {
         set({
           role,
@@ -66,6 +75,7 @@ export const usePatientContextStore =
           activePatient: null,
           status: 'unsupported-role',
           errorMessage: null,
+          currentUserId,
         });
 
         return;
@@ -81,6 +91,7 @@ export const usePatientContextStore =
             availablePatients.length === 1
               ? null
               : 'No fue posible resolver tu perfil de paciente.',
+          currentUserId,
         });
 
         return;
@@ -96,6 +107,7 @@ export const usePatientContextStore =
           ? 'ready'
           : 'needs-patient',
         errorMessage: null,
+        currentUserId,
       });
     },
 
@@ -166,6 +178,7 @@ export const usePatientContextStore =
         availablePatients: [],
         activePatient: null,
         errorMessage: null,
+        currentUserId: null,
       });
     },
 

@@ -1,6 +1,7 @@
 import { Link } from 'expo-router';
 import { Text, View } from 'react-native';
 
+import { canManagePatientData } from '@/features/caregiver-access/utils/caregiver-permissions';
 import { MedicationSection } from '@/features/prescriptions/components/MedicationSection';
 import { useCancelDose } from '@/features/prescriptions/hooks/useCancelDose';
 import { useRegisterDose } from '@/features/prescriptions/hooks/useRegisterDose';
@@ -10,6 +11,7 @@ import {
   formatPlanDate,
   TIME_OF_DAY_ORDER,
 } from '@/features/prescriptions/utils/time-of-day';
+import { useShellContext } from '@/features/shell/hooks/useShellContext';
 import { AppButton } from '@/shared/components/AppButton';
 import { AppHeader } from '@/shared/components/AppHeader';
 import { FullScreenState } from '@/shared/components/FullScreenState';
@@ -18,6 +20,9 @@ import { Screen } from '@/shared/components/Screen';
 /** "Medicación" / Plan de Hoy — A07. */
 export default function MedicationRoute() {
   const { plan, planDate, isLoading, isError, refetch } = useTodayMedicationPlan();
+  const { activePatient, role } = useShellContext();
+  const canManage =
+    role !== 'caregiver' || canManagePatientData(activePatient?.accessLevel ?? null);
   const registerDose = useRegisterDose();
   const cancelDose = useCancelDose();
 
@@ -94,6 +99,7 @@ export default function MedicationRoute() {
               onRegisterDose={handleRegisterDose}
               cancelingHorarioId={cancelingHorarioId}
               onCancelDose={handleCancelDose}
+              canManage={canManage}
             />
           ))
         )}
