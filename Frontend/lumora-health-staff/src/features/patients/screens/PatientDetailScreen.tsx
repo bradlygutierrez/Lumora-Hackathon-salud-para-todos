@@ -3,18 +3,17 @@ import { type Href, useRouter } from 'expo-router';
 import { useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { useProfessionalAgenda } from '@/src/features/appointments/hooks/use-appointments';
 import { formatWorkspaceDateTime } from '@/src/features/appointments/utils/workspace-date-time';
 import { useAuthSession } from '@/src/features/auth/hooks/use-auth-session';
-import type { PatientClinicalSummary as RichClinicalSummary } from '@/src/features/medical-records/types/medical-record.types';
+import { useMedicalRecordSummary } from '@/src/features/medical-records/hooks/use-medical-record';
 import { useMeasurementCatalogs, usePatientMeasurements } from '@/src/features/measurements/hooks/use-measurements';
 import { enrichMeasurements } from '@/src/features/measurements/utils/measurement-format';
-import { useCurrentProfessional } from '@/src/features/profile/hooks/use-professionals';
 import { Button } from '@/src/shared/components/Button';
 import { EmptyState, ErrorState, LoadingState } from '@/src/shared/components/RemoteState';
 import { Screen } from '@/src/shared/components/Screen';
 import { theme } from '@/src/shared/constants/theme';
-import { usePatient, usePatientCatalogs, usePatientClinicalSummary } from '../hooks/use-patients';
+import { useMyPatients } from '../hooks/use-my-patients';
+import { usePatient, usePatientCatalogs } from '../hooks/use-patients';
 import { fullPatientName, patientAge, principalAddress } from '../utils/patient-format';
 
 type Props = { patientId: number };
@@ -32,13 +31,12 @@ export function PatientDetailScreen({ patientId }: Props) {
   const { permissions } = useAuthSession();
   const patientQuery = usePatient(patientId);
   const catalogs = usePatientCatalogs();
-  const clinicalSummary = usePatientClinicalSummary(patientId);
-  const currentProfessional = useCurrentProfessional();
-  const agenda = useProfessionalAgenda();
+  const clinicalSummary = useMedicalRecordSummary(patientId);
+  const myPatients = useMyPatients();
   const measurements = usePatientMeasurements(patientId);
   const measurementCatalogs = useMeasurementCatalogs();
 
-  const richSummary = clinicalSummary.data as unknown as RichClinicalSummary | undefined;
+  const richSummary = clinicalSummary.data;
   const latestMeasurements = useMemo(
     () =>
       enrichMeasurements(
@@ -80,15 +78,9 @@ export function PatientDetailScreen({ patientId }: Props) {
   const age = patientAge(patient.persona.fecha_nacimiento);
   const address = principalAddress(patient.persona.direcciones);
   const emergency = patient.contactos_emergencia[0];
-  const professionalId = currentProfessional.data?.id;
-  const nextAppointment = agenda.data?.find((item) => item.paciente_id === patientId);
-  const lastConsultation = [...(richSummary?.consultas ?? [])]
-    .filter((item) => !professionalId || item.consulta.profesional_id === professionalId)
-    .sort(
-      (a, b) =>
-        new Date(b.consulta.fecha_consulta).getTime() -
-        new Date(a.consulta.fecha_consulta).getTime(),
-    )[0]?.consulta;
+  const workspacePatient = myPatients.data?.find((item) => item.paciente.id === patientId);
+  const nextAppointment = workspacePatient?.proxima_cita;
+  const lastConsultation = workspacePatient?.ultima_consulta;
 
   return (
     <Screen>

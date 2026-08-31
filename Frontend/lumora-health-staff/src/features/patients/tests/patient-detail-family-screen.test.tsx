@@ -7,6 +7,8 @@ const mockUsePatient = jest.fn();
 const mockUsePatientFamily = jest.fn();
 const mockUsePatientCatalogs = jest.fn();
 const mockUsePatientClinicalSummary = jest.fn();
+const mockUseMedicalRecordSummary = jest.fn();
+const mockUseMyPatients = jest.fn();
 const mockUseAuthSession = jest.fn();
 const mockUseCurrentProfessional = jest.fn();
 const mockUseProfessionalAgenda = jest.fn();
@@ -18,6 +20,9 @@ const mockBack = jest.fn();
 jest.mock('@/src/features/auth/hooks/use-auth-session', () => ({
   useAuthSession: () => mockUseAuthSession(),
 }));
+jest.mock('@/src/features/medical-records/hooks/use-medical-record', () => ({
+  useMedicalRecordSummary: () => mockUseMedicalRecordSummary(),
+}));
 jest.mock('@/src/features/profile/hooks/use-professionals', () => ({
   useCurrentProfessional: () => mockUseCurrentProfessional(),
 }));
@@ -27,6 +32,9 @@ jest.mock('@/src/features/appointments/hooks/use-appointments', () => ({
 jest.mock('@/src/features/measurements/hooks/use-measurements', () => ({
   usePatientMeasurements: () => mockUsePatientMeasurements(),
   useMeasurementCatalogs: () => mockUseMeasurementCatalogs(),
+}));
+jest.mock('../hooks/use-my-patients', () => ({
+  useMyPatients: () => mockUseMyPatients(),
 }));
 jest.mock('../hooks/use-patients', () => ({
   usePatient: () => mockUsePatient(),
@@ -116,6 +124,7 @@ function defaults() {
     isLoading: false,
     isError: false,
   });
+  mockUseMedicalRecordSummary.mockImplementation(() => mockUsePatientClinicalSummary());
   mockUseCurrentProfessional.mockReturnValue({ data: { id: 8 } });
   mockUseProfessionalAgenda.mockReturnValue({
     data: [
@@ -125,6 +134,15 @@ function defaults() {
         paciente_nombre: 'John Doe',
         inicio: '2026-09-02T14:00:00Z',
         fin: '2026-09-02T14:45:00Z',
+      },
+    ],
+  });
+  mockUseMyPatients.mockReturnValue({
+    data: [
+      {
+        paciente: detail,
+        proxima_cita: { inicio: '2026-09-02T14:00:00Z' },
+        ultima_consulta: { fecha_consulta: '2026-08-20T10:00:00Z' },
       },
     ],
   });
@@ -191,6 +209,23 @@ describe('patient detail and family screens J15', () => {
 
     await fireEvent.press(screen.getByText('Expediente Médico'));
     expect(mockPush).toHaveBeenCalledWith('/(staff)/patients/9/record');
+  });
+
+  it('keeps Bruno-style follow-up self-scoped: no next appointment but a last consultation', async () => {
+    mockUseMyPatients.mockReturnValue({
+      data: [
+        {
+          paciente: detail,
+          proxima_cita: null,
+          ultima_consulta: { fecha_consulta: '2026-08-20T10:00:00Z' },
+        },
+      ],
+    });
+
+    const screen = await render(<PatientDetailScreen patientId={9} />);
+    expect(screen.getAllByText('No disponible')).toHaveLength(1);
+    expect(mockUseMyPatients).toHaveBeenCalledTimes(1);
+    expect(mockUseMedicalRecordSummary).toHaveBeenCalledTimes(1);
   });
 
   it('renders family access as read-only backend state', async () => {
