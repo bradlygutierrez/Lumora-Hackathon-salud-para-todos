@@ -3,6 +3,8 @@ import { render } from '@testing-library/react-native';
 import { MyPatientCard } from '../components/MyPatientCard';
 import type { MyPatient } from '../types/my-patient.types';
 
+jest.mock('@expo/vector-icons', () => ({ Ionicons: () => null }));
+
 const item: MyPatient = {
   paciente: {
     id: 9,

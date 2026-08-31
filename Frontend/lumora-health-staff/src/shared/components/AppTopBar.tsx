@@ -1,20 +1,44 @@
 import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
+import { useAuthSession } from '@/src/features/auth/hooks/use-auth-session';
 import { theme } from '../constants/theme';
 import { LumoraBrand } from './LumoraBrand';
 import { StaffAvatar } from './StaffAvatar';
 
 export function AppTopBar() {
+  const { session } = useAuthSession();
+
+  const firstName =
+    session?.user?.persona.nombres?.trim().split(/\s+/)[0] ??
+    session?.user?.username ??
+    'Personal';
+  const lastName =
+    session?.user?.persona.apellidos?.trim().split(/\s+/)[0] ?? '';
+  const displayName =
+    session?.user?.persona.nombres && session?.user?.persona.apellidos
+      ? `${firstName} ${lastName}`.trim()
+      : firstName;
+
   return (
     <View style={styles.container}>
-      <View style={styles.left}>
-        <Ionicons color={theme.color.text} name="menu-outline" size={28} />
-        <LumoraBrand compact />
+      <View style={styles.identity}>
+        <StaffAvatar
+          firstName={firstName}
+          lastName={lastName || firstName}
+          size={34}
+        />
+        <Text numberOfLines={1} style={styles.name}>
+          {displayName}
+        </Text>
       </View>
-      <View style={styles.right}>
-        <Ionicons color={theme.color.danger} name="notifications" size={22} />
-        <StaffAvatar firstName="S" lastName="J" size={32} />
+      <LumoraBrand compact />
+      <View style={styles.notification}>
+        <Ionicons
+          color={theme.color.primaryPressed}
+          name="notifications-outline"
+          size={24}
+        />
       </View>
     </View>
   );
@@ -24,25 +48,32 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     backgroundColor: theme.color.surfaceMuted,
+    borderBottomColor: theme.color.softBorder,
+    borderBottomWidth: 1,
     flexDirection: 'row',
+    gap: theme.spacing.sm,
     justifyContent: 'space-between',
     marginHorizontal: -theme.spacing.lg,
     marginTop: -theme.spacing.lg,
+    minHeight: 62,
     paddingHorizontal: theme.spacing.lg,
     paddingVertical: theme.spacing.sm,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
   },
-  left: {
+  identity: {
     alignItems: 'center',
+    flex: 1,
     flexDirection: 'row',
-    gap: theme.spacing.md,
+    gap: theme.spacing.sm,
+    minWidth: 0,
   },
-  right: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: theme.spacing.md,
+  name: {
+    color: theme.color.primary,
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  notification: {
+    alignItems: 'flex-end',
+    flex: 1,
   },
 });

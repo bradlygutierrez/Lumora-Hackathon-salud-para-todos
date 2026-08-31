@@ -1,12 +1,23 @@
 import { Ionicons } from '@expo/vector-icons';
 import { type Href, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 
 import { useAuthSession } from '@/src/features/auth/hooks/use-auth-session';
 import { AppTopBar } from '@/src/shared/components/AppTopBar';
 import { Button } from '@/src/shared/components/Button';
-import { EmptyState, ErrorState, LoadingState } from '@/src/shared/components/RemoteState';
+import {
+  EmptyState,
+  ErrorState,
+  LoadingState,
+} from '@/src/shared/components/RemoteState';
 import { Screen } from '@/src/shared/components/Screen';
 import { theme } from '@/src/shared/constants/theme';
 import { ChoiceField } from '../components/ChoiceField';
@@ -37,21 +48,40 @@ export function PatientListScreen() {
   const catalogs = usePatientCatalogs();
 
   const sexNames = useMemo(
-    () => new Map((catalogs.sexes.data?.items ?? []).map((item) => [item.id, item.nombre])),
+    () =>
+      new Map(
+        (catalogs.sexes.data?.items ?? []).map((item) => [
+          item.id,
+          item.nombre,
+        ]),
+      ),
     [catalogs.sexes.data?.items],
   );
   const bloodTypeNames = useMemo(
-    () => new Map((catalogs.bloodTypes.data?.items ?? []).map((item) => [item.id, item.nombre])),
+    () =>
+      new Map(
+        (catalogs.bloodTypes.data?.items ?? []).map((item) => [
+          item.id,
+          item.nombre,
+        ]),
+      ),
     [catalogs.bloodTypes.data?.items],
   );
 
   if (!permissions.has('clinica:manage')) {
-    return <ErrorState title="Acceso restringido" message="No tenés permiso para consultar pacientes." />;
+    return (
+      <ErrorState
+        title="Acceso restringido"
+        message="No tenés permiso para consultar pacientes."
+      />
+    );
   }
 
   const page = patients.data;
   const hasPrevious = offset > 0;
-  const hasNext = Boolean(page && offset + page.items.length < page.total);
+  const hasNext = Boolean(
+    page && offset + page.items.length < page.total,
+  );
 
   return (
     <Screen>
@@ -62,41 +92,92 @@ export function PatientListScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.titleBlock}>
-          <Text style={styles.title}>Pacientes</Text>
+          <Text style={styles.title}>Lista de Pacientes</Text>
           <Text style={styles.subtitle}>
-            Consultá tus pacientes vinculados o buscá dentro del directorio autorizado.
+            Consultá tus pacientes vinculados o buscá dentro del directorio
+            clínico autorizado.
           </Text>
         </View>
 
-        <View style={styles.tabs}>
+        <View style={styles.modeRow}>
           <Pressable
             accessibilityRole="tab"
             accessibilityState={{ selected: mode === 'mine' }}
             onPress={() => setMode('mine')}
-            style={[styles.tab, mode === 'mine' ? styles.tabSelected : null]}
+            style={[
+              styles.modePill,
+              mode === 'mine' ? styles.modePillSelected : null,
+            ]}
           >
-            <Text style={styles.tabText}>Mis pacientes</Text>
+            <Ionicons
+              color={
+                mode === 'mine'
+                  ? theme.color.primaryPressed
+                  : theme.color.mutedText
+              }
+              name="people-outline"
+              size={17}
+            />
+            <Text
+              style={[
+                styles.modeText,
+                mode === 'mine' ? styles.modeTextSelected : null,
+              ]}
+            >
+              Mis pacientes
+            </Text>
           </Pressable>
           <Pressable
             accessibilityRole="tab"
             accessibilityState={{ selected: mode === 'search' }}
             onPress={() => setMode('search')}
-            style={[styles.tab, mode === 'search' ? styles.tabSelected : null]}
+            style={[
+              styles.modePill,
+              mode === 'search' ? styles.modePillSelected : null,
+            ]}
           >
-            <Text style={styles.tabText}>Buscar pacientes</Text>
+            <Ionicons
+              color={
+                mode === 'search'
+                  ? theme.color.primaryPressed
+                  : theme.color.mutedText
+              }
+              name="search-outline"
+              size={17}
+            />
+            <Text
+              style={[
+                styles.modeText,
+                mode === 'search' ? styles.modeTextSelected : null,
+              ]}
+            >
+              Buscar pacientes
+            </Text>
           </Pressable>
         </View>
 
         {mode === 'mine' ? (
           <>
-            {myPatients.isLoading ? <LoadingState title="Cargando mis pacientes" /> : null}
+            <View style={styles.sectionHeading}>
+              <Text style={styles.sectionTitle}>Pacientes activos</Text>
+              {!myPatients.isLoading && !myPatients.isError ? (
+                <Text style={styles.total}>
+                  {myPatients.data?.length ?? 0} paciente(s)
+                </Text>
+              ) : null}
+            </View>
+            {myPatients.isLoading ? (
+              <LoadingState title="Cargando mis pacientes" />
+            ) : null}
             {myPatients.isError ? (
               <ErrorState
                 title="No se pudieron cargar tus pacientes"
                 message="Verificá la conexión o los permisos e intentá nuevamente."
               />
             ) : null}
-            {!myPatients.isLoading && !myPatients.isError && (myPatients.data?.length ?? 0) === 0 ? (
+            {!myPatients.isLoading &&
+            !myPatients.isError &&
+            (myPatients.data?.length ?? 0) === 0 ? (
               <EmptyState
                 title="Sin pacientes vinculados"
                 message="Tus pacientes aparecerán cuando exista una cita o consulta real con vos."
@@ -108,7 +189,9 @@ export function PatientListScreen() {
                   item={item}
                   key={item.paciente.id}
                   onPress={() =>
-                    router.push(`/(staff)/patients/${item.paciente.id}` as Href)
+                    router.push(
+                      `/(staff)/patients/${item.paciente.id}` as Href,
+                    )
                   }
                 />
               ))}
@@ -117,7 +200,11 @@ export function PatientListScreen() {
         ) : (
           <>
             <View style={styles.searchShell}>
-              <Ionicons color={theme.color.mutedText} name="search-outline" size={20} />
+              <Ionicons
+                color={theme.color.mutedText}
+                name="search-outline"
+                size={22}
+              />
               <TextInput
                 accessibilityLabel="Buscar pacientes"
                 onChangeText={(value) => {
@@ -138,12 +225,17 @@ export function PatientListScreen() {
                     setOffset(0);
                   }}
                 >
-                  <Ionicons color={theme.color.mutedText} name="close-circle" size={20} />
+                  <Ionicons
+                    color={theme.color.mutedText}
+                    name="close-circle"
+                    size={20}
+                  />
                 </Pressable>
               ) : null}
             </View>
 
             <View style={styles.filtersCard}>
+              <Text style={styles.filterTitle}>Filtros clínicos disponibles</Text>
               <ChoiceField
                 clearLabel="Todos"
                 items={catalogs.sexes.data?.items ?? []}
@@ -167,23 +259,31 @@ export function PatientListScreen() {
                 value={bloodTypeId}
               />
               {catalogs.sexes.isError || catalogs.bloodTypes.isError ? (
-                <Text style={styles.filterWarning}>Algunos filtros no pudieron cargarse.</Text>
+                <Text style={styles.filterWarning}>
+                  Algunos filtros no pudieron cargarse.
+                </Text>
               ) : null}
             </View>
 
-            <View style={styles.resultsHeader}>
-              <Text style={styles.resultsTitle}>Directorio autorizado</Text>
-              {page ? <Text style={styles.total}>{page.total} resultado(s)</Text> : null}
+            <View style={styles.sectionHeading}>
+              <Text style={styles.sectionTitle}>Directorio autorizado</Text>
+              {page ? (
+                <Text style={styles.total}>{page.total} resultado(s)</Text>
+              ) : null}
             </View>
 
-            {patients.isLoading ? <LoadingState title="Cargando pacientes" /> : null}
+            {patients.isLoading ? (
+              <LoadingState title="Cargando pacientes" />
+            ) : null}
             {patients.isError ? (
               <ErrorState
                 title="No se pudo cargar la lista"
                 message="Verificá la conexión o los permisos e intentá nuevamente."
               />
             ) : null}
-            {!patients.isLoading && !patients.isError && page?.items.length === 0 ? (
+            {!patients.isLoading &&
+            !patients.isError &&
+            page?.items.length === 0 ? (
               <EmptyState
                 title="No se encontraron pacientes"
                 message="Probá con otra búsqueda o quitá los filtros."
@@ -195,12 +295,20 @@ export function PatientListScreen() {
                 {page?.items.map((patient) => (
                   <PatientCard
                     bloodTypeName={
-                      patient.tipo_sangre_id ? bloodTypeNames.get(patient.tipo_sangre_id) : undefined
+                      patient.tipo_sangre_id
+                        ? bloodTypeNames.get(patient.tipo_sangre_id)
+                        : undefined
                     }
                     key={patient.id}
-                    onPress={() => router.push(`/(staff)/patients/${patient.id}` as Href)}
+                    onPress={() =>
+                      router.push(`/(staff)/patients/${patient.id}` as Href)
+                    }
                     patient={patient}
-                    sexName={patient.persona.sexo_id ? sexNames.get(patient.persona.sexo_id) : undefined}
+                    sexName={
+                      patient.persona.sexo_id
+                        ? sexNames.get(patient.persona.sexo_id)
+                        : undefined
+                    }
                   />
                 ))}
               </View>
@@ -210,17 +318,24 @@ export function PatientListScreen() {
               <View style={styles.pagination}>
                 <Button
                   disabled={!hasPrevious}
-                  onPress={() => setOffset((current) => Math.max(0, current - PAGE_SIZE))}
+                  onPress={() =>
+                    setOffset((current) =>
+                      Math.max(0, current - PAGE_SIZE),
+                    )
+                  }
                   variant="secondary"
                 >
                   Anterior
                 </Button>
                 <Text style={styles.pageText}>
-                  {Math.floor(offset / PAGE_SIZE) + 1} / {Math.max(1, Math.ceil(page.total / PAGE_SIZE))}
+                  {Math.floor(offset / PAGE_SIZE) + 1} /{' '}
+                  {Math.max(1, Math.ceil(page.total / PAGE_SIZE))}
                 </Text>
                 <Button
                   disabled={!hasNext}
-                  onPress={() => setOffset((current) => current + PAGE_SIZE)}
+                  onPress={() =>
+                    setOffset((current) => current + PAGE_SIZE)
+                  }
                   variant="secondary"
                 >
                   Siguiente
@@ -246,64 +361,128 @@ export function PatientListScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: { gap: theme.spacing.lg, paddingBottom: 90, paddingTop: theme.spacing.xl },
-  titleBlock: { gap: theme.spacing.xs },
-  title: { color: theme.color.text, fontSize: 26, fontWeight: '900' },
-  subtitle: { color: theme.color.mutedText, fontSize: 14 },
-  tabs: {
-    backgroundColor: theme.color.surfaceMuted,
-    borderRadius: theme.radius.md,
-    flexDirection: 'row',
-    padding: 4,
+  content: {
+    gap: theme.spacing.lg,
+    paddingBottom: 92,
+    paddingTop: theme.spacing.xl,
   },
-  tab: { flex: 1, padding: 12 },
-  tabSelected: { backgroundColor: theme.color.surface, borderRadius: theme.radius.sm },
-  tabText: { color: theme.color.text, fontWeight: '800', textAlign: 'center' },
+  titleBlock: {
+    gap: 4,
+  },
+  title: {
+    color: theme.color.text,
+    fontSize: 30,
+    fontWeight: '900',
+  },
+  subtitle: {
+    color: theme.color.mutedText,
+    fontSize: 14,
+    lineHeight: 21,
+  },
+  modeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: theme.spacing.sm,
+  },
+  modePill: {
+    alignItems: 'center',
+    backgroundColor: theme.color.surface,
+    borderColor: theme.color.border,
+    borderRadius: theme.radius.pill,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: 11,
+  },
+  modePillSelected: {
+    backgroundColor: theme.color.primarySoft,
+    borderColor: theme.color.primarySoft,
+  },
+  modeText: {
+    color: theme.color.mutedText,
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  modeTextSelected: {
+    color: theme.color.primaryPressed,
+  },
+  sectionHeading: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  sectionTitle: {
+    color: theme.color.text,
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  total: {
+    color: theme.color.subtleText,
+    fontSize: 12,
+    fontWeight: '700',
+  },
   searchShell: {
     alignItems: 'center',
     backgroundColor: theme.color.surface,
     borderColor: theme.color.border,
-    borderRadius: theme.radius.md,
+    borderRadius: 10,
     borderWidth: 1,
     flexDirection: 'row',
     gap: theme.spacing.sm,
-    minHeight: 50,
+    minHeight: 56,
     paddingHorizontal: theme.spacing.md,
   },
-  searchInput: { color: theme.color.text, flex: 1, fontSize: 15, minHeight: 48 },
+  searchInput: {
+    color: theme.color.text,
+    flex: 1,
+    fontSize: 15,
+    minHeight: 54,
+  },
   filtersCard: {
-    backgroundColor: theme.color.surfaceMuted,
+    backgroundColor: theme.color.surface,
     borderColor: theme.color.softBorder,
     borderRadius: theme.radius.lg,
     borderWidth: 1,
     gap: theme.spacing.md,
-    padding: theme.spacing.md,
+    padding: theme.spacing.lg,
   },
-  filterWarning: { color: theme.color.warning, fontSize: theme.typography.caption },
-  resultsHeader: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
-  resultsTitle: { color: theme.color.text, fontSize: 18, fontWeight: '800' },
-  total: { color: theme.color.subtleText, fontSize: theme.typography.caption },
-  list: { gap: theme.spacing.md },
+  filterTitle: {
+    color: theme.color.text,
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  filterWarning: {
+    color: theme.color.warning,
+    fontSize: theme.typography.caption,
+  },
+  list: {
+    gap: theme.spacing.md,
+  },
   pagination: {
     alignItems: 'center',
     flexDirection: 'row',
     gap: theme.spacing.sm,
     justifyContent: 'space-between',
   },
-  pageText: { color: theme.color.mutedText, fontSize: theme.typography.caption, fontWeight: '700' },
+  pageText: {
+    color: theme.color.mutedText,
+    fontSize: theme.typography.caption,
+    fontWeight: '700',
+  },
   fab: {
     alignItems: 'center',
     backgroundColor: theme.color.primary,
-    borderRadius: 18,
+    borderRadius: 20,
     bottom: theme.spacing.lg,
-    height: 58,
+    height: 62,
     justifyContent: 'center',
     position: 'absolute',
     right: theme.spacing.lg,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.16,
-    shadowRadius: 7,
-    width: 58,
+    shadowColor: '#003C90',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.2,
+    shadowRadius: 9,
+    width: 62,
   },
 });
