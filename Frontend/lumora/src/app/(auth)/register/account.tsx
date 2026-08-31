@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { router } from 'expo-router';
+import { Redirect, router } from 'expo-router';
 import { Controller, useForm } from 'react-hook-form';
 import { View } from 'react-native';
 
@@ -16,8 +16,8 @@ import { AppButton } from '@/shared/components/AppButton';
 import { FormTextField } from '@/shared/components/FormTextField';
 import { Screen } from '@/shared/components/Screen';
 
-/** Paso 1 de 4: credenciales locales. Todavía no se llama al backend. */
 export default function RegisterAccountRoute() {
+  const accountType = useRegistrationStore((state) => state.accountType);
   const saved = useRegistrationStore((state) => state.account);
   const setAccount = useRegistrationStore((state) => state.setAccount);
 
@@ -32,7 +32,12 @@ export default function RegisterAccountRoute() {
     },
   });
 
+  if (accountType === null) {
+    return <Redirect href="/(auth)/register" />;
+  }
+
   const password = form.watch('password');
+  const total = accountType === 'caregiver' ? 3 : 4;
 
   const continueRegistration = (values: RegisterAccountForm) => {
     setAccount(values);
@@ -44,9 +49,13 @@ export default function RegisterAccountRoute() {
       contentClassName="gap-6">
       <AuthHeader
         title="Crear cuenta"
-        subtitle="Configura tus datos de acceso."
+        subtitle={
+          accountType === 'caregiver'
+            ? 'Configura los datos de acceso de tu cuenta cuidadora.'
+            : 'Configura tus datos de acceso.'
+        }
       />
-      <RegistrationProgress step={1} />
+      <RegistrationProgress step={1} total={total} />
 
       <View className="gap-4">
         <FormTextField

@@ -15,6 +15,8 @@ from lumora_api.models import (
     RelacionPaciente,
     Rol,
     TipoRelacion,
+    TipoCita,
+    UbicacionAtencion,
     Usuario,
 )
 
@@ -308,6 +310,44 @@ async def test_reschedule_authorization_conflict_and_audit(client, session_facto
             )
         )
     assert actions == ["CREATE", "RESCHEDULE"]
+
+
+@pytest.mark.asyncio
+async def test_reschedule_presencial_preserves_location(client, session_factory):
+    ctx = await seed(session_factory)
+    async with session_factory() as session:
+        tipo = TipoCita(nombre="Presencial")
+        location = UbicacionAtencion(
+            nombre="Clinica Central", direccion="Calle Principal 1", activo=True
+        )
+        session.add_all([tipo, location])
+        await session.commit()
+        tipo_id, location_id = tipo.id, location.id
+
+    start = datetime.now(timezone.utc) + timedelta(days=5)
+    created = await client.post(
+        "/api/v1/citas",
+        json={
+            **payload(ctx, start),
+            "tipo_cita_id": tipo_id,
+            "ubicacion_id": location_id,
+        },
+        headers=headers(ctx["patient_a_user"]),
+    )
+    assert created.status_code == 201
+
+    new_start = start + timedelta(days=1)
+    rescheduled = await client.patch(
+        f"/api/v1/citas/{created.json()['id']}/reprogramar",
+        json={
+            "inicio": new_start.isoformat(),
+            "fin": (new_start + timedelta(hours=1)).isoformat(),
+        },
+        headers=headers(ctx["patient_a_user"]),
+    )
+
+    assert rescheduled.status_code == 200
+    assert rescheduled.json()["ubicacion_id"] == location_id
 
 
 @pytest.mark.asyncio

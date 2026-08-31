@@ -3,12 +3,14 @@ import { create } from 'zustand';
 import type {
   LumoraRole,
   PatientContext,
+  SelectableLumoraRole,
 } from '@/features/shell/types/shell.types';
 
 export type ShellStatus =
   | 'idle'
   | 'loading'
   | 'ready'
+  | 'needs-role'
   | 'needs-patient'
   | 'unsupported-role'
   | 'error';
@@ -19,30 +21,19 @@ type PatientContextState = {
   availablePatients: PatientContext[];
   activePatient: PatientContext | null;
   errorMessage: string | null;
-  /**
-   * Id del usuario autenticado (A13). Lo necesita, por ejemplo, la
-   * pantalla "Permisos y Contactos" para encontrar -- dentro de la
-   * lista de relaciones de un paciente -- cuál relación es la propia
-   * del cuidador actual.
-   */
   currentUserId: number | null;
+
   beginLoading: () => void;
   hydrate: (
     role: LumoraRole,
     availablePatients: PatientContext[],
     currentUserId: number,
   ) => void;
+  activateRole: (
+    role: SelectableLumoraRole,
+    availablePatients: PatientContext[],
+  ) => void;
   selectPatient: (patientId: number) => boolean;
-  /**
-   * Refresca la lista de pacientes autorizados de un caregiver con datos
-   * frescos del backend (A12). Si el paciente activo ya no aparece en la
-   * lista -- porque el paciente revocó el acceso, o expiró -- se limpia
-   * el contexto y vuelve a "needs-patient" para forzar una nueva
-   * selección (el layout ya redirige a /select-patient en ese estado).
-   * Si el paciente activo sigue autorizado, no se toca -- solo se
-   * refresca la lista para que la pantalla de selección muestre datos
-   * al día.
-   */
   syncAvailablePatients: (
     role: LumoraRole,
     freshPatients: PatientContext[],
@@ -50,6 +41,41 @@ type PatientContextState = {
   clear: () => void;
   setError: (message: string) => void;
 };
+
+function roleState(
+  role: SelectableLumoraRole,
+  availablePatients: PatientContext[],
+) {
+  if (role === 'patient') {
+    return {
+      role,
+      availablePatients,
+      activePatient: availablePatients[0] ?? null,
+      status:
+        availablePatients.length === 1
+          ? 'ready' as const
+          : 'error' as const,
+      errorMessage:
+        availablePatients.length === 1
+          ? null
+          : 'No fue posible resolver tu perfil de paciente.',
+    };
+  }
+
+  return {
+    role,
+    availablePatients,
+    activePatient:
+      availablePatients.length === 1
+        ? availablePatients[0]
+        : null,
+    status:
+      availablePatients.length === 1
+        ? 'ready' as const
+        : 'needs-patient' as const,
+    errorMessage: null,
+  };
+}
 
 export const usePatientContextStore =
   create<PatientContextState>((set, get) => ({
@@ -77,37 +103,30 @@ export const usePatientContextStore =
           errorMessage: null,
           currentUserId,
         });
-
         return;
       }
 
-      if (role === 'patient') {
+      if (role === 'dual') {
         set({
           role,
-          availablePatients,
-          activePatient: availablePatients[0] ?? null,
-          status: availablePatients.length === 1 ? 'ready' : 'error',
-          errorMessage:
-            availablePatients.length === 1
-              ? null
-              : 'No fue posible resolver tu perfil de paciente.',
+          availablePatients: [],
+          activePatient: null,
+          status: 'needs-role',
+          errorMessage: null,
           currentUserId,
         });
-
         return;
       }
 
       set({
-        role,
-        availablePatients,
-        activePatient: availablePatients.length === 1
-          ? availablePatients[0]
-          : null,
-        status: availablePatients.length === 1
-          ? 'ready'
-          : 'needs-patient',
-        errorMessage: null,
+        ...roleState(role, availablePatients),
         currentUserId,
+      });
+    },
+
+    activateRole: (role, availablePatients) => {
+      set({
+        ...roleState(role, availablePatients),
       });
     },
 
@@ -132,9 +151,10 @@ export const usePatientContextStore =
     syncAvailablePatients: (role, freshPatients) => {
       const current = get();
 
-      // Un cambio de rol (ej. sesión distinta) no se resuelve aquí --
-      // eso pasa por hydrate() en el próximo login.
-      if (current.role !== role) {
+      if (
+        role !== 'caregiver' ||
+        current.role !== 'caregiver'
+      ) {
         return;
       }
 
@@ -155,9 +175,6 @@ export const usePatientContextStore =
         return;
       }
 
-      // El paciente activo (si hay uno) sigue autorizado -- solo
-      // refrescamos la lista con los datos más recientes (nombres,
-      // nivel de acceso, etc.) sin tocar la selección actual.
       const refreshedActivePatient =
         current.activePatient !== null
           ? (freshPatients.find(
