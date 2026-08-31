@@ -126,6 +126,16 @@ class ReminderRepository:
     async def get_relacion_by_id(self, relacion_id: int) -> RelacionPaciente | None:
         return await self.session.get(RelacionPaciente, relacion_id)
 
+    async def get_relacion_no_revocada(
+        self, paciente_id: int, usuario_relacionado_id: int
+    ) -> RelacionPaciente | None:
+        stmt = select(RelacionPaciente).where(
+            RelacionPaciente.paciente_id == paciente_id,
+            RelacionPaciente.usuario_relacionado_id == usuario_relacionado_id,
+            RelacionPaciente.estado != "revoked",
+        )
+        return await self.session.scalar(stmt)
+
     async def update_relacion(self, relacion: RelacionPaciente) -> RelacionPaciente:
         await self.session.commit()
         await self.session.refresh(relacion)

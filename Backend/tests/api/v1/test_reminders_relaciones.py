@@ -235,3 +235,74 @@ async def test_actualizar_relacion_estado_invalido_da_422(client, session_factor
         json={"estado": "estado-que-no-existe"},
     )
     assert r.status_code == 422
+
+
+# --- Buscar por correo (paso previo a "Agregar/invitar familiar") ---------------
+
+
+@pytest.mark.asyncio
+async def test_buscar_usuario_por_email(client, session_factory):
+    ctx = await _seed(session_factory)
+
+    r_found = await client.get(
+        "/api/v1/reminders/usuarios/buscar",
+        params={"email": "a11.other@example.com"},
+        headers=_auth(ctx["usuario_id"]),
+    )
+    assert r_found.status_code == 200
+    assert r_found.json()["id"] == ctx["other_id"]
+    assert r_found.json()["full_name"] == "Otra Persona"
+
+    # No se puede "encontrar" a sí mismo para añadirse como su propio familiar.
+    r_self = await client.get(
+        "/api/v1/reminders/usuarios/buscar",
+        params={"email": "a11.patient@example.com"},
+        headers=_auth(ctx["usuario_id"]),
+    )
+    assert r_self.status_code == 404
+
+    r_missing = await client.get(
+        "/api/v1/reminders/usuarios/buscar",
+        params={"email": "no-existe@example.com"},
+        headers=_auth(ctx["usuario_id"]),
+    )
+    assert r_missing.status_code == 404
+
+
+# --- Alta: agregar/invitar familiar, y evitar duplicados -------------------------
+
+
+@pytest.mark.asyncio
+async def test_crear_relacion_agrega_familiar_y_evita_duplicados(client, session_factory):
+    ctx = await _seed(session_factory)
+
+    r_create = await client.post(
+        f"/api/v1/reminders/pacientes/{ctx['paciente_id']}/relaciones",
+        headers=_auth(ctx["usuario_id"]),
+        json={
+            "paciente_id": ctx["paciente_id"],
+            "usuario_relacionado_id": ctx["other_id"],
+            "tipo_relacion_id": 1,
+        },
+    )
+    assert r_create.status_code == 201
+    assert r_create.json()["usuario_relacionado_id"] == ctx["other_id"]
+
+    r_list = await client.get(
+        f"/api/v1/reminders/pacientes/{ctx['paciente_id']}/relaciones",
+        headers=_auth(ctx["usuario_id"]),
+    )
+    assert len(r_list.json()) == 2
+
+    # Agregar a la misma persona otra vez es un conflicto, no un duplicado
+    # silencioso.
+    r_duplicado = await client.post(
+        f"/api/v1/reminders/pacientes/{ctx['paciente_id']}/relaciones",
+        headers=_auth(ctx["usuario_id"]),
+        json={
+            "paciente_id": ctx["paciente_id"],
+            "usuario_relacionado_id": ctx["other_id"],
+            "tipo_relacion_id": 1,
+        },
+    )
+    assert r_duplicado.status_code == 409

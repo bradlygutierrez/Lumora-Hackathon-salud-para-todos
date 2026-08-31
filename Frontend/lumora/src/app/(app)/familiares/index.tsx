@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Text, View } from 'react-native';
 
@@ -18,12 +19,9 @@ import { useFeedback } from '@/shared/feedback/FeedbackProvider';
 
 /**
  * A11 -- Familiares Autorizados.
- *
- * "+ Añadir Familiar" queda deshabilitado: el backend todavía no tiene
- * forma de buscar un usuario por email para crear la relación (ver
- * checklist de la tarea: "cuando backend lo soporte").
  */
 export default function FamiliaresAutorizadosRoute() {
+  const router = useRouter();
   const { activePatient } = useShellContext();
   const patientId = activePatient?.patientId ?? null;
   const { showFeedback } = useFeedback();
@@ -102,7 +100,11 @@ export default function FamiliaresAutorizadosRoute() {
         </Text>
       </View>
 
-      <AppButton title="+ Añadir Familiar" variant="ghost" disabled onPress={() => {}} />
+      <AppButton
+          title="+ Añadir Familiar"
+          variant="ghost"
+          onPress={() => router.push('/(app)/familiares/agregar' as never)}
+        />
 
       {familiares.relaciones.length === 0 ? (
         <View className="items-center gap-2 rounded-3xl bg-bone-100 p-6">

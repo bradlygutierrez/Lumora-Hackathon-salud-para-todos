@@ -455,6 +455,13 @@ class ReminderService:
 
     # Relaciones
     async def crear_relacion_paciente(self, data: RelacionPacienteCreate) -> RelacionPaciente:
+        existente = await self.repo.get_relacion_no_revocada(
+            data.paciente_id, data.usuario_relacionado_id
+        )
+        if existente is not None:
+            raise HTTPException(
+                status_code=409, detail="Ya existe una relación con este familiar"
+            )
         obj = RelacionPaciente(**data.model_dump())
         return await self.repo.create_relacion(obj)
 
