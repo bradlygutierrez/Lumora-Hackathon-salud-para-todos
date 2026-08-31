@@ -42,7 +42,7 @@ QA_PASSWORD_ENV = "J15_QA_PASSWORD"
 
 PROFESSIONAL_A = {
     "username": "qa_j15_medico_a",
-    "email": "qa.j15.medico.a@lumora.test",
+    "email": "qa.j15.medico.a@example.com",
     "nombres": "QA J15",
     "apellidos": "Médico Agenda",
     "especialidad": "Medicina general",
@@ -50,7 +50,7 @@ PROFESSIONAL_A = {
 }
 PROFESSIONAL_B = {
     "username": "qa_j15_medico_b",
-    "email": "qa.j15.medico.b@lumora.test",
+    "email": "qa.j15.medico.b@example.com",
     "nombres": "QA J15",
     "apellidos": "Médico Aislamiento",
     "especialidad": "Cardiología",
@@ -59,7 +59,7 @@ PROFESSIONAL_B = {
 PATIENTS = (
     {
         "username": "qa_j15_paciente_1",
-        "email": "qa.j15.paciente.1@lumora.test",
+        "email": "qa.j15.paciente.1@example.com",
         "nombres": "Ana QA",
         "apellidos": "Agenda",
         "sexo": "Femenino",
@@ -67,7 +67,7 @@ PATIENTS = (
     },
     {
         "username": "qa_j15_paciente_2",
-        "email": "qa.j15.paciente.2@lumora.test",
+        "email": "qa.j15.paciente.2@example.com",
         "nombres": "Bruno QA",
         "apellidos": "Consulta",
         "sexo": "Masculino",
@@ -75,7 +75,7 @@ PATIENTS = (
     },
     {
         "username": "qa_j15_paciente_3",
-        "email": "qa.j15.paciente.3@lumora.test",
+        "email": "qa.j15.paciente.3@example.com",
         "nombres": "Carla QA",
         "apellidos": "Aislamiento",
         "sexo": "Femenino",
