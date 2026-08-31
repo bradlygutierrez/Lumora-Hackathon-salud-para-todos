@@ -23,13 +23,21 @@ function formatDateTime(iso: string): string {
 
 type HealthAlertCardProps = {
   alert: HealthAlertResponse;
+  /**
+   * A13 -- un cuidador de solo lectura puede ver la alerta pero no
+   * accionar "Registrar Ahora" en una dosis omitida (eso es una
+   * mutacion). El resto de acciones son de solo navegacion/lectura, asi
+   * que se muestran siempre.
+   */
+  canManage: boolean;
 };
 
 /** Tarjeta de una alerta en "Alertas de Salud" (A09). */
-export function HealthAlertCard({ alert }: HealthAlertCardProps) {
+export function HealthAlertCard({ alert, canManage }: HealthAlertCardProps) {
   const variant = HEALTH_ALERT_CATEGORY_VARIANTS[alert.categoria];
   const action = actionForAlert(alert);
   const secondaryAction = secondaryActionForAlert(alert);
+  const showPrimaryAction = canManage || alert.tipo !== 'dosis_omitida';
 
   return (
     <View className="gap-3 rounded-2xl border border-bone-500 bg-bone-300 p-4">
@@ -45,15 +53,17 @@ export function HealthAlertCard({ alert }: HealthAlertCardProps) {
       <Text className="text-xs text-coal-500">{formatDateTime(alert.fecha)}</Text>
 
       <View className="mt-1 flex-row flex-wrap items-center gap-2">
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={action.label}
-          onPress={() => router.push(action.href)}
-          className="flex-row items-center justify-center gap-1 self-start rounded-full bg-lumen-500 px-4 py-2 active:opacity-75"
-        >
-          <Text className="text-sm font-semibold text-coal-900">{action.label}</Text>
-          <Ionicons name="chevron-forward" size={16} color={theme.colors.textPrimary} />
-        </Pressable>
+        {showPrimaryAction ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={action.label}
+            onPress={() => router.push(action.href)}
+            className="flex-row items-center justify-center gap-1 self-start rounded-full bg-lumen-500 px-4 py-2 active:opacity-75"
+          >
+            <Text className="text-sm font-semibold text-coal-900">{action.label}</Text>
+            <Ionicons name="chevron-forward" size={16} color={theme.colors.textPrimary} />
+          </Pressable>
+        ) : null}
 
         {secondaryAction ? (
           <Pressable
