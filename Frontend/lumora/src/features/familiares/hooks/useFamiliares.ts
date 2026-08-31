@@ -1,10 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { familiaresApi } from '@/features/familiares/api/familiares-api';
-import type {
-  NivelAcceso,
-  RelacionPacienteResponse,
-} from '@/features/familiares/types/familiares.types';
+import type { NivelAcceso } from '@/features/familiares/types/familiares.types';
+import { filterActiveRelaciones } from '@/features/familiares/utils/filter-active-relaciones';
 import { patientQueryKeys } from '@/features/shell/query/patient-query-keys';
 
 /**
@@ -20,9 +18,7 @@ export function useFamiliares(patientId: number | null) {
     enabled: patientId !== null,
   });
 
-  const relaciones: RelacionPacienteResponse[] = (query.data ?? []).filter(
-    (item) => item.activo && item.estado === 'active',
-  );
+  const relaciones = filterActiveRelaciones(query.data ?? []);
 
   return { ...query, relaciones };
 }
