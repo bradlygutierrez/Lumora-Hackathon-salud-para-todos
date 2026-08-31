@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { router } from 'expo-router';
+import { Redirect, router } from 'expo-router';
 import { useForm } from 'react-hook-form';
 import { View } from 'react-native';
 
@@ -14,11 +14,9 @@ import { AppButton } from '@/shared/components/AppButton';
 import { FormTextField } from '@/shared/components/FormTextField';
 import { Screen } from '@/shared/components/Screen';
 
-/**
- * Paso 3 de 4.
- * Backend usa `relationship: string`; por eso no inventamos tipo_relacion_id.
- */
 export default function RegisterEmergencyRoute() {
+  const accountType = useRegistrationStore((state) => state.accountType);
+  const personal = useRegistrationStore((state) => state.personal);
   const saved = useRegistrationStore((state) => state.emergency);
   const setEmergency = useRegistrationStore((state) => state.setEmergency);
 
@@ -30,6 +28,14 @@ export default function RegisterEmergencyRoute() {
       phone: '',
     },
   });
+
+  if (accountType === null || personal === null) {
+    return <Redirect href="/(auth)/register" />;
+  }
+
+  if (accountType === 'caregiver') {
+    return <Redirect href="/(auth)/register/review" />;
+  }
 
   const continueRegistration = (values: RegisterEmergencyForm) => {
     setEmergency(values);
@@ -43,7 +49,7 @@ export default function RegisterEmergencyRoute() {
         title="Contacto de Emergencia"
         subtitle="Persona a quien podemos contactar si es necesario."
       />
-      <RegistrationProgress step={3} />
+      <RegistrationProgress step={3} total={4} />
 
       <View className="gap-4">
         <FormTextField

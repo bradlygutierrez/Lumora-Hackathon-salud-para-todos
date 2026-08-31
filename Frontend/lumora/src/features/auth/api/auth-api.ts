@@ -7,6 +7,8 @@ import {
 } from '@/config/env';
 
 import type {
+  CaregiverRegistrationRequest,
+  CaregiverRegistrationResponse,
   CatalogPage,
   LoginResponse,
   MessageResponse,
@@ -31,28 +33,9 @@ import type {
   StoredSession,
 } from '@/shared/api/secure-session';
 
-/**
- * Cliente HTTP central del módulo B08.
- *
- * Separa deliberadamente:
- *
- * 1. Endpoints públicos:
- *    Login, registro, MFA login, refresh, etc.
- *
- * 2. Endpoints autenticados:
- *    Centro de seguridad, sesiones y configuración MFA.
- */
 export class AuthApiService {
   private readonly publicClient: AxiosInstance;
 
-  /**
-   * Se permite inyectar una instancia Axios.
-   *
-   * Esto facilita:
-   * - tests unitarios;
-   * - mocks;
-   * - evitar llamadas reales durante pruebas.
-   */
   constructor(
     client?: AxiosInstance,
   ) {
@@ -75,10 +58,6 @@ export class AuthApiService {
       });
   }
 
-  /**
-   * Convierte el formato HTTP del backend
-   * al formato utilizado por SecureStore.
-   */
   private toSession(
     tokens: TokenPair,
   ): StoredSession {
@@ -91,13 +70,6 @@ export class AuthApiService {
     };
   }
 
-  /**
-   * Wrapper de requests POST que no requieren
-   * una sesión autenticada.
-   *
-   * Toda excepción Axios es normalizada
-   * utilizando ApiError.
-   */
   private async publicPost<
     TResponse,
     TBody,
@@ -120,18 +92,6 @@ export class AuthApiService {
     }
   }
 
-  // =========================================================
-  // LOGIN
-  // =========================================================
-
-  /**
-   * Inicia sesión usando username o email.
-   *
-   * Puede devolver:
-   *
-   * 1. Tokens finales.
-   * 2. Un challenge MFA.
-   */
   public login(
     login: string,
     password: string,
@@ -145,16 +105,6 @@ export class AuthApiService {
     );
   }
 
-  /**
-   * Completa un challenge MFA iniciado durante login.
-   *
-   * El frontend no necesita saber cómo validar
-   * internamente el factor.
-   *
-   * El backend sabe si el challenge corresponde a:
-   * - Email OTP
-   * - TOTP
-   */
   public async verifyMfa(
     challengeToken: string,
     code: string,
@@ -181,16 +131,6 @@ export class AuthApiService {
     );
   }
 
-  // =========================================================
-  // TOKEN REFRESH
-  // =========================================================
-
-  /**
-   * Renueva una sesión usando refresh token.
-   *
-   * Este request no utiliza httpClient para evitar
-   * ciclos entre refresh e interceptores.
-   */
   public async refreshSession(
     refreshToken: string,
   ): Promise<StoredSession> {
@@ -213,15 +153,22 @@ export class AuthApiService {
     );
   }
 
-  // =========================================================
-  // REGISTRO
-  // =========================================================
-
+  /** Registro de paciente: contrato histórico B08. */
   public register(
     data: PatientRegistrationRequest,
   ): Promise<RegistrationResponse> {
     return this.publicPost(
       '/auth/register',
+      data,
+    );
+  }
+
+  /** Registro público de cuidador: contrato B14. */
+  public registerCaregiver(
+    data: CaregiverRegistrationRequest,
+  ): Promise<CaregiverRegistrationResponse> {
+    return this.publicPost(
+      '/auth/register/caregiver',
       data,
     );
   }
@@ -250,10 +197,6 @@ export class AuthApiService {
     );
   }
 
-  // =========================================================
-  // PASSWORD RECOVERY
-  // =========================================================
-
   public forgotPassword(
     email: string,
   ): Promise<MessageResponse> {
@@ -280,10 +223,6 @@ export class AuthApiService {
     );
   }
 
-  // =========================================================
-  // CATÁLOGOS
-  // =========================================================
-
   public sexCatalog():
     Promise<CatalogPage> {
     return httpClient.get(
@@ -297,10 +236,6 @@ export class AuthApiService {
       '/tipos-sangre?limit=100',
     );
   }
-
-  // =========================================================
-  // SECURITY CENTER
-  // =========================================================
 
   public changePassword(
     currentPassword: string,
@@ -323,10 +258,6 @@ export class AuthApiService {
       },
     );
   }
-
-  // =========================================================
-  // SESSION MANAGEMENT
-  // =========================================================
 
   public sessions():
     Promise<SessionRead[]> {
@@ -370,17 +301,6 @@ export class AuthApiService {
     );
   }
 
-  // =========================================================
-  // MFA MANAGEMENT
-  // =========================================================
-
-  /**
-   * Devuelve los métodos MFA disponibles.
-   *
-   * Actualmente:
-   * - email
-   * - totp
-   */
   public mfaMethods():
     Promise<MfaMethod[]> {
     return httpClient.get(
@@ -388,18 +308,6 @@ export class AuthApiService {
     );
   }
 
-  /**
-   * Inicia el enrollment de un factor MFA.
-   *
-   * IMPORTANTE:
-   * Este endpoint NO activa el método.
-   *
-   * TOTP:
-   * devuelve secret + provisioning_uri.
-   *
-   * Email:
-   * envía OTP y devuelve metadata temporal.
-   */
   public setupMfa(
     catalogMethodId: number,
   ): Promise<MfaSetupResponse> {
@@ -417,16 +325,6 @@ export class AuthApiService {
     );
   }
 
-  /**
-   * Confirma el enrollment MFA.
-   *
-   * Funciona para:
-   * - Email OTP
-   * - TOTP
-   *
-   * Solamente después de una confirmación válida
-   * el método queda activo.
-   */
   public confirmMfaSetup(
     configuredMethodId: number,
     code: string,
@@ -448,13 +346,6 @@ export class AuthApiService {
     );
   }
 
-  /**
-   * Desactiva una configuración MFA.
-   *
-   * IMPORTANTE:
-   * Recibe UsuarioMetodoMfa.id,
-   * NO MetodoMfa.id.
-   */
   public disableMfa(
     configuredMethodId: number,
   ): Promise<void> {
@@ -464,11 +355,5 @@ export class AuthApiService {
   }
 }
 
-/**
- * Singleton utilizado por hooks y pantallas.
- *
- * Centralizarlo evita crear un nuevo cliente
- * por cada render de React.
- */
 export const authApi =
   new AuthApiService();

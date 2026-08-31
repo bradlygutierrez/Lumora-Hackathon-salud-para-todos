@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery } from '@tanstack/react-query';
-import { router } from 'expo-router';
+import { Redirect, router } from 'expo-router';
 import { Controller, useForm } from 'react-hook-form';
 import { Text, View } from 'react-native';
 
@@ -17,13 +17,9 @@ import { AppButton } from '@/shared/components/AppButton';
 import { FormTextField } from '@/shared/components/FormTextField';
 import { Screen } from '@/shared/components/Screen';
 
-/**
- * Paso 2 de 4.
- *
- * Los IDs de sexo y tipo de sangre provienen de los catálogos reales del
- * backend. Sexo es obligatorio por contrato; tipo de sangre es opcional.
- */
 export default function RegisterPersonalRoute() {
+  const accountType = useRegistrationStore((state) => state.accountType);
+  const account = useRegistrationStore((state) => state.account);
   const saved = useRegistrationStore((state) => state.personal);
   const setPersonal = useRegistrationStore((state) => state.setPersonal);
 
@@ -35,6 +31,7 @@ export default function RegisterPersonalRoute() {
   const bloodTypeCatalog = useQuery({
     queryKey: ['catalog', 'blood-types'],
     queryFn: () => authApi.bloodTypeCatalog(),
+    enabled: accountType === 'patient',
   });
 
   const form = useForm<RegisterPersonalForm>({
@@ -53,9 +50,26 @@ export default function RegisterPersonalRoute() {
     },
   });
 
+  if (accountType === null || account === null) {
+    return <Redirect href="/(auth)/register" />;
+  }
+
+  const total = accountType === 'caregiver' ? 3 : 4;
+
   const continueRegistration = (values: RegisterPersonalForm) => {
-    setPersonal(values);
-    router.push('/(auth)/register/emergency');
+    setPersonal({
+      ...values,
+      bloodTypeId:
+        accountType === 'patient'
+          ? values.bloodTypeId
+          : null,
+    });
+
+    router.push(
+      accountType === 'caregiver'
+        ? '/(auth)/register/review'
+        : '/(auth)/register/emergency',
+    );
   };
 
   return (
@@ -63,9 +77,13 @@ export default function RegisterPersonalRoute() {
       contentClassName="gap-6">
       <AuthHeader
         title="Información Personal"
-        subtitle="Datos necesarios para crear tu perfil de paciente."
+        subtitle={
+          accountType === 'caregiver'
+            ? 'Datos necesarios para crear tu cuenta cuidadora.'
+            : 'Datos necesarios para crear tu perfil de paciente.'
+        }
       />
-      <RegistrationProgress step={2} />
+      <RegistrationProgress step={2} total={total} />
 
       <View className="gap-4">
         <FormTextField
@@ -101,7 +119,7 @@ export default function RegisterPersonalRoute() {
                 onChange={(value) => field.onChange(value ?? 0)}
               />
               {fieldState.error ? (
-                <Text className="text-xs font-medium text-coal-900">
+                <Text accessibilityRole="alert" className="text-xs font-medium text-coal-900">
                   {fieldState.error.message}
                 </Text>
               ) : null}
@@ -109,25 +127,28 @@ export default function RegisterPersonalRoute() {
           )}
         />
 
-        <Controller
-          control={form.control}
-          name="bloodTypeId"
-          render={({ field }) => (
-            <OptionSelectField
-              label="Tipo de sangre"
-              optional
-              value={field.value}
-              options={(bloodTypeCatalog.data?.items ?? []).map((item) => ({
-                label: item.nombre,
-                value: item.id,
-              }))}
-              onChange={field.onChange}
-            />
-          )}
-        />
+        {accountType === 'patient' ? (
+          <Controller
+            control={form.control}
+            name="bloodTypeId"
+            render={({ field }) => (
+              <OptionSelectField
+                label="Tipo de sangre"
+                optional
+                value={field.value}
+                options={(bloodTypeCatalog.data?.items ?? []).map((item) => ({
+                  label: item.nombre,
+                  value: item.id,
+                }))}
+                onChange={field.onChange}
+              />
+            )}
+          />
+        ) : null}
 
-        {sexCatalog.isError || bloodTypeCatalog.isError ? (
-          <Text className="text-sm text-coal-900">
+        {sexCatalog.isError ||
+        (accountType === 'patient' && bloodTypeCatalog.isError) ? (
+          <Text accessibilityRole="alert" className="text-sm text-coal-900">
             No fue posible cargar uno de los catálogos. Revisa tu conexión e
             intenta nuevamente.
           </Text>
@@ -161,7 +182,10 @@ export default function RegisterPersonalRoute() {
 
         <AppButton
           title="Siguiente"
-          disabled={sexCatalog.isPending}
+          disabled={
+            sexCatalog.isPending ||
+            (accountType === 'patient' && bloodTypeCatalog.isPending)
+          }
           onPress={form.handleSubmit(continueRegistration)}
         />
       </View>

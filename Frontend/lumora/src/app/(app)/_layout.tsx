@@ -20,17 +20,6 @@ import {
   usePatientContextStore,
 } from '@/features/shell/store/patient-context-store';
 
-/**
- * Layout principal de todas las rutas privadas.
- *
- * Responsabilidades:
- *
- * 1. Exigir autenticación B08.
- * 2. Esperar/respetar el contexto B09.
- * 3. Bloquear rutas patient-scoped cuando un caregiver
- *    todavía no ha seleccionado paciente.
- * 4. Permitir rutas user-scoped como Perfil y Seguridad.
- */
 export default function ProtectedAppLayout() {
   const authStatus =
     useAuthStore(
@@ -47,10 +36,6 @@ export default function ProtectedAppLayout() {
   const pathname =
     usePathname();
 
-  /**
-   * Ninguna ruta privada puede abrirse
-   * sin una sesión válida.
-   */
   if (
     authStatus ===
     'unauthenticated'
@@ -63,13 +48,21 @@ export default function ProtectedAppLayout() {
   }
 
   /**
-   * Cuando el caregiver aún no seleccionó paciente,
-   * solo bloqueamos rutas que realmente dependen
-   * de patientContext.
-   *
-   * Perfil, seguridad y selección de paciente
-   * siguen disponibles.
+   * B14: una cuenta Paciente + Cuidador debe escoger explícitamente
+   * el modo antes de construir patientContext.
    */
+  if (
+    shellStatus ===
+      'needs-role' &&
+    pathname !== '/select-mode'
+  ) {
+    return (
+      <Redirect
+        href="/(app)/select-mode"
+      />
+    );
+  }
+
   if (
     shellStatus ===
       'needs-patient' &&
@@ -84,10 +77,6 @@ export default function ProtectedAppLayout() {
     );
   }
 
-  /**
-   * Roles que no pertenecen a la aplicación
-   * Patient/Caregiver nunca deben entrar al shell.
-   */
   if (
     shellStatus ===
     'unsupported-role'

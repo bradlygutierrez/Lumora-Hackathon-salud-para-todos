@@ -16,12 +16,6 @@ import { AppButton } from '@/shared/components/AppButton';
 import { FormTextField } from '@/shared/components/FormTextField';
 import { Screen } from '@/shared/components/Screen';
 
-/**
- * Login B08.
- *
- * El backend permite iniciar sesión con username o email en el mismo campo
- * `login`. `useLogin()` decide si guardar tokens o continuar al challenge MFA.
- */
 export default function LoginRoute() {
   const notice = useAuthStore((state) => state.notice);
   const form = useForm<LoginForm>({
@@ -49,6 +43,7 @@ export default function LoginRoute() {
             Tu sesión expiró. Iniciá sesión nuevamente.
           </Text>
         ) : null}
+
         <FormTextField
           control={form.control}
           name="login"
@@ -93,7 +88,7 @@ export default function LoginRoute() {
           </Pressable>
         </Link>
 
-        <Link href="/(auth)/register/account" asChild>
+        <Link href="/(auth)/register" asChild>
           <Pressable accessibilityRole="link">
             <Text className="text-center font-semibold text-coal-900">
               Crear cuenta
