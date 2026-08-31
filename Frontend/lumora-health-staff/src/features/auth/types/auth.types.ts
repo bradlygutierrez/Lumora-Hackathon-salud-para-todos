@@ -117,7 +117,7 @@ export type SessionRead = {
 };
 
 export type MfaMethod = {
-  id: number;
+  id: number | null;
   metodo_id: number;
   nombre: string;
   activo: boolean;
@@ -129,8 +129,19 @@ export type MfaSetupRequest = {
 
 export type MfaSetupResponse = {
   method_id: number;
-  secret: string;
-  provisioning_uri: string;
+  secret?: string | null;
+  provisioning_uri?: string | null;
+  challenge_token?: string | null;
+  expires_in?: number | null;
+};
+
+export type MfaSetupConfirmRequest = {
+  method_id: number;
+  code: string;
+};
+
+export type MfaActivationResponse = {
+  method_id: number;
   recovery_codes: string[];
 };
 
@@ -142,6 +153,7 @@ export type MfaChallengeRequest = {
 export type MfaChallengeResponse = {
   challenge_token: string;
   expires_in: number;
+  method?: string | null;
 };
 
 export type MfaVerifyRequest = {
