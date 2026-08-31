@@ -23,6 +23,7 @@ def snapshot(item: Cita) -> dict:
     return {
         "paciente_id": item.paciente_id, "profesional_id": item.profesional_id,
         "tipo_cita_id": item.tipo_cita_id, "estado_cita_id": item.estado_cita_id,
+        "ubicacion_id": item.ubicacion_id,
         "inicio": item.inicio.isoformat(), "fin": item.fin.isoformat(), "notas": item.notas,
     }
 
