@@ -119,24 +119,16 @@ export default function MedicationRoute() {
           </Link>
         ) : null}
 
-        {/* Entrada provisional a Alertas de Salud (A09): la entrada
-            "oficial" del Figma es desde el dashboard de "Mi Salud" que un
-            compañero está construyendo aparte, así que mientras esa
-            pantalla no la conecte se deja este acceso acá para poder
-            probar la feature. Quitar esta línea cuando "Mi Salud" conecte
-            su propio enlace.
-
-            (Reemplaza el acceso provisional a Indicadores de Salud (A08):
-            ese ya no hace falta, "Mi Salud" ya tiene su propio tab
-            "Indicadores" -- ver app/(app)/(tabs)/health.tsx.) */}
-        <Link href="/(app)/health-alerts" asChild>
-          <AppButton title="Ver alertas de salud" variant="ghost" />
-        </Link>
+        {/* El acceso a Alertas de Salud (A09) ya vive en el tab "Mi
+            Salud" (ver app/(app)/(tabs)/health.tsx) -- el acceso
+            provisional que estaba aquí se quitó para no duplicarlo. */}
 
         {/* A10: acceso a "Recordatorios" (dosis + citas + seguimiento en
-            un solo tablero, agrupado Próximamente/Más tarde). */}
+            un solo tablero, agrupado Próximamente/Más tarde). Es la
+            acción principal de esta zona de la pantalla, por eso lleva
+            el estilo primario. */}
         <Link href="/(app)/reminders" asChild>
-          <AppButton title="Ver recordatorios" variant="ghost" />
+          <AppButton title="Ver recordatorios" variant="primary" />
         </Link>
       </View>
     </Screen>
