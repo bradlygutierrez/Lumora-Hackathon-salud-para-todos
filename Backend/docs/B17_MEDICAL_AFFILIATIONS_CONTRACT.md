@@ -38,3 +38,5 @@ válida. Las fallas responden 403 y no eliminan historia clínica.
 Los errores de validación son 422, duplicados o cupos agotados son 409, y
 usuarios sin el permiso son 403. Los profesionales no habilitados tampoco
 aparecen en profesionales disponibles para reservar.
+
+Las lecturas historicas se autorizan con el permiso clinico; la afiliacion vigente se exige para nuevas escrituras. Suspender una afiliacion no borra membresias, autores ni datos clinicos.

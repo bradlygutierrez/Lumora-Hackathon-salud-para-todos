@@ -2,6 +2,7 @@ from datetime import datetime, time, timedelta, timezone
 
 import pytest
 
+from helpers.medical import create_active_medical_professional
 from lumora_api.core.security import create_access_token, hash_password
 from lumora_api.models import (
     Cita,
@@ -94,6 +95,7 @@ async def seed(session_factory):
             ]
         )
         await session.flush()
+        await create_active_medical_professional(session, user=own_user, professional=own_professional)
 
         foreign_schedule = HorarioProfesional(
             profesional_id=other_professional.id,

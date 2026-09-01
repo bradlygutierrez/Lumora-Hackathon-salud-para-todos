@@ -1,5 +1,7 @@
 import pytest
 
+from helpers.medical import create_active_medical_professional
+
 from lumora_api.core.exceptions import PermissionDeniedError, ResourceNotFoundError
 from lumora_api.models import Paciente, Permiso, Persona, Rol, Usuario
 from lumora_api.repositories.prescriptions import PrescriptionRepository
@@ -46,6 +48,7 @@ async def _make_staff_user(session) -> Usuario:
     )
     session.add(user)
     await session.flush()
+    await create_active_medical_professional(session, user=user, username="staff")
     return user
 
 

@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from sqlalchemy import select
 
+from helpers.medical import create_active_medical_professional
 from lumora_api.core.security import create_access_token, hash_password
 from lumora_api.models import (
     Cita,
@@ -109,6 +110,10 @@ async def seed(session_factory) -> dict[str, int]:
             ]
         )
         await session.flush()
+        clinician_context = await create_active_medical_professional(session, user=clinician)
+        clinician_professional = clinician_context["professional"]
+        await create_active_medical_professional(session, professional=professional_a, username="availability-a")
+        await create_active_medical_professional(session, professional=professional_b, username="availability-b")
         session.add_all(
             [
                 RelacionPaciente(
@@ -138,6 +143,7 @@ async def seed(session_factory) -> dict[str, int]:
             "caregiver": caregiver.id,
             "revoked_caregiver": revoked_caregiver.id,
             "clinician": clinician.id,
+            "clinician_professional": clinician_professional.id,
             "professional_a": professional_a.id,
             "professional_b": professional_b.id,
             "pending": pending.id,
@@ -431,6 +437,7 @@ async def test_safe_professional_discovery_and_admin_route_protection(client, se
     )
 
     expected = [
+        {"id": ctx["clinician_professional"], "full_name": "Claudio Clinico", "specialty": "Medicina general"},
         {"id": ctx["professional_b"], "full_name": "Dario Dos", "specialty": "Cardiología"},
         {"id": ctx["professional_a"], "full_name": "Dora Uno", "specialty": "Medicina general"},
     ]

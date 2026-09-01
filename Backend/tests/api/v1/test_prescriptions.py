@@ -2,6 +2,7 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
 
+from helpers.medical import create_active_medical_professional
 from lumora_api.core.security import hash_password
 from lumora_api.models import (
     ConsultaMedica,
@@ -18,16 +19,15 @@ from lumora_api.models import (
 
 async def _staff_login(client: AsyncClient, session_factory) -> str:
     async with session_factory() as session:
-        role = Rol(nombre="Staff", permisos=[Permiso(nombre="clinica:manage")])
-        session.add(
-            Usuario(
-                persona=Persona(nombres="Doc", apellidos="Staff"),
-                email="doc1@example.com",
-                username="doc1",
-                password_hash=hash_password("safe-password"),
-                roles=[role],
-            )
+        user = Usuario(
+            persona=Persona(nombres="Doc", apellidos="Staff"),
+            email="doc1@example.com",
+            username="doc1",
+            password_hash=hash_password("safe-password"),
         )
+        session.add(user)
+        await session.flush()
+        await create_active_medical_professional(session, user=user, username="doc1")
         await session.commit()
     login = await client.post(
         "/api/v1/auth/login", json={"login": "doc1", "password": "safe-password"}
@@ -71,6 +71,7 @@ async def _staff_login_with_professional(
         )
         session.add_all([user, professional])
         await session.flush()
+        await create_active_medical_professional(session, user=user, professional=professional, username=username)
         professional_id = professional.id
         await session.commit()
 

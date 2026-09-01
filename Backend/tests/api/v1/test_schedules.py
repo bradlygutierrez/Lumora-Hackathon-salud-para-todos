@@ -1,5 +1,7 @@
 import pytest
 
+from helpers.medical import create_active_medical_professional
+
 from lumora_api.core.security import hash_password
 from lumora_api.models import DetalleReceta, Medicamento, Permiso, Persona, Receta, Rol, Usuario
 
@@ -29,16 +31,15 @@ async def _receta_with_detalle(session_factory) -> str:
 
 async def _staff_headers(client, session_factory) -> dict:
     async with session_factory() as session:
-        role = Rol(nombre="Staff", permisos=[Permiso(nombre="clinica:manage")])
-        session.add(
-            Usuario(
-                persona=Persona(nombres="Doc", apellidos="Staff"),
-                email="doc2@example.com",
-                username="doc2",
-                password_hash=hash_password("safe-password"),
-                roles=[role],
-            )
+        user = Usuario(
+            persona=Persona(nombres="Doc", apellidos="Staff"),
+            email="doc2@example.com",
+            username="doc2",
+            password_hash=hash_password("safe-password"),
         )
+        session.add(user)
+        await session.flush()
+        await create_active_medical_professional(session, user=user, username="doc2")
         await session.commit()
     login = await client.post(
         "/api/v1/auth/login", json={"login": "doc2", "password": "safe-password"}
