@@ -2,6 +2,7 @@ import { Link, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 
+import { canManagePatientData } from '@/features/caregiver-access/utils/caregiver-permissions';
 import { usePostponeDose } from '@/features/prescriptions/hooks/usePostponeDose';
 import { useRegisterDose } from '@/features/prescriptions/hooks/useRegisterDose';
 import { useSkipDose } from '@/features/prescriptions/hooks/useSkipDose';
@@ -11,6 +12,7 @@ import { GoalCompleteModal } from '@/features/reminders/components/GoalCompleteM
 import { ProgressUpdateModal } from '@/features/reminders/components/ProgressUpdateModal';
 import { ReminderSection } from '@/features/reminders/components/ReminderSection';
 import { useReminderBoard } from '@/features/reminders/hooks/useReminderBoard';
+import { useShellContext } from '@/features/shell/hooks/useShellContext';
 import {
   useDeleteReminder,
   useMarkReminderDone,
@@ -34,6 +36,9 @@ export default function RemindersRoute() {
   const router = useRouter();
   const { board, isLoading, isError, refetch } = useReminderBoard();
   const { showFeedback } = useFeedback();
+  const { activePatient, role } = useShellContext();
+  const canManage =
+    role !== 'caregiver' || canManagePatientData(activePatient?.accessLevel ?? null);
 
   const registerDose = useRegisterDose();
   const skipDose = useSkipDose();
@@ -263,6 +268,7 @@ export default function RemindersRoute() {
     deletingId,
     onDelete: handleDeleteReminder,
     onEdit: handleEditReminder,
+    canManage,
   };
 
   const isConfirmSubmitting =
@@ -287,9 +293,11 @@ export default function RemindersRoute() {
           {...sectionProps}
         />
 
-        <Link href="/(app)/reminders/new" asChild>
-          <AppButton title="+ Añadir Nuevo Recordatorio" variant="ghost" />
-        </Link>
+        {canManage ? (
+          <Link href="/(app)/reminders/new" asChild>
+            <AppButton title="+ Añadir Nuevo Recordatorio" variant="ghost" />
+          </Link>
+        ) : null}
       </View>
 
       <PostponeDoseModal
