@@ -48,6 +48,17 @@ type AppHeaderProps = {
 
   showNotification?: boolean;
   onNotificationPress?: () => void;
+
+  /**
+   * Ícono alternativo en la esquina superior derecha, para cuando una
+   * pantalla necesita un acceso rápido distinto a "Notificaciones"
+   * (por ejemplo, un atajo a Recordatorios desde "Plan de Hoy"). Se
+   * ignora si showNotification es true -- solo uno de los dos ocupa
+   * ese espacio.
+   */
+  rightIcon?: keyof typeof Ionicons.glyphMap;
+  rightIconLabel?: string;
+  onRightIconPress?: () => void;
 };
 
 /**
@@ -67,6 +78,9 @@ export function AppHeader({
   backFallbackHref,
   showNotification = false,
   onNotificationPress,
+  rightIcon,
+  rightIconLabel,
+  onRightIconPress,
 }: AppHeaderProps) {
   const handleBackPress = () => {
     /**
@@ -141,6 +155,19 @@ export function AppHeader({
           >
             <Ionicons
               name="notifications-outline"
+              size={18}
+              color="#242a2f"
+            />
+          </Pressable>
+        ) : rightIcon ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={rightIconLabel ?? 'Acción'}
+            onPress={onRightIconPress}
+            className="h-10 w-10 items-center justify-center rounded-full border border-lumen-500/40 bg-white"
+          >
+            <Ionicons
+              name={rightIcon}
               size={18}
               color="#242a2f"
             />
