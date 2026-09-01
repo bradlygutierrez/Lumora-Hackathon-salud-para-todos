@@ -3,7 +3,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, status
 
-from lumora_api.api.dependencies import CurrentUser, SessionDep, require_permission, require_active_clinician
+from lumora_api.api.dependencies import CurrentUser, SessionDep, require_permission, require_clinical_access
 from lumora_api.repositories.patient_access_repository import PatientAccessRepository
 from lumora_api.schemas.health_indicators import (
     AlertaClinicaResponse,
@@ -23,7 +23,7 @@ router = APIRouter(prefix="/health-indicators", tags=["Indicadores y alertas"])
 # Solo personal clinico define el catalogo de indicadores/rangos y atiende
 # alertas -- el paciente/cuidador los consulta y registra mediciones, pero
 # no los inventa (mismo criterio que RequireClinicalStaff en schedules.py).
-RequireClinicalStaff = Depends(require_active_clinician)
+RequireClinicalStaff = Depends(require_clinical_access)
 
 
 def _patient_access(session: SessionDep) -> PatientAccessService:

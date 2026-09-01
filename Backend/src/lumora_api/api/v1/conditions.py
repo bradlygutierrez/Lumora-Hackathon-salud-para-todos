@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query, Response, status
 
-from lumora_api.api.dependencies import CurrentUser, SessionDep, require_permission, require_active_clinician
+from lumora_api.api.dependencies import CurrentUser, SessionDep, require_permission, require_clinical_access
 from lumora_api.api.v1.catalog_router import ERRORS
 from lumora_api.repositories.diagnosis_repository import DiagnosisRepository
 from lumora_api.schemas import (
@@ -14,7 +14,7 @@ from lumora_api.services.diagnosis_service import DiagnosisService
 
 router = APIRouter(
     tags=["Profesionales de salud"],
-    dependencies=[Depends(require_active_clinician)],
+    dependencies=[Depends(require_clinical_access)],
 )
 
 
