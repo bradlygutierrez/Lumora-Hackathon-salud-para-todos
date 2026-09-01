@@ -23,6 +23,14 @@ function iconForItem(item: ReminderBoardItem): IconName {
 type ReminderCardProps = {
   item: ReminderBoardItem;
 
+  /**
+   * false para un cuidador con acceso de solo lectura -- oculta todas
+   * las acciones de escritura (marcar, posponer, omitir, actualizar
+   * avance, editar, eliminar). Por defecto true (paciente dueño, o
+   * cuidador con acceso completo).
+   */
+  canManage?: boolean;
+
   onRegisterDose?: (item: ReminderBoardItem) => void;
   isRegistering?: boolean;
   onSkipDose?: (item: ReminderBoardItem) => void;
@@ -63,6 +71,7 @@ export function ReminderCard({
   onDelete,
   isDeleting = false,
   onEdit,
+  canManage = true,
 }: ReminderCardProps) {
   const isBusy =
     isRegistering || isSkipping || isPostponing || isAddingProgress || isMarkingDone || isDeleting;
@@ -121,7 +130,7 @@ export function ReminderCard({
         />
       ) : null}
 
-      {item.kind === 'dosis' ? (
+      {item.kind === 'dosis' && canManage ? (
         <View className="gap-2">
           <AppButton
             title={isRegistering ? 'Registrando…' : 'Marcar como tomado'}
@@ -151,7 +160,7 @@ export function ReminderCard({
         </View>
       ) : null}
 
-      {item.kind === 'seguimiento' ? (
+      {item.kind === 'seguimiento' && canManage ? (
         <View className="gap-2">
           {item.objetivoCantidad != null ? (
             <AppButton
