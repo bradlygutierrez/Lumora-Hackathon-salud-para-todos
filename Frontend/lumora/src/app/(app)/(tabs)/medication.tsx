@@ -1,4 +1,4 @@
-import { Link } from 'expo-router';
+import { Link, router } from 'expo-router';
 import { Text, View } from 'react-native';
 
 import { canManagePatientData } from '@/features/caregiver-access/utils/caregiver-permissions';
@@ -72,7 +72,13 @@ export default function MedicationRoute() {
 
   return (
     <Screen scrollable contentClassName="px-0 py-0">
-      <AppHeader title="Plan de Hoy" subtitle={formatPlanDate(planDate)} />
+      <AppHeader
+        title="Plan de Hoy"
+        subtitle={formatPlanDate(planDate)}
+        rightIcon="time-outline"
+        rightIconLabel="Ver recordatorios"
+        onRightIconPress={() => router.push('/(app)/reminders')}
+      />
 
       <View className="gap-6 px-4 py-4">
         {plan.totalCount > 0 ? (
@@ -123,13 +129,10 @@ export default function MedicationRoute() {
             Salud" (ver app/(app)/(tabs)/health.tsx) -- el acceso
             provisional que estaba aquí se quitó para no duplicarlo. */}
 
-        {/* A10: acceso a "Recordatorios" (dosis + citas + seguimiento en
-            un solo tablero, agrupado Próximamente/Más tarde). Es la
-            acción principal de esta zona de la pantalla, por eso lleva
-            el estilo primario. */}
-        <Link href="/(app)/reminders" asChild>
-          <AppButton title="Ver recordatorios" variant="primary" />
-        </Link>
+        {/* A10: acceso a "Recordatorios" ahora vive como ícono de
+            reloj en la esquina superior derecha del header (junto a
+            "Plan de Hoy"), para no competir con "Ver receta completa"
+            como acción principal de esta pantalla. */}
       </View>
     </Screen>
   );
