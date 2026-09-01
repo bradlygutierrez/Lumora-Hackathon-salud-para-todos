@@ -1,3 +1,4 @@
+from lumora_api.schemas.affiliations import AffiliationCreate, AffiliationRead, AffiliationUpdate, LicenseVerificationUpdate, MembershipRead, ProfessionalMembershipUpdate, ProfessionalProvisionCreate, ProvisionedProfessionalRead
 from lumora_api.schemas.appointments import (
     AppointmentCreate,
     AppointmentRead,

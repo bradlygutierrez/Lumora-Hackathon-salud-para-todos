@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query, Response, status
 
-from lumora_api.api.dependencies import CurrentUser, SessionDep, require_permission
+from lumora_api.api.dependencies import CurrentUser, SessionDep, require_permission, require_active_clinician
 from lumora_api.api.v1.catalog_router import ERRORS
 from lumora_api.core.exceptions import PermissionDeniedError
 from lumora_api.repositories.patient_access_repository import PatientAccessRepository
@@ -61,7 +61,7 @@ async def list_patients(
     response_model=PatientDetailRead,
     status_code=status.HTTP_201_CREATED,
     responses=ERRORS,
-    dependencies=[Depends(require_permission("clinica:manage"))],
+    dependencies=[Depends(require_active_clinician)],
     summary="Registrar paciente desde Health Staff sin crear cuenta de usuario",
 )
 async def register_clinical_patient(data: StaffPatientRegistrationCreate, session: SessionDep):

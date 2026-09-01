@@ -1,7 +1,7 @@
 from typing import List
 from fastapi import APIRouter, Depends, status
 
-from lumora_api.api.dependencies import CurrentUser, SessionDep, require_permission
+from lumora_api.api.dependencies import CurrentUser, SessionDep, require_permission, require_active_clinician
 from lumora_api.repositories.prescriptions import PrescriptionRepository
 from lumora_api.schemas.prescriptions import (
     MedicamentoCreate,
@@ -18,10 +18,10 @@ from lumora_api.services.prescriptions import PrescriptionService
 
 router = APIRouter(prefix="/prescriptions", tags=["Recetas y medicamentos"])
 
-# Solo personal clínico (mismo permiso que ya protege /expedientes) puede
+# Solo personal clÃ­nico (mismo permiso que ya protege /expedientes) puede
 # crear o editar medicamentos, recetas y sus detalles. Los pacientes solo
 # leen -- y solo las suyas, gracias a PrescriptionService.
-RequireClinicalStaff = Depends(require_permission("clinica:manage"))
+RequireClinicalStaff = Depends(require_active_clinician)
 
 
 def service(db: SessionDep) -> PrescriptionService:

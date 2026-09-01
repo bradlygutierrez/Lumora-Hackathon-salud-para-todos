@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query, Response, status
 
-from lumora_api.api.dependencies import SessionDep, require_permission
+from lumora_api.api.dependencies import SessionDep, require_permission, require_active_clinician
 from lumora_api.api.v1.catalog_router import ERRORS
 from lumora_api.models import AntecedenteMedico, Expediente
 from lumora_api.repositories.consultation_repository import ConsultationRepository
@@ -21,7 +21,7 @@ from lumora_api.services.consultation_service import ConsultationService
 router = APIRouter(
     prefix="/expedientes",
     tags=["Expedientes"],
-    dependencies=[Depends(require_permission("clinica:manage"))],
+    dependencies=[Depends(require_active_clinician)],
 )
 
 

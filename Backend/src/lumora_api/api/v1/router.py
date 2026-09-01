@@ -21,6 +21,7 @@ from lumora_api.api.v1 import (
     health_indicators,
     health_summary,
     medical_records,
+    medical_affiliations,
     medical_record_document,
     mfa,
     motivos_consulta,
@@ -52,6 +53,7 @@ from lumora_api.api.v1 import (
 
 api_router = APIRouter()
 api_router.include_router(account.router)
+api_router.include_router(medical_affiliations.router)
 api_router.include_router(roles.router)
 api_router.include_router(permisos.router)
 api_router.include_router(estados_cita.router)
@@ -83,7 +85,7 @@ api_router.include_router(diagnoses.router)
 api_router.include_router(conditions.router)
 api_router.include_router(clinical_integration.router)
 
-# Catálogos clínicos
+# CatÃ¡logos clÃ­nicos
 api_router.include_router(cargos_salud.router)
 api_router.include_router(especialidades.router)
 api_router.include_router(estados_expediente.router)
@@ -92,7 +94,7 @@ api_router.include_router(tipos_antecedente.router)
 api_router.include_router(tipos_diagnostico.router)
 api_router.include_router(motivos_consulta.router)
 
-# Catálogos 
+# CatÃ¡logos
 api_router.include_router(estados_dosis.router)
 api_router.include_router(estados_receta.router)
 api_router.include_router(vias_administracion.router)

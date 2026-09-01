@@ -9,6 +9,7 @@ from lumora_api.core.exceptions import AuthenticationError, PermissionDeniedErro
 from lumora_api.core.security import decode_access_claims
 from lumora_api.models import Usuario
 from lumora_api.repositories.auth_repository import AuthRepository
+from lumora_api.services.medical_authorization import ensure_active_medical_affiliation
 
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
 
@@ -24,7 +25,7 @@ async def get_current_user(
     if user is None:
         raise AuthenticationError("Usuario no autenticado")
     if session_id is not None and await repository.active_session(session_id, user_id) is None:
-        raise AuthenticationError("Sesión revocada o expirada")
+        raise AuthenticationError("SesiÃ³n revocada o expirada")
     return user
 
 
@@ -34,7 +35,7 @@ CurrentUser = Annotated[Usuario, Depends(get_current_user)]
 async def get_current_session_id(token: Annotated[str, Depends(oauth2_scheme)]) -> int:
     _, session_id = decode_access_claims(token)
     if session_id is None:
-        raise AuthenticationError("El token no pertenece a una sesión")
+        raise AuthenticationError("El token no pertenece a una sesiÃ³n")
     return session_id
 
 
@@ -49,7 +50,11 @@ def require_permission(permission_name: str):
             for permission in role.permisos
         }
         if permission_name not in permissions:
-            raise PermissionDeniedError("No tiene permiso para realizar esta acción")
+            raise PermissionDeniedError("No tiene permiso para realizar esta acciÃ³n")
         return current_user
 
     return dependency
+
+async def require_active_clinician(session: SessionDep, current_user: CurrentUser) -> Usuario:
+    await ensure_active_medical_affiliation(session, current_user)
+    return current_user

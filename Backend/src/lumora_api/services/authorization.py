@@ -1,8 +1,8 @@
-"""Reglas de autorización compartidas entre recetas y horarios/dosis.
+"""Reglas de autorizaciÃ³n compartidas entre recetas y horarios/dosis.
 
-Se separan aquí (en vez de duplicarlas en cada servicio) porque tanto
+Se separan aquÃ­ (en vez de duplicarlas en cada servicio) porque tanto
 `PrescriptionService` como `ScheduleService` necesitan la misma pregunta:
-"¿puede este usuario ver/editar los datos de este paciente?".
+"Â¿puede este usuario ver/editar los datos de este paciente?".
 """
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,6 +11,7 @@ from lumora_api.core.exceptions import PermissionDeniedError
 from lumora_api.models.identity import Paciente, Usuario
 from lumora_api.repositories.identity_repository import IdentityRepository
 from lumora_api.repositories.reminders import ReminderRepository
+from lumora_api.services.medical_authorization import ensure_active_medical_affiliation
 
 CLINICAL_STAFF_PERMISSION = "clinica:manage"
 
@@ -20,7 +21,7 @@ def is_clinical_staff(user: Usuario) -> bool:
 
     Reutiliza el mismo permiso que ya protege /expedientes
     (Depends(require_permission("clinica:manage")) en medical_records.py)
-    en vez de inventar una segunda noción de "quién es staff".
+    en vez de inventar una segunda nociÃ³n de "quiÃ©n es staff".
     """
     return any(
         permission.nombre == CLINICAL_STAFF_PERMISSION
@@ -41,15 +42,18 @@ async def ensure_can_access_patient_data(
     paciente_id: int | None,
     action: str = "read",
 ) -> None:
-    """Autoriza personal clínico, paciente propio o cuidador con relación activa.
+    """Autoriza personal clÃ­nico, paciente propio o cuidador con relaciÃ³n activa.
 
-    `paciente_id` en None significa que el recurso todavía no se validó
+    `paciente_id` en None significa que el recurso todavÃ­a no se validÃ³
     como existente; se deja pasar para que el llamador lance su propio
-    ResourceNotFoundError (404) en vez de un 403 engañoso antes de saber
+    ResourceNotFoundError (404) en vez de un 403 engaÃ±oso antes de saber
     si el recurso siquiera existe. Las mutaciones de cuidador requieren
-    action="write" y una relación con nivel de acceso write.
+    action="write" y una relaciÃ³n con nivel de acceso write.
     """
-    if paciente_id is None or is_clinical_staff(user):
+    if paciente_id is None:
+        return
+    if is_clinical_staff(user):
+        await ensure_active_medical_affiliation(session, user)
         return
     roles = {role.nombre.lower() for role in user.roles}
     if "cuidador" in roles:

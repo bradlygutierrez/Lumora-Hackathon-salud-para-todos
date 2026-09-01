@@ -2,7 +2,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from lumora_api.api.dependencies import CurrentUser, require_permission
+from lumora_api.api.dependencies import CurrentUser, require_permission, require_active_clinician
 from lumora_api.db.session import get_session
 from lumora_api.schemas.schedules import (
     DosisAdministradaCreate,
@@ -15,9 +15,9 @@ from lumora_api.services.schedules import ScheduleService
 
 router = APIRouter(tags=["Horarios y dosis"])
 
-# Solo personal clínico define/edita los horarios de una receta -- el
+# Solo personal clÃ­nico define/edita los horarios de una receta -- el
 # paciente los consulta y registra sus dosis, pero no los inventa.
-RequireClinicalStaff = Depends(require_permission("clinica:manage"))
+RequireClinicalStaff = Depends(require_active_clinician)
 
 
 # --- HORARIOS ---
@@ -87,8 +87,8 @@ async def create_dosis_log(
     db: AsyncSession = Depends(get_session),
 ):
     dosis_in.horario_id = horario_id
-    # El responsable del registro es siempre quien está logueado, nunca un
-    # valor que mande el cliente -- si no, cualquiera podría marcar una
+    # El responsable del registro es siempre quien estÃ¡ logueado, nunca un
+    # valor que mande el cliente -- si no, cualquiera podrÃ­a marcar una
     # dosis "a nombre de" otro usuario.
     dosis_in.responsable_id = current_user.id
     return await ScheduleService.create_dosis_log(db, current_user, dosis_in)

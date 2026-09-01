@@ -2,7 +2,7 @@ from datetime import date, datetime
 
 from fastapi import APIRouter, Depends, Query, Response, status
 
-from lumora_api.api.dependencies import CurrentUser, SessionDep, require_permission
+from lumora_api.api.dependencies import CurrentUser, SessionDep, require_permission, require_active_clinician
 from lumora_api.api.v1.catalog_router import ERRORS
 from lumora_api.repositories.professional_workspace_repository import ProfessionalWorkspaceRepository
 from lumora_api.schemas.professional_workspace import (
@@ -18,7 +18,7 @@ from lumora_api.services.professional_workspace_service import ProfessionalWorks
 router = APIRouter(
     prefix="/profesional/me",
     tags=["Espacio profesional"],
-    dependencies=[Depends(require_permission("clinica:manage"))],
+    dependencies=[Depends(require_active_clinician)],
 )
 
 
