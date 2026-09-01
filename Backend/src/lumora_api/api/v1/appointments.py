@@ -121,7 +121,7 @@ async def update_appointment(appointment_id: int, data: AppointmentUpdate, reque
                              session: SessionDep, current_user: CurrentUser):
     service = AppointmentService(AppointmentRepository(session))
     item = await service.get(appointment_id)
-    await ensure_can_access_patient_data(session, current_user, item.paciente_id)
+    await ensure_can_access_patient_data(session, current_user, item.paciente_id, action="write")
     if not is_clinical_staff(current_user):
         raise PermissionDeniedError("Use las operaciones de reprogramación o cancelación")
     return await service.update(appointment_id, data, current_user.id, *context(request))
@@ -132,7 +132,7 @@ async def delete_appointment(appointment_id: int, request: Request,
                              session: SessionDep, current_user: CurrentUser):
     service = AppointmentService(AppointmentRepository(session))
     item = await service.get(appointment_id)
-    await ensure_can_access_patient_data(session, current_user, item.paciente_id)
+    await ensure_can_access_patient_data(session, current_user, item.paciente_id, action="write")
     if not is_clinical_staff(current_user):
         raise PermissionDeniedError("La cancelación no elimina físicamente la cita")
     await service.delete(appointment_id, current_user.id, *context(request))

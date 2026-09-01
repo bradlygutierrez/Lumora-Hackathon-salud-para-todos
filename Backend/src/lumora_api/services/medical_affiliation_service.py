@@ -42,8 +42,18 @@ class MedicalAffiliationService:
     async def update(self, affiliation_id: int, data: AffiliationUpdate, actor_id: int):
         item = await self.get(affiliation_id)
         values = data.model_dump(exclude_unset=True)
-        for key, value in values.items(): setattr(item, key, value)
-        self._audit("MARK_AFFILIATION_PAID" if values.get("pago_estado") == "paid" else "UPDATE_AFFILIATION", item.id, actor_id)
+        previous_status = item.estado
+        for key, value in values.items():
+            setattr(item, key, value)
+        if values.get("estado") == "suspended":
+            action = "SUSPEND_AFFILIATION"
+        elif values.get("estado") == "active" and previous_status != "active":
+            action = "REACTIVATE_AFFILIATION"
+        elif values.get("pago_estado") == "paid":
+            action = "MARK_AFFILIATION_PAID"
+        else:
+            action = "UPDATE_AFFILIATION"
+        self._audit(action, item.id, actor_id)
         await self.session.commit()
         await self.session.refresh(item)
         return item
@@ -76,6 +86,9 @@ class MedicalAffiliationService:
         except IntegrityError as error:
             await self.session.rollback()
             raise ResourceConflictError("El correo, usuario o licencia ya está registrado") from error
+        except Exception:
+            await self.session.rollback()
+            raise
         try:
             (self.email_service or EmailService()).send_password_reset(email, raw_token)
         except RuntimeError:

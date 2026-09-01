@@ -16,6 +16,14 @@ from lumora_api.services.medical_authorization import ensure_active_medical_affi
 CLINICAL_STAFF_PERMISSION = "clinica:manage"
 
 
+def has_clinical_permission(user: Usuario) -> bool:
+    """Return the RBAC capability without asserting operational eligibility."""
+    return any(
+        permission.nombre == CLINICAL_STAFF_PERMISSION
+        for role in user.roles
+        for permission in role.permisos
+    )
+
 def is_clinical_staff(user: Usuario) -> bool:
     """Personal de salud vs. paciente.
 
@@ -23,11 +31,7 @@ def is_clinical_staff(user: Usuario) -> bool:
     (Depends(require_permission("clinica:manage")) en medical_records.py)
     en vez de inventar una segunda nociÃ³n de "quiÃ©n es staff".
     """
-    return any(
-        permission.nombre == CLINICAL_STAFF_PERMISSION
-        for role in user.roles
-        for permission in role.permisos
-    )
+    return has_clinical_permission(user)
 
 
 async def own_patient_id(session: AsyncSession, user: Usuario) -> int | None:
@@ -52,8 +56,9 @@ async def ensure_can_access_patient_data(
     """
     if paciente_id is None:
         return
-    if is_clinical_staff(user):
-        await ensure_active_medical_affiliation(session, user)
+    if has_clinical_permission(user):
+        if action == "write":
+            await ensure_active_medical_affiliation(session, user)
         return
     roles = {role.nombre.lower() for role in user.roles}
     if "cuidador" in roles:
