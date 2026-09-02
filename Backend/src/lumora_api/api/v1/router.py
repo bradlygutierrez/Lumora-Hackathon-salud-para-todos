@@ -28,6 +28,7 @@ from lumora_api.api.v1 import (
     niveles_severidad,
     origenes_registro,
     patient_clinical,
+    patient_documents,
     patients,
     permisos,
     prescriptions,
@@ -84,6 +85,7 @@ api_router.include_router(health_alerts.router)
 api_router.include_router(diagnoses.router)
 api_router.include_router(conditions.router)
 api_router.include_router(clinical_integration.router)
+api_router.include_router(patient_documents.router)
 
 # CatÃ¡logos clÃ­nicos
 api_router.include_router(cargos_salud.router)
