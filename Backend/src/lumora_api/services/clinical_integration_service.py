@@ -1,6 +1,8 @@
 from collections import defaultdict
+from datetime import datetime, timezone
 
 from lumora_api.core.exceptions import ResourceNotFoundError
+from lumora_api.models import Usuario
 from lumora_api.repositories.clinical_integration_repository import (
     ClinicalIntegrationRepository,
 )
@@ -16,6 +18,7 @@ from lumora_api.schemas import (
     DisabilityRead,
     MedicalHistoryRead,
     MedicalRecordRead,
+    PatientClinicalDocument,
     PatientClinicalSummary,
     VitalSignsRead,
 )
@@ -78,6 +81,31 @@ class ClinicalIntegrationService:
             alertas=[
                 ClinicalAlertSummary.model_validate(item) for item in payload["alerts"]
             ],
+        )
+
+    async def patient_document(
+        self, patient_id: int, current_user: Usuario
+    ) -> PatientClinicalDocument:
+        """A15/B15 -- documento exportable (misma fuente que patient_summary).
+
+        No recompone reglas clínicas nuevas: reutiliza patient_summary()
+        tal cual y solo agrega los metadatos del documento (fecha de
+        generación y, cuando el que lo pide es personal clínico, quién
+        lo generó).
+        """
+        summary = await self.patient_summary(patient_id)
+        autor = None
+        if any(
+            permission.nombre == "clinica:manage"
+            for role in current_user.roles
+            for permission in role.permisos
+        ):
+            autor = f"{current_user.persona.nombres} {current_user.persona.apellidos}".strip()
+
+        return PatientClinicalDocument(
+            **summary.model_dump(),
+            generado_en=datetime.now(timezone.utc),
+            autor=autor,
         )
 
     async def timeline(

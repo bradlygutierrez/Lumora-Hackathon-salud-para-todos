@@ -36,6 +36,7 @@ OPENAPI_TAGS = [
     {"name": "Diagnósticos", "description": "Diagnósticos asociados a consultas."},
     {"name": "Condiciones médicas", "description": "Condiciones e historial clínico."},
     {"name": "Integración clínica", "description": "Resumen, timeline y búsqueda clínica."},
+    {"name": "Expediente médico", "description": "Documento clínico exportable y su PDF (A15/B15)."},
     {"name": "Recetas y medicamentos", "description": "Medicamentos, recetas y detalles."},
     {"name": "Horarios y dosis", "description": "Horarios de medicación y registro de dosis."},
     {"name": "Indicadores y alertas", "description": "Indicadores, rangos, mediciones y alertas."},

@@ -181,6 +181,24 @@ function SummarySection({
 
   return (
     <View className="gap-4">
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Ver expediente medico"
+        onPress={() => router.push('/(app)/medical-record')}
+        className="flex-row items-center justify-between rounded-2xl border border-coal-500/10 bg-white p-4 active:opacity-80"
+      >
+        <View className="flex-row items-center gap-3">
+          <View className="h-10 w-10 items-center justify-center rounded-full bg-[#E7F2F7]">
+            <Ionicons name="document-text-outline" size={18} color="#4A86B6" />
+          </View>
+          <View>
+            <Text className="text-sm font-bold text-coal-900">Expediente medico</Text>
+            <Text className="text-xs text-coal-500">Historial completo y descarga en PDF</Text>
+          </View>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color="#4A86B6" />
+      </Pressable>
+
       {allergy ? (
         <ClinicalAlertCard
           title="Alergia registrada"
