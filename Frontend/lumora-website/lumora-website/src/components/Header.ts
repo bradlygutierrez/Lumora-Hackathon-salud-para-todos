@@ -5,7 +5,8 @@ const navigation = `
   <a href="#lumora">Lumora</a>
   <a href="#lumora-medicos">Para Médicos</a>
   <a href="#nosotros">Ecosistema</a>
-  <a class="button button--small" href="#contacto">Contacto</a>
+  <a class="button button--small" href="#/afiliaciones">Entrar al portal</a>
+  <a class="button button--small button--outline" href="#contacto">Contacto</a>
 `
 
 export function Header(): string {
