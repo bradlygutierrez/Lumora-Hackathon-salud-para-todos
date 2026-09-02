@@ -48,10 +48,10 @@ class MedicalAffiliationService:
 
     async def update(self, affiliation_id: int, data: AffiliationUpdate, actor_id: int):
         item = await self.session.scalar(select(AfiliacionMedica).where(AfiliacionMedica.id == affiliation_id).with_for_update())
-        if item is None: raise ResourceNotFoundError("La afiliaci?n no existe")
+        if item is None: raise ResourceNotFoundError("La afiliación no existe")
         values = data.model_dump(exclude_unset=True)
         if "cupos_comprados" in values:
-            if item.tipo == "independiente" and values["cupos_comprados"] != 1: raise ValidationError("Una afiliaci?n independiente requiere exactamente un cupo")
+            if item.tipo == "independiente" and values["cupos_comprados"] != 1: raise ValidationError("Una afiliación independiente requiere exactamente un cupo")
             active = await self.session.scalar(select(func.count(AfiliacionProfesional.id)).where(AfiliacionProfesional.afiliacion_id == affiliation_id, AfiliacionProfesional.activo.is_(True)))
             if values["cupos_comprados"] < active: raise ResourceConflictError("No se puede reducir por debajo de los miembros activos")
         previous_status = item.estado

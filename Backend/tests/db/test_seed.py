@@ -29,7 +29,7 @@ async def test_seed_loads_all_catalogs_and_is_idempotent(session_factory, monkey
         assert await session.scalar(select(Especialidad).where(Especialidad.nombre == "Cardiolog\u00eda")) is not None
         assert await session.scalar(select(CargoSalud).where(CargoSalud.nombre == "M\u00e9dico general")) is not None
         assert await session.scalar(select(UnidadMedida).where(UnidadMedida.nombre == "\u00b0C")) is not None
-        assert await session.scalar(select(Especialidad).where(Especialidad.nombre == "Cardiolog??a")) is None
+        assert await session.scalar(select(Especialidad).where(Especialidad.nombre == "Cardiolog" + chr(195) + chr(173) + "a")) is None
         assert await session.scalar(select(CargoSalud).where(CargoSalud.nombre == "M\u00c3\u00a9dico general")) is None
         assert await session.scalar(select(UnidadMedida).where(UnidadMedida.nombre == "\u00c2\u00b0C")) is None
         caregiver = await session.scalar(select(Rol).where(Rol.nombre == "Cuidador"))
