@@ -4,53 +4,67 @@ import test from 'node:test'
 
 const read = (path) => readFile(new URL(path, import.meta.url), 'utf8')
 
-test('la landing presenta las dos aplicaciones con navegación y contenido verificable', async () => {
-  const componentNames = ['Header', 'Hero', 'Experiences', 'Features', 'AppShowcase', 'MedicalStaff', 'Ecosystem', 'Contact', 'Footer']
-  const [index, main, header, brand, contact, favicon, styles, ...components] = await Promise.all([
+test('W01 convierte la web en portal interno y mantiene el backend como fuente de verdad', async () => {
+  const [index, main, app, authApi, authViews, affiliationApi, affiliationTypes, affiliationViews, client, session, apiConfig, env, styles] = await Promise.all([
     read('../index.html'),
     read('../src/main.ts'),
-    read('../src/components/Header.ts'),
-    read('../src/components/Brand.ts'),
-    read('../src/components/Contact.ts'),
-    read('../public/favicon.svg'),
-    read('../src/styles/landing.css'),
-    ...componentNames.map((name) => read(`../src/components/${name}.ts`)),
+    read('../src/app.ts'),
+    read('../src/features/auth/api.ts'),
+    read('../src/features/auth/views.ts'),
+    read('../src/features/affiliations/api.ts'),
+    read('../src/features/affiliations/types.ts'),
+    read('../src/features/affiliations/views.ts'),
+    read('../src/shared/api/client.ts'),
+    read('../src/shared/auth/session.ts'),
+    read('../src/shared/config/api.ts'),
+    read('../.env.example'),
+    read('../src/styles/portal.css'),
   ])
 
   assert.match(index, /<html lang="es">/)
-  assert.match(index, /href="\/favicon\.svg"/)
-  assert.match(brand, /src="\/favicon\.svg"/)
-  assert.match(favicon, /viewBox="0 0 64 64"/)
-  assert.match(favicon, /#D5A53B/)
-  for (const component of componentNames) {
-    assert.match(main, new RegExp(`import \\{ [^}]*\\b${component}\\b`))
-    assert.match(main, new RegExp(`\\$\\{${component}\\(\\)\\}`))
-  }
-  assert.match(header, /aria-label="Navegación principal"/)
-  assert.match(contact, /<label for="name">/)
-  assert.match(contact, /type="email"/)
-  assert.match(contact, /required/)
-  assert.match(contact, /mailto:lumorahealthnic@gmail\.com/)
-  assert.match(contact, /action="https:\/\/formspree\.io\/f\/mwlkvodz"/)
-  assert.match(contact, /data-contact-form/)
-  assert.match(contact, /name="email"/)
-  assert.match(contact, /name="message"/)
-  assert.match(main, /setupContactForm\(\)/)
-  assert.match(main, /toastify-js\/src\/toastify\.css/)
-  assert.match(contact, /Descargar pr.ximamente/)
-  const landing = [brand, ...components].join('\n')
-  assert.equal((landing.match(/<h1/g) ?? []).length, 1)
-  assert.match(landing, /id="lumora"/)
-  assert.match(landing, /id="lumora-medicos"/)
-  assert.match(landing, /Lumora, iluminando el camino hacia una mejor salud\./)
-  assert.match(styles, /background-image: url\('\/two-cellphones-mockup\.png'\)/)
-  assert.match(styles, /background-image: url\('\/lumora-medicos-mockup\.png'\)/)
-  assert.match(styles, /animation-timeline: view\(\)/)
-  assert.match(styles, /position: fixed/)
-  assert.match(styles, /safe-area-inset-top/)
-  assert.doesNotMatch(landing, /telemedicina|sincronizaci.n en tiempo real|resultados de laboratorio/i)
-  const ids = new Set([...landing.matchAll(/id="([^"]+)"/g)].map((match) => match[1]))
-  const anchorTargets = [...landing.matchAll(/href="#([^"]+)"/g)].map((match) => match[1])
-  assert.deepEqual(anchorTargets.filter((target) => !ids.has(target)), [])
-  assert.doesNotMatch(main + landing, /style="/)
+  assert.match(index, /Lumora \| Afiliaciones/)
+  assert.match(index, /noindex,nofollow/)
+  assert.match(main, /PortalApp/)
+  assert.doesNotMatch(main, /Hero|Experiences|AppShowcase|MedicalStaff|Contact/)
+
+  assert.match(env, /^VITE_API_URL=/m)
+  assert.match(client, /VITE_API_URL/)
+  assert.match(apiConfig, /\/api\/v1/)
+  assert.doesNotMatch(client + app + authApi + affiliationApi, /backend-[a-z0-9-]+\.fastapicloud\.dev/i)
+
+  assert.match(authApi, /'\/auth\/login'/)
+  assert.match(authApi, /'\/auth\/me'/)
+  assert.match(authApi, /'\/auth\/mfa\/verify'/)
+  assert.match(authApi, /'\/auth\/logout'/)
+  assert.doesNotMatch(authApi + authViews, /\/auth\/register/)
+  assert.match(app, /afiliaciones:manage/)
+  assert.match(session, /sessionStorage/)
+  assert.doesNotMatch(session, /localStorage/)
+
+  assert.match(affiliationApi, /'\/medical-affiliations'/)
+  assert.match(affiliationApi, /\/medical-affiliations\/\$\{id\}\/professionals/)
+  assert.match(affiliationApi, /\/medical-affiliations\/professionals\/\$\{professionalId\}\/license/)
+  assert.match(affiliationApi, /licencia_verificada/)
+  assert.match(affiliationApi, /activo/)
+
+  assert.match(affiliationTypes, /cupos_usados: number/)
+  assert.match(affiliationTypes, /cupos_disponibles: number/)
+  assert.match(affiliationTypes, /'pending' \| 'active' \| 'suspended' \| 'cancelled'/)
+  assert.match(affiliationTypes, /'pending' \| 'paid'/)
+  assert.match(app, /type === 'independiente' \? 1/)
+  assert.match(app, /estado: 'pending'/)
+  assert.match(app, /pago_estado: 'pending'/)
+
+  assert.match(affiliationViews, /Médico independiente/)
+  assert.match(affiliationViews, /Institución médica/)
+  assert.match(affiliationViews, /Verificar licencia/)
+  assert.match(affiliationViews, /Suspender profesional/)
+  assert.match(affiliationViews, /Cupos usados/)
+  assert.match(affiliationViews, /Correo pendiente/)
+  assert.doesNotMatch(affiliationViews, /password_hash|temporary_password/)
+
+  assert.match(styles, /grid-template-columns: 248px/)
+  assert.match(styles, /@media \(max-width: 860px\)/)
+  assert.match(styles, /@media \(max-width: 640px\)/)
+  assert.match(styles, /\.portal-dialog::backdrop/)
 })
