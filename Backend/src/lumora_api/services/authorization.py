@@ -2,7 +2,7 @@
 
 Se separan aquÃ­ (en vez de duplicarlas en cada servicio) porque tanto
 `PrescriptionService` como `ScheduleService` necesitan la misma pregunta:
-"Â¿puede este usuario ver/editar los datos de este paciente?".
+"¿puede este usuario ver/editar los datos de este paciente?".
 """
 
 from sqlalchemy.ext.asyncio import AsyncSession

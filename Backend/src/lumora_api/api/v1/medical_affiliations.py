@@ -1,7 +1,7 @@
 ﻿from fastapi import APIRouter, Depends, status
 from lumora_api.api.dependencies import CurrentUser, SessionDep, require_permission
 from lumora_api.models import ProfesionalSalud
-from lumora_api.schemas.affiliations import AffiliationCreate, AffiliationRead, AffiliationUpdate, LicenseVerificationUpdate, MembershipRead, ProfessionalMembershipUpdate, ProfessionalProvisionCreate, ProvisionedProfessionalRead
+from lumora_api.schemas.affiliations import AffiliationCreate, AffiliationRead, AffiliationUpdate, LicenseVerificationUpdate, MembershipRead, ProfessionalMembershipUpdate, ProfessionalProvisionCreate, ProvisionedProfessionalRead, AffiliationProfessionalRead
 from lumora_api.services.medical_affiliation_service import MedicalAffiliationService
 
 router = APIRouter(prefix="/medical-affiliations", tags=["Profesionales de salud"], dependencies=[Depends(require_permission("afiliaciones:manage"))])
@@ -33,3 +33,7 @@ async def verify_license(professional_id: int, data: LicenseVerificationUpdate, 
 
 
 
+
+@router.get("/{affiliation_id}/professionals", response_model=list[AffiliationProfessionalRead])
+async def professionals(affiliation_id: int, session: SessionDep):
+    return await MedicalAffiliationService(session).professionals(affiliation_id)

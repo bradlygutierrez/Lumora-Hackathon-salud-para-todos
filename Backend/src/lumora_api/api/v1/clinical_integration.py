@@ -14,7 +14,7 @@ from lumora_api.schemas import (
 from lumora_api.services.clinical_integration_service import ClinicalIntegrationService
 
 router = APIRouter(
-    tags=["Profesionales de salud"],
+    tags=["Integración clínica"],
     dependencies=[Depends(require_clinical_access)],
 )
 

@@ -7,7 +7,7 @@ from lumora_api.schemas import DiagnosisCreate, DiagnosisRead, DiagnosisUpdate, 
 from lumora_api.services.diagnosis_service import DiagnosisService
 
 router = APIRouter(
-    tags=["Profesionales de salud"],
+    tags=["Diagnósticos"],
     dependencies=[Depends(require_clinical_access)],
 )
 

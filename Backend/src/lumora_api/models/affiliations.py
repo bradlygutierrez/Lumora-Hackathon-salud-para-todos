@@ -5,7 +5,7 @@ from lumora_api.db.base import Base
 
 class AfiliacionMedica(Base):
     __tablename__ = "afiliaciones_medicas"
-    __table_args__ = (CheckConstraint("tipo IN ('independiente', 'institucion')", name="ck_afiliacion_tipo"), CheckConstraint("estado IN ('pending', 'active', 'suspended', 'cancelled')", name="ck_afiliacion_estado"), CheckConstraint("pago_estado IN ('pending', 'paid')", name="ck_afiliacion_pago_estado"), CheckConstraint("cupos_comprados >= 1", name="ck_afiliacion_cupos_positivos"))
+    __table_args__ = (CheckConstraint("tipo IN ('independiente', 'institucion')", name="ck_afiliacion_tipo"), CheckConstraint("estado IN ('pending', 'active', 'suspended', 'cancelled')", name="ck_afiliacion_estado"), CheckConstraint("pago_estado IN ('pending', 'paid')", name="ck_afiliacion_pago_estado"), CheckConstraint("cupos_comprados >= 1", name="ck_afiliacion_cupos_positivos"), CheckConstraint("tipo != 'independiente' OR cupos_comprados = 1", name="ck_afiliacion_independiente_un_cupo"))
     id: Mapped[int] = mapped_column(primary_key=True)
     tipo: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
     nombre: Mapped[str] = mapped_column(String(200), nullable=False)

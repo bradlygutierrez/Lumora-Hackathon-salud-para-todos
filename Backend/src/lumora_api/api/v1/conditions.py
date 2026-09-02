@@ -13,7 +13,7 @@ from lumora_api.schemas import (
 from lumora_api.services.diagnosis_service import DiagnosisService
 
 router = APIRouter(
-    tags=["Profesionales de salud"],
+    tags=["Condiciones médicas"],
     dependencies=[Depends(require_clinical_access)],
 )
 

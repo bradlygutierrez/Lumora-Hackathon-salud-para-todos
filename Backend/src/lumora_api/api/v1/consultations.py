@@ -20,7 +20,7 @@ from lumora_api.services.consultation_service import ConsultationService
 
 router = APIRouter(
     prefix="/consultas",
-    tags=["Profesionales de salud"],
+    tags=["Consultas médicas"],
     dependencies=[Depends(require_clinical_access)],
 )
 

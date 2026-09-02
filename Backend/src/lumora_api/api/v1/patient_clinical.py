@@ -17,7 +17,7 @@ from lumora_api.services.clinical_service import AllergyService, DisabilityServi
 
 router = APIRouter(
     prefix="/pacientes/{patient_id}",
-    tags=["Profesionales de salud"],
+    tags=["Clínica de pacientes"],
     dependencies=[Depends(require_clinical_access)],
 )
 

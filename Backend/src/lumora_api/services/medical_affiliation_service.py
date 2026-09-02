@@ -5,8 +5,9 @@ import secrets
 
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import selectinload
 
-from lumora_api.core.exceptions import PermissionDeniedError, ResourceConflictError, ResourceNotFoundError
+from lumora_api.core.exceptions import PermissionDeniedError, ResourceConflictError, ResourceNotFoundError, ValidationError
 from lumora_api.core.security import generate_token, hash_password, hash_token
 from lumora_api.models import AfiliacionMedica, AfiliacionProfesional, EventoAuditoria, Persona, ProfesionalSalud, Rol, TokenRecuperacion, Usuario
 from lumora_api.repositories.auth_repository import AuthRepository
@@ -28,20 +29,31 @@ class MedicalAffiliationService:
         self._audit("CREATE_AFFILIATION", item.id, actor_id)
         await self.session.commit()
         await self.session.refresh(item)
-        return item
+        return await self._read(item)
+
+    async def _read(self, item):
+        used = await self.session.scalar(select(func.count(AfiliacionProfesional.id)).where(AfiliacionProfesional.afiliacion_id == item.id, AfiliacionProfesional.activo.is_(True)))
+        result = {column.name: getattr(item, column.name) for column in item.__table__.columns}
+        result.update(cupos_usados=used or 0, cupos_disponibles=max(item.cupos_comprados - (used or 0), 0))
+        return result
 
     async def list(self):
-        return list(await self.session.scalars(select(AfiliacionMedica).order_by(AfiliacionMedica.id.desc())))
+        return [await self._read(item) for item in await self.session.scalars(select(AfiliacionMedica).order_by(AfiliacionMedica.id.desc()))]
 
     async def get(self, affiliation_id: int):
         item = await self.session.get(AfiliacionMedica, affiliation_id)
         if item is None:
             raise ResourceNotFoundError("La afiliación no existe")
-        return item
+        return await self._read(item)
 
     async def update(self, affiliation_id: int, data: AffiliationUpdate, actor_id: int):
-        item = await self.get(affiliation_id)
+        item = await self.session.scalar(select(AfiliacionMedica).where(AfiliacionMedica.id == affiliation_id).with_for_update())
+        if item is None: raise ResourceNotFoundError("La afiliaci?n no existe")
         values = data.model_dump(exclude_unset=True)
+        if "cupos_comprados" in values:
+            if item.tipo == "independiente" and values["cupos_comprados"] != 1: raise ValidationError("Una afiliaci?n independiente requiere exactamente un cupo")
+            active = await self.session.scalar(select(func.count(AfiliacionProfesional.id)).where(AfiliacionProfesional.afiliacion_id == affiliation_id, AfiliacionProfesional.activo.is_(True)))
+            if values["cupos_comprados"] < active: raise ResourceConflictError("No se puede reducir por debajo de los miembros activos")
         previous_status = item.estado
         for key, value in values.items():
             setattr(item, key, value)
@@ -56,7 +68,7 @@ class MedicalAffiliationService:
         self._audit(action, item.id, actor_id)
         await self.session.commit()
         await self.session.refresh(item)
-        return item
+        return await self._read(item)
 
     async def provision(self, affiliation_id: int, data: ProfessionalProvisionCreate, actor_id: int):
         affiliation = await self.session.scalar(select(AfiliacionMedica).where(AfiliacionMedica.id == affiliation_id).with_for_update())
@@ -93,14 +105,17 @@ class MedicalAffiliationService:
             (self.email_service or EmailService()).send_password_reset(email, raw_token)
         except RuntimeError:
             logger.exception("Professional activation delivery failed for user_id=%s", user.id)
-        return {"user_id": user.id, "professional_id": professional.id, "membership_id": membership.id, "activation_sent": True}
+            activation_sent = False
+        else:
+            activation_sent = True
+        return {"user_id": user.id, "professional_id": professional.id, "membership_id": membership.id, "activation_sent": activation_sent}
 
     async def update_membership(self, affiliation_id: int, professional_id: int, active: bool, actor_id: int):
         item = await self.session.scalar(select(AfiliacionProfesional).where(AfiliacionProfesional.afiliacion_id == affiliation_id, AfiliacionProfesional.profesional_id == professional_id))
         if item is None: raise ResourceNotFoundError("La afiliación del profesional no existe")
         if active and not item.activo:
+            affiliation = await self.session.scalar(select(AfiliacionMedica).where(AfiliacionMedica.id == affiliation_id).with_for_update())
             count = await self.session.scalar(select(func.count(AfiliacionProfesional.id)).where(AfiliacionProfesional.afiliacion_id == affiliation_id, AfiliacionProfesional.activo.is_(True)))
-            affiliation = await self.get(affiliation_id)
             if count >= affiliation.cupos_comprados: raise ResourceConflictError("La afiliación no tiene cupos disponibles")
         item.activo = active
         await self.session.commit()
@@ -112,7 +127,7 @@ class MedicalAffiliationService:
         professional.licencia_verificada = verified
         professional.licencia_verificada_en = datetime.now(timezone.utc) if verified else None
         professional.licencia_verificada_por_usuario_id = actor_id if verified else None
-        self._audit("VERIFY_MEDICAL_LICENSE", professional_id, actor_id)
+        self._audit("VERIFY_MEDICAL_LICENSE", professional_id, actor_id, entity="profesional_salud")
         await self.session.commit()
         return professional
 
@@ -123,5 +138,13 @@ class MedicalAffiliationService:
             suffix += 1; candidate = f"{base[:45-len(str(suffix))]}.{suffix}"
         return candidate
 
-    def _audit(self, action, resource_id, actor_id):
-        self.session.add(EventoAuditoria(accion=action, entidad="afiliacion_medica", entidad_id=resource_id, usuario_id=actor_id))
+    def _audit(self, action, resource_id, actor_id, entity="afiliacion_medica"):
+        self.session.add(EventoAuditoria(accion=action, entidad=entity, entidad_id=resource_id, usuario_id=actor_id))
+
+    async def professionals(self, affiliation_id: int):
+        rows = await self.session.scalars(select(AfiliacionProfesional).options(selectinload(AfiliacionProfesional.profesional).selectinload(ProfesionalSalud.persona).selectinload(Persona.usuario)).where(AfiliacionProfesional.afiliacion_id == affiliation_id))
+        result=[]
+        for membership in rows:
+            professional=membership.profesional; person=professional.persona; user=person.usuario
+            result.append({"membership_id":membership.id,"professional_id":professional.id,"user_id":user.id,"first_names":person.nombres,"last_names":person.apellidos,"email":user.email,"especialidad":professional.especialidad,"numero_licencia":professional.numero_licencia,"licencia_verificada":professional.licencia_verificada,"membership_activo":membership.activo,"user_activo":user.activo,"email_verificado":user.email_verificado})
+        return result

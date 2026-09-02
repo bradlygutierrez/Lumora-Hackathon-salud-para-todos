@@ -10,6 +10,7 @@ class AffiliationCreate(BaseModel):
     estado: str = Field(default="pending", pattern="^(pending|active|suspended|cancelled)$")
     pago_estado: str = Field(default="pending", pattern="^(pending|paid)$")
     pago_referencia: str | None = Field(default=None, max_length=255)
+    cupos_comprados: int | None = Field(default=None, ge=1)
     inicia_en: datetime | None = None
     expira_en: datetime | None = None
 
@@ -48,7 +49,7 @@ class LicenseVerificationUpdate(BaseModel):
 
 class AffiliationRead(BaseModel):
     id: int; tipo: str; nombre: str; correo_contacto: EmailStr; telefono_contacto: str | None
-    cupos_comprados: int; estado: str; pago_estado: str; pago_referencia: str | None
+    cupos_comprados: int; cupos_usados: int; cupos_disponibles: int; estado: str; pago_estado: str; pago_referencia: str | None
     inicia_en: datetime | None; expira_en: datetime | None; created_at: datetime; updated_at: datetime
     model_config = ConfigDict(from_attributes=True)
 
@@ -61,3 +62,17 @@ class ProvisionedProfessionalRead(BaseModel):
     professional_id: int
     membership_id: int
     activation_sent: bool
+
+class AffiliationProfessionalRead(BaseModel):
+    membership_id: int
+    professional_id: int
+    user_id: int
+    first_names: str
+    last_names: str
+    email: EmailStr
+    especialidad: str
+    numero_licencia: str
+    licencia_verificada: bool
+    membership_activo: bool
+    user_activo: bool
+    email_verificado: bool | None = None

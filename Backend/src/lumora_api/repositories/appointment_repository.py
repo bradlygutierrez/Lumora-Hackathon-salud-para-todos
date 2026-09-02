@@ -73,6 +73,7 @@ class AppointmentRepository:
                     ProfesionalSalud.licencia_verificada.is_(True),
                     AfiliacionProfesional.activo.is_(True),
                     AfiliacionMedica.estado == "active",
+                    (AfiliacionMedica.inicia_en.is_(None) | (AfiliacionMedica.inicia_en <= datetime.now(timezone.utc))),
                     AfiliacionMedica.pago_estado == "paid",
                     (AfiliacionMedica.expira_en.is_(None) | (AfiliacionMedica.expira_en > datetime.now(timezone.utc))),
                     Persona.deleted_at.is_(None),
