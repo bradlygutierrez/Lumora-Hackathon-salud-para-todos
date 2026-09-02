@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import process from 'node:process';
@@ -90,6 +90,82 @@ async function waitForServer(url, timeoutMs = 120_000) {
   );
 }
 
+async function waitForFreshTotpWindow() {
+  const secondsIntoWindow = Math.floor(Date.now() / 1000) % 30;
+  const secondsRemaining = 30 - secondsIntoWindow;
+
+  if (secondsRemaining >= 18) {
+    return;
+  }
+
+  const waitMs = (secondsRemaining + 1) * 1000;
+  console.log(
+    `Esperando ${Math.ceil(waitMs / 1000)}s para pedir un TOTP recién renovado...`,
+  );
+  await new Promise((resolveDelay) => setTimeout(resolveDelay, waitMs));
+}
+
+function promptForTotpOnWindows() {
+  const command = [
+    '$s=$Host.UI.ReadLineAsSecureString();',
+    '$b=[Runtime.InteropServices.Marshal]::SecureStringToBSTR($s);',
+    'try{[Console]::Out.Write([Runtime.InteropServices.Marshal]::PtrToStringBSTR($b))}',
+    'finally{[Runtime.InteropServices.Marshal]::ZeroFreeBSTR($b)}',
+  ].join('');
+
+  process.stderr.write(
+    'Código TOTP vigente (entrada oculta; si está por vencer, esperá al siguiente): ',
+  );
+
+  const result = spawnSync(
+    'powershell.exe',
+    ['-NoProfile', '-Command', command],
+    {
+      cwd: appRoot,
+      encoding: 'utf8',
+      stdio: ['inherit', 'pipe', 'inherit'],
+      windowsHide: false,
+    },
+  );
+
+  process.stderr.write('\n');
+
+  if (result.status !== 0) {
+    throw new Error('No se pudo leer el TOTP de forma segura.');
+  }
+
+  const code = String(result.stdout ?? '').trim();
+  if (!/^\d{6,8}$/.test(code)) {
+    throw new Error('El TOTP ingresado no tiene un formato válido.');
+  }
+
+  return code;
+}
+
+async function ensureClinicalMfaCredential() {
+  if (mode !== 'clinical') {
+    return false;
+  }
+
+  if (
+    process.env.LUMORA_E2E_TOTP_SECRET ||
+    process.env.LUMORA_E2E_MFA_CODE
+  ) {
+    return false;
+  }
+
+  if (process.platform !== 'win32') {
+    throw new Error(
+      'La cuenta QA requiere MFA. Configurá LUMORA_E2E_TOTP_SECRET ' +
+        'o LUMORA_E2E_MFA_CODE para ejecutar el E2E clínico fuera de Windows.',
+    );
+  }
+
+  await waitForFreshTotpWindow();
+  process.env.LUMORA_E2E_MFA_CODE = promptForTotpOnWindows();
+  return true;
+}
+
 function stopProcessTree(child) {
   if (!child || child.exitCode !== null || !child.pid) return;
 
@@ -112,8 +188,11 @@ expo.stderr.on('data', (chunk) => process.stderr.write(`[expo] ${chunk}`));
 
 let exitCode = 1;
 
+let temporaryMfaCode = false;
+
 try {
   await waitForServer(`${baseUrl}/login`);
+  temporaryMfaCode = await ensureClinicalMfaCredential();
 
   const spec =
     mode === 'clinical'
@@ -138,6 +217,9 @@ try {
     cypress.on('exit', (code) => resolveExit(code ?? 1));
   });
 } finally {
+  if (temporaryMfaCode) {
+    delete process.env.LUMORA_E2E_MFA_CODE;
+  }
   await stopProcessTree(expo);
 }
 

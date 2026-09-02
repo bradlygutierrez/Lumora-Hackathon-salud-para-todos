@@ -44,6 +44,7 @@ function generateTotp(secret) {
 }
 
 module.exports = {
+  allowCypressEnv: false,
   video: false,
   screenshotOnRunFailure: false,
   trashAssetsBeforeRuns: true,
