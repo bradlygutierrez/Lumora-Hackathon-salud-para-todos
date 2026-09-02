@@ -2,7 +2,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from lumora_api.api.dependencies import CurrentUser, require_permission
+from lumora_api.api.dependencies import CurrentUser, require_permission, require_active_clinician
 from lumora_api.db.session import get_session
 from lumora_api.schemas.schedules import (
     DosisAdministradaCreate,
@@ -17,7 +17,7 @@ router = APIRouter(tags=["Horarios y dosis"])
 
 # Solo personal clínico define/edita los horarios de una receta -- el
 # paciente los consulta y registra sus dosis, pero no los inventa.
-RequireClinicalStaff = Depends(require_permission("clinica:manage"))
+RequireClinicalStaff = Depends(require_active_clinician)
 
 
 # --- HORARIOS ---

@@ -3,6 +3,7 @@ from datetime import date
 import pytest
 from sqlalchemy import func, select
 
+from helpers.medical import create_active_medical_professional
 from lumora_api.core.security import create_access_token, hash_password
 from lumora_api.models import (
     Paciente,
@@ -33,6 +34,9 @@ async def create_actor(session_factory, *, username: str, clinical: bool = False
             roles=[role],
         )
         session.add(user)
+        await session.flush()
+        if clinical:
+            await create_active_medical_professional(session, user=user, username=username)
         await session.commit()
         return user.id
 

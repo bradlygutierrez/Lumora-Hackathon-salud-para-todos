@@ -56,7 +56,7 @@ class EventoAuditoria(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     usuario_id: Mapped[int] = mapped_column(ForeignKey("usuarios.id"), index=True)
-    accion: Mapped[str] = mapped_column(String(10), index=True)
+    accion: Mapped[str] = mapped_column(String(50), index=True)
     entidad: Mapped[str] = mapped_column(String(100), index=True)
     entidad_id: Mapped[int] = mapped_column(index=True)
     datos_anteriores: Mapped[dict | None] = mapped_column(JSON, nullable=True)

@@ -78,6 +78,9 @@ class ProfesionalSalud(SoftDeleteMixin, Base):
     persona_id: Mapped[int] = mapped_column(ForeignKey("personas.id"), unique=True, index=True)
     especialidad: Mapped[str] = mapped_column(String(100))
     numero_licencia: Mapped[str] = mapped_column(String(100), unique=True, index=True)
+    licencia_verificada: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
+    licencia_verificada_en: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    licencia_verificada_por_usuario_id: Mapped[int | None] = mapped_column(ForeignKey("usuarios.id"), nullable=True)
     persona: Mapped[Persona] = relationship(back_populates="profesional", lazy="selectin")
 
     @property

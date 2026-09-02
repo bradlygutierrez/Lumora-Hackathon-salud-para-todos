@@ -37,6 +37,7 @@ CATALOGS = {
         ("usuarios:editar", "Modificar usuarios"),
         ("rbac:manage", "Administrar roles y permisos"),
         ("clinica:manage", "Gestionar expedientes clínicos"),
+        ("afiliaciones:manage", "Administrar afiliaciones médicas"),
     ],
     EstadoCita: ["Pendiente", "Confirmada", "Cancelada", "Completada"],
     TipoCita: ["Presencial", "Virtual"],
@@ -67,6 +68,7 @@ ROLES = {
     "Paciente": "Acceso base de paciente",
     "Cuidador": "Acceso base de cuidador",
     "Administrador": "Acceso administrativo",
+    "Profesional de Salud": "Acceso clínico sujeto a afiliación vigente",
 }
 
 
@@ -178,6 +180,8 @@ async def seed() -> None:
             roles[name] = role
         await session.flush()
         roles["Administrador"].permisos = list(await session.scalars(select(Permiso)))
+        clinical_permission = await session.scalar(select(Permiso).where(Permiso.nombre == "clinica:manage"))
+        roles["Profesional de Salud"].permisos = [clinical_permission] if clinical_permission else []
         await session.flush()
         await seed_health_indicators(session)
         professionals = list(await session.scalars(select(ProfesionalSalud).where(ProfesionalSalud.deleted_at.is_(None))))
