@@ -62,6 +62,7 @@ class ProvisionedProfessionalRead(BaseModel):
     professional_id: int
     membership_id: int
     activation_sent: bool
+    account_created: bool
 
 class AffiliationProfessionalRead(BaseModel):
     membership_id: int
