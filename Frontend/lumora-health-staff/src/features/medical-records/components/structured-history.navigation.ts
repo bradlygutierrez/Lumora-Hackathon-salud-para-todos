@@ -16,7 +16,13 @@ export function structuredHistoryPathForSection(
     return `/(staff)/patients/${patientId}/prescriptions?recordId=${recordId}`;
   }
   if (section === 'diagnosticos') {
-    return `/(staff)/patients/${patientId}/record/consultations?recordId=${recordId}`;
+    return `/(staff)/patients/${patientId}/record/diagnoses?recordId=${recordId}`;
+  }
+  if (section === 'indicadores') {
+    return `/(staff)/patients/${patientId}/measurements`;
+  }
+  if (section === 'alertas') {
+    return `/(staff)/patients/${patientId}/record/alerts?recordId=${recordId}`;
   }
   const segment = segmentBySection[section];
   if (!segment) return null;

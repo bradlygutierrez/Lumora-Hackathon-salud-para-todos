@@ -6,9 +6,11 @@ import type {
   LoginResponse,
   MessageResponse,
   MfaChallengeRequest,
+  MfaActivationResponse,
   MfaChallengeResponse,
   MfaMethod,
   MfaRecoveryRequest,
+  MfaSetupConfirmRequest,
   MfaSetupRequest,
   MfaSetupResponse,
   MfaVerifyRequest,
@@ -98,6 +100,16 @@ export async function listMfaMethods(): Promise<MfaMethod[]> {
 
 export async function setupMfa(data: MfaSetupRequest): Promise<MfaSetupResponse> {
   const response = await apiClient.post<MfaSetupResponse>('/auth/mfa/setup', data);
+  return response.data;
+}
+
+export async function confirmMfaSetup(
+  data: MfaSetupConfirmRequest,
+): Promise<MfaActivationResponse> {
+  const response = await apiClient.post<MfaActivationResponse>(
+    '/auth/mfa/setup/confirm',
+    data,
+  );
   return response.data;
 }
 

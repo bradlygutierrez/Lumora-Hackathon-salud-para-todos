@@ -4,12 +4,10 @@ import LoginScreen from '@/app/(auth)/login';
 
 const mockPush = jest.fn();
 const mockSignIn = jest.fn();
-const mockStartPreviewSession = jest.fn();
 
 jest.mock('@/src/features/auth/hooks/use-auth-session', () => ({
   useAuthSession: () => ({
     signIn: mockSignIn,
-    startPreviewSession: mockStartPreviewSession,
   }),
 }));
 
@@ -43,7 +41,13 @@ jest.mock('@/src/shared/components/Button', () => {
   const { Pressable, Text } = jest.requireActual('react-native');
 
   return {
-    Button: ({ children, onPress }: { children: React.ReactNode; onPress?: () => void }) =>
+    Button: ({
+      children,
+      onPress,
+    }: {
+      children: React.ReactNode;
+      onPress?: () => void;
+    }) =>
       React.createElement(
         Pressable,
         { onPress },
@@ -80,7 +84,6 @@ describe('LoginScreen', () => {
     await fireEvent.changeText(screen.getByTestId('Contraseña'), 'safe-password');
     await fireEvent.press(screen.getByText('Entrar'));
 
-
     await waitFor(() => {
       expect(mockSignIn).toHaveBeenCalledWith({
         login: 'doctor@example.com',
@@ -88,5 +91,12 @@ describe('LoginScreen', () => {
       });
       expect(mockPush).toHaveBeenCalledWith('/(auth)/mfa-challenge');
     });
+  });
+
+  it('does not expose the old clinical preview entry point', async () => {
+    const screen = await render(<LoginScreen />);
+
+    expect(screen.queryByText('Previsualizar pantallas')).toBeNull();
+    expect(screen.queryByText('Acceder con MFA')).toBeNull();
   });
 });

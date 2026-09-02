@@ -13,11 +13,14 @@ export function Screen({ children }: PropsWithChildren) {
 
 const styles = StyleSheet.create({
   safeArea: {
+    backgroundColor: theme.color.appBackground,
     flex: 1,
-    backgroundColor: theme.color.background,
   },
   content: {
+    alignSelf: 'center',
     flex: 1,
+    maxWidth: 980,
     padding: theme.spacing.lg,
+    width: '100%',
   },
 });

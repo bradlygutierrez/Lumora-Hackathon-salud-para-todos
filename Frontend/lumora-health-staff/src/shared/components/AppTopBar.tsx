@@ -3,18 +3,24 @@ import { StyleSheet, View } from 'react-native';
 
 import { theme } from '../constants/theme';
 import { LumoraBrand } from './LumoraBrand';
-import { StaffAvatar } from './StaffAvatar';
 
 export function AppTopBar() {
   return (
     <View style={styles.container}>
-      <View style={styles.left}>
-        <Ionicons color={theme.color.text} name="menu-outline" size={28} />
-        <LumoraBrand compact />
+      <View style={styles.side}>
+        <View style={styles.avatar}>
+          <Ionicons color={theme.color.primaryPressed} name="person-outline" size={19} />
+        </View>
       </View>
-      <View style={styles.right}>
-        <Ionicons color={theme.color.danger} name="notifications" size={22} />
-        <StaffAvatar firstName="S" lastName="J" size={32} />
+
+      <LumoraBrand compact />
+
+      <View style={[styles.side, styles.sideRight]}>
+        <Ionicons
+          color={theme.color.primaryPressed}
+          name="notifications-outline"
+          size={23}
+        />
       </View>
     </View>
   );
@@ -24,25 +30,29 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     backgroundColor: theme.color.surfaceMuted,
+    borderBottomColor: theme.color.softBorder,
+    borderBottomWidth: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginHorizontal: -theme.spacing.lg,
     marginTop: -theme.spacing.lg,
+    minHeight: 62,
     paddingHorizontal: theme.spacing.lg,
     paddingVertical: theme.spacing.sm,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
   },
-  left: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: theme.spacing.md,
+  side: {
+    alignItems: 'flex-start',
+    flex: 1,
   },
-  right: {
+  sideRight: {
+    alignItems: 'flex-end',
+  },
+  avatar: {
     alignItems: 'center',
-    flexDirection: 'row',
-    gap: theme.spacing.md,
+    backgroundColor: theme.color.primarySoft,
+    borderRadius: 18,
+    height: 36,
+    justifyContent: 'center',
+    width: 36,
   },
 });

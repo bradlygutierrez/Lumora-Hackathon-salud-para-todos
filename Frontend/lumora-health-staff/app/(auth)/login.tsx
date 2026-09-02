@@ -1,12 +1,15 @@
-import { zodResolver } from '@hookform/resolvers/zod';
 import { Ionicons } from '@expo/vector-icons';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, useRouter } from 'expo-router';
+import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { loginSchema, type LoginFormValues } from '@/src/features/auth/schemas/login.schema';
 import { useAuthSession } from '@/src/features/auth/hooks/use-auth-session';
-import { env } from '@/src/application/config/env';
+import {
+  loginSchema,
+  type LoginFormValues,
+} from '@/src/features/auth/schemas/login.schema';
 import { toApiError } from '@/src/shared/api/api-error';
 import { Button } from '@/src/shared/components/Button';
 import { LumoraBrand } from '@/src/shared/components/LumoraBrand';
@@ -16,7 +19,8 @@ import { theme } from '@/src/shared/constants/theme';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { signIn, startPreviewSession } = useAuthSession();
+  const { signIn } = useAuthSession();
+  const [passwordHidden, setPasswordHidden] = useState(true);
   const {
     control,
     formState: { errors, isSubmitting },
@@ -44,12 +48,14 @@ export default function LoginScreen() {
 
   return (
     <Screen>
-      <View style={styles.container}>
-        <View style={styles.decorTop} />
-        <View style={styles.decorBottom} />
+      <ScrollView
+        contentContainerStyle={styles.viewport}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.card}>
           <View style={styles.header}>
-            <LumoraBrand />
+            <LumoraBrand stacked />
             <Text style={styles.subtitle}>Acceso Seguro al Sistema</Text>
           </View>
 
@@ -71,6 +77,7 @@ export default function LoginScreen() {
                 />
               )}
             />
+
             <Controller
               control={control}
               name="password"
@@ -82,27 +89,35 @@ export default function LoginScreen() {
                   label="Contraseña"
                   onBlur={onBlur}
                   onChangeText={onChange}
-                  secureTextEntry
+                  onRightIconPress={() => setPasswordHidden((current) => !current)}
+                  rightAccessibilityLabel={
+                    passwordHidden ? 'Mostrar contraseña' : 'Ocultar contraseña'
+                  }
+                  rightIcon={passwordHidden ? 'eye-off-outline' : 'eye-outline'}
+                  secureTextEntry={passwordHidden}
                   value={value}
                 />
               )}
             />
-            <View style={styles.helperRow}>
-              <View style={styles.toggle} />
-              <Text style={styles.helper}>Recordar dispositivo</Text>
+
+            <View style={styles.recoveryRow}>
               <Link href="/(auth)/forgot-password" style={styles.recoveryLink}>
                 ¿Olvidaste tu contraseña?
               </Link>
             </View>
+
             {errors.root?.message ? (
               <View accessibilityRole="alert" style={styles.errorBox}>
-                <Ionicons color={theme.color.danger} name="warning" size={20} />
+                <View style={styles.errorIcon}>
+                  <Ionicons color={theme.color.danger} name="warning" size={24} />
+                </View>
                 <View style={styles.errorContent}>
                   <Text style={styles.errorTitle}>Error de autenticación</Text>
                   <Text style={styles.error}>{errors.root.message}</Text>
                 </View>
               </View>
             ) : null}
+
             <Button
               accessibilityLabel="Iniciar sesión clínica"
               icon="log-in-outline"
@@ -111,175 +126,123 @@ export default function LoginScreen() {
             >
               Entrar
             </Button>
-            <View style={styles.dividerRow}>
-              <View style={styles.divider} />
-              <Text style={styles.dividerText}>o</Text>
-              <View style={styles.divider} />
-            </View>
-            <Button
-              accessibilityLabel="Abrir desafío MFA"
-              icon="shield-checkmark-outline"
-              onPress={() => router.push('/(auth)/mfa-challenge')}
-              variant="secondary"
-            >
-              Acceder con MFA
-            </Button>
-            {env.appEnvironment !== 'production' ? (
-              <Button
-                accessibilityLabel="Previsualizar pantallas clínicas"
-                icon="eye-outline"
-                onPress={startPreviewSession}
-                variant="ghost"
-              >
-                Previsualizar pantallas
-              </Button>
-            ) : null}
-            <View style={styles.links}>
-              <Link href="/(auth)/mfa-challenge" style={styles.link}>
-                Desafío MFA
-              </Link>
-              <Link href="/(auth)/verify-email" style={styles.link}>
-                Verificar cuenta
-              </Link>
+
+            <View style={styles.securityHint}>
+              <Ionicons
+                color={theme.color.primaryPressed}
+                name="shield-checkmark-outline"
+                size={18}
+              />
+              <Text style={styles.securityText}>
+                Si tu cuenta tiene MFA activo, continuaremos automáticamente con
+                la verificación de seguridad.
+              </Text>
             </View>
           </View>
+
           <View style={styles.legalFooter}>
             <Text style={styles.legalText}>
-              Al iniciar sesion, aceptas nuestros Terminos de Servicio y Politica de Privacidad.
+              Acceso exclusivo para personal autorizado de Lumora.
             </Text>
           </View>
         </View>
-      </View>
+      </ScrollView>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  viewport: {
+    flexGrow: 1,
     justifyContent: 'center',
-  },
-  decorTop: {
-    backgroundColor: '#B0C6FF',
-    borderRadius: theme.radius.pill,
-    height: 195,
-    position: 'absolute',
-    right: -86,
-    top: 10,
-    width: 175,
-  },
-  decorBottom: {
-    backgroundColor: theme.color.primarySoft,
-    borderRadius: theme.radius.pill,
-    bottom: 8,
-    height: 55,
-    left: -110,
-    position: 'absolute',
-    width: 234,
+    paddingVertical: theme.spacing.xl,
   },
   card: {
+    alignSelf: 'center',
     backgroundColor: theme.color.surface,
     borderColor: theme.color.border,
-    borderRadius: theme.radius.lg,
+    borderRadius: 18,
     borderWidth: 1,
+    maxWidth: 560,
     overflow: 'hidden',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowColor: '#003C90',
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.1,
-    shadowRadius: 6,
+    shadowRadius: 18,
+    width: '100%',
   },
   header: {
     alignItems: 'center',
-    backgroundColor: '#F1F4FA',
-    gap: theme.spacing.xs,
-    paddingVertical: 20,
-  },
-  title: {
-    color: theme.color.text,
-    fontSize: theme.typography.title,
-    fontWeight: '800',
+    backgroundColor: theme.color.surfaceMuted,
+    borderBottomColor: theme.color.softBorder,
+    borderBottomWidth: 1,
+    gap: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.xl,
+    paddingVertical: 30,
   },
   subtitle: {
     color: theme.color.mutedText,
-    fontSize: theme.typography.body,
+    fontSize: 18,
+    textAlign: 'center',
   },
   form: {
     gap: theme.spacing.lg,
-    padding: theme.spacing.xl,
+    paddingHorizontal: theme.spacing.xl,
+    paddingVertical: 28,
   },
-  helperRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: theme.spacing.sm,
-  },
-  toggle: {
-    backgroundColor: theme.color.surface,
-    borderColor: theme.color.border,
-    borderRadius: 12,
-    borderWidth: 1,
-    height: 24,
-    width: 24,
-  },
-  helper: {
-    color: theme.color.mutedText,
-    flex: 1,
-    fontSize: theme.typography.caption,
+  recoveryRow: {
+    alignItems: 'flex-end',
   },
   recoveryLink: {
-    color: theme.color.primaryPressed,
-    flex: 1,
-    fontSize: theme.typography.caption,
-    fontWeight: '700',
-    textAlign: 'right',
+    color: theme.color.primary,
+    fontSize: 14,
+    fontWeight: '800',
   },
   errorBox: {
     backgroundColor: theme.color.dangerSoft,
     borderLeftColor: theme.color.danger,
-    borderLeftWidth: 4,
-    borderRadius: theme.radius.sm,
+    borderLeftWidth: 5,
+    borderRadius: theme.radius.md,
     flexDirection: 'row',
     gap: theme.spacing.md,
-    padding: theme.spacing.md,
+    padding: theme.spacing.lg,
+  },
+  errorIcon: {
+    paddingTop: 2,
   },
   errorContent: {
     flex: 1,
     gap: theme.spacing.xs,
   },
   errorTitle: {
-    color: theme.color.danger,
-    fontSize: theme.typography.caption,
-    fontWeight: '800',
+    color: theme.color.dangerText,
+    fontSize: 15,
+    fontWeight: '900',
   },
   error: {
-    color: theme.color.danger,
-    fontSize: theme.typography.caption,
+    color: theme.color.dangerText,
+    fontSize: 14,
+    lineHeight: 21,
   },
-  dividerRow: {
-    alignItems: 'center',
+  securityHint: {
+    alignItems: 'flex-start',
+    backgroundColor: theme.color.primarySoft,
+    borderRadius: theme.radius.md,
     flexDirection: 'row',
-    gap: theme.spacing.md,
-  },
-  divider: {
-    backgroundColor: theme.color.softBorder,
-    flex: 1,
-    height: 1,
-  },
-  dividerText: {
-    color: theme.color.mutedText,
-    fontSize: theme.typography.caption,
-  },
-  links: {
-    alignItems: 'center',
     gap: theme.spacing.sm,
+    padding: theme.spacing.md,
   },
-  link: {
-    color: theme.color.text,
-    fontSize: theme.typography.caption,
-    fontWeight: '700',
+  securityText: {
+    color: theme.color.mutedText,
+    flex: 1,
+    fontSize: 12,
+    lineHeight: 18,
   },
   legalFooter: {
     alignItems: 'center',
-    backgroundColor: theme.color.surface,
+    backgroundColor: theme.color.surfaceMuted,
+    borderTopColor: theme.color.softBorder,
+    borderTopWidth: 1,
     paddingHorizontal: theme.spacing.lg,
     paddingVertical: theme.spacing.lg,
   },

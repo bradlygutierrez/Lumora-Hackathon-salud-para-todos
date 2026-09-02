@@ -1,6 +1,7 @@
 import { apiClient } from '@/src/shared/api/client';
 import {
   changeStaffPassword,
+  confirmMfaSetup,
   createMfaChallenge,
   forgotPassword,
   listStaffSessions,
@@ -11,6 +12,7 @@ import {
   recoverMfaChallenge,
   resendEmailVerification,
   refreshStaffSession,
+  setupMfa,
   verifyEmail,
   verifyEmailCode,
   verifyMfaChallenge,
@@ -107,6 +109,37 @@ describe('auth API', () => {
     expect(mockedApiClient.post).toHaveBeenCalledWith('/auth/verify-email', {
       token: 'a'.repeat(32),
     });
+  });
+
+  it('calls MFA setup and confirmation with the B08 backend schemas', async () => {
+    mockedApiClient.post
+      .mockResolvedValueOnce({
+        data: {
+          method_id: 44,
+          secret: 'TOTP-SECRET',
+          provisioning_uri: 'otpauth://totp/Lumora:test',
+        },
+      })
+      .mockResolvedValueOnce({
+        data: {
+          method_id: 44,
+          recovery_codes: ['recovery-one', 'recovery-two'],
+        },
+      });
+
+    await setupMfa({ metodo_id: 1 });
+    await confirmMfaSetup({ method_id: 44, code: '123456' });
+
+    expect(mockedApiClient.post).toHaveBeenCalledWith('/auth/mfa/setup', {
+      metodo_id: 1,
+    });
+    expect(mockedApiClient.post).toHaveBeenCalledWith(
+      '/auth/mfa/setup/confirm',
+      {
+        method_id: 44,
+        code: '123456',
+      },
+    );
   });
 
   it('calls MFA challenge, verify and recovery endpoints', async () => {

@@ -24,8 +24,25 @@ export default function StaffLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: theme.color.primary,
+        tabBarActiveBackgroundColor: theme.color.primarySoft,
+        tabBarActiveTintColor: theme.color.primaryPressed,
+        tabBarHideOnKeyboard: true,
         tabBarInactiveTintColor: theme.color.mutedText,
+        tabBarItemStyle: {
+          borderRadius: 16,
+          marginHorizontal: 2,
+          marginVertical: 7,
+        },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: '800',
+        },
+        tabBarStyle: {
+          backgroundColor: theme.color.surfaceMuted,
+          borderTopColor: theme.color.softBorder,
+          height: 72,
+          paddingHorizontal: 8,
+        },
       }}
     >
       <Tabs.Screen
@@ -33,7 +50,7 @@ export default function StaffLayout() {
         options={{
           title: 'Panel',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons color={color} name="pulse-outline" size={size} />
+            <Ionicons color={color} name="grid-outline" size={size} />
           ),
         }}
       />
@@ -70,7 +87,11 @@ export default function StaffLayout() {
           href: null,
           title: 'Seguridad',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons color={color} name="shield-checkmark-outline" size={size} />
+            <Ionicons
+              color={color}
+              name="shield-checkmark-outline"
+              size={size}
+            />
           ),
         }}
       />

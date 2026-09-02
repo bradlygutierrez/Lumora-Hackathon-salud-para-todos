@@ -10,7 +10,9 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
-    "test": "jest"
+    "test": "jest",
+    "e2e:web:smoke": "node ./e2e/run-web-e2e.mjs smoke",
+    "e2e:web:clinical": "node ./e2e/run-web-e2e.mjs clinical"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
