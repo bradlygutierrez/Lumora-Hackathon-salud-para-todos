@@ -126,6 +126,12 @@ class RelacionPaciente(Base):
     tipo_relacion_id: Mapped[int] = mapped_column(ForeignKey("tipos_relacion.id"), nullable=False)
     
     recibir_notificaciones: Mapped[bool] = mapped_column(Boolean, default=True)
+    # A15/B15 -- permiso independiente de nivel_acceso: si esta en false,
+    # el cuidador no puede ver ni descargar el expediente medico
+    # documental, sin importar si su nivel_acceso es read o write.
+    puede_ver_expediente: Mapped[bool] = mapped_column(
+        Boolean, default=True, server_default="true"
+    )
     activo: Mapped[bool] = mapped_column(Boolean, default=True)
     estado: Mapped[str] = mapped_column(String(20), default="active", server_default="active", nullable=False)
     nivel_acceso: Mapped[str] = mapped_column(String(20), default="read", server_default="read", nullable=False)

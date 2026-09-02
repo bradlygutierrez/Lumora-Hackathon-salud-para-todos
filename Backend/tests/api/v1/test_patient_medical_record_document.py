@@ -86,6 +86,9 @@ async def _seed(session_factory) -> dict:
         revoked_caregiver_user = _user(
             "Ex", "Cuidador A15", "a15-revoked-caregiver", [caregiver_role]
         )
+        gated_caregiver_user = _user(
+            "Sin", "Permiso A15", "a15-gated-caregiver", [caregiver_role]
+        )
         outsider_user = _user("Otro", "Paciente A15", "a15-outsider", [patient_role])
         staff_user = _user("Doctora", "Staff A15", "a15-staff", [staff_role])
         empty_patient_user = _user("Vacio", "Paciente A15", "a15-empty", [patient_role])
@@ -95,6 +98,7 @@ async def _seed(session_factory) -> dict:
                 patient_user,
                 caregiver_user,
                 revoked_caregiver_user,
+                gated_caregiver_user,
                 outsider_user,
                 staff_user,
                 empty_patient_user,
@@ -132,6 +136,18 @@ async def _seed(session_factory) -> dict:
                     estado="revoked",
                     activo=False,
                     nivel_acceso="read",
+                    creado_en=now,
+                ),
+                # A15 -- relacion activa (incluso con nivel_acceso="write")
+                # pero SIN permiso para ver/descargar el expediente.
+                RelacionPaciente(
+                    paciente_id=patient.id,
+                    usuario_relacionado_id=gated_caregiver_user.id,
+                    tipo_relacion_id=tipo_relacion.id,
+                    estado="active",
+                    activo=True,
+                    nivel_acceso="write",
+                    puede_ver_expediente=False,
                     creado_en=now,
                 ),
             ]
@@ -206,6 +222,7 @@ async def _seed(session_factory) -> dict:
             "patient_user_id": patient_user.id,
             "caregiver_user_id": caregiver_user.id,
             "revoked_caregiver_user_id": revoked_caregiver_user.id,
+            "gated_caregiver_user_id": gated_caregiver_user.id,
             "outsider_user_id": outsider_user.id,
             "outsider_patient_id": outsider_patient.id,
             "staff_user_id": staff_user.id,
@@ -256,6 +273,27 @@ async def test_revoked_caregiver_is_denied(client, session_factory):
         headers=_auth(seed["revoked_caregiver_user_id"]),
     )
     assert response.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_caregiver_without_puede_ver_expediente_is_denied_json_and_pdf(
+    client, session_factory
+):
+    """A15 -- una relacion activa de escritura NO alcanza si el paciente
+    apago puede_ver_expediente: el 403 debe aplicar tanto al JSON como al
+    PDF, sin importar nivel_acceso."""
+    seed = await _seed(session_factory)
+    headers = _auth(seed["gated_caregiver_user_id"])
+
+    json_response = await client.get(
+        f"/api/v1/patients/{seed['patient_id']}/medical-record", headers=headers
+    )
+    assert json_response.status_code == 403
+
+    pdf_response = await client.get(
+        f"/api/v1/patients/{seed['patient_id']}/medical-record/pdf", headers=headers
+    )
+    assert pdf_response.status_code == 403
 
 
 @pytest.mark.asyncio
