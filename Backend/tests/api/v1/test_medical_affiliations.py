@@ -384,3 +384,40 @@ async def test_suspended_clinical_user_can_read_clinical_search(client, session_
     context = await _medical(session_factory, "read-suspended", affiliation_status="suspended")
     response = await client.get("/api/v1/clinica/busqueda", headers=_headers(context["user"]))
     assert response.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_patch_affiliation_changes_seats_and_returns_usage(client, session_factory):
+    admin_id = await _admin(session_factory, "patch-seats-admin")
+    affiliation = await _create_affiliation(client, admin_id, seats=2)
+    response = await client.patch(f"/api/v1/medical-affiliations/{affiliation['id']}", headers=_headers(admin_id), json={"cupos_comprados": 5})
+    assert response.status_code == 200
+    assert response.json()["cupos_comprados"] == 5
+    assert response.json()["cupos_usados"] == 0
+    assert response.json()["cupos_disponibles"] == 5
+    async with session_factory() as session:
+        row = await session.get(AfiliacionMedica, affiliation["id"])
+        assert row.cupos_comprados == 5
+
+@pytest.mark.asyncio
+async def test_patch_affiliation_reduction_respects_active_memberships(client, session_factory):
+    admin_id = await _admin(session_factory, "reduce-seats-admin")
+    affiliation = await _create_affiliation(client, admin_id, seats=5)
+    await _ensure_standard_medical_role(session_factory)
+    for suffix in ("a", "b", "c"):
+        response = await client.post(f"/api/v1/medical-affiliations/{affiliation['id']}/professionals", headers=_headers(admin_id), json={"first_names":"Doc","last_names":suffix,"email":f"reduce-{suffix}@example.com","especialidad":"Medicina general","numero_licencia":f"REDUCE-{suffix}"})
+        assert response.status_code == 201
+    blocked = await client.patch(f"/api/v1/medical-affiliations/{affiliation['id']}", headers=_headers(admin_id), json={"cupos_comprados":2})
+    assert blocked.status_code == 409
+    ok = await client.patch(f"/api/v1/medical-affiliations/{affiliation['id']}", headers=_headers(admin_id), json={"cupos_comprados":3})
+    assert ok.status_code == 200
+
+@pytest.mark.asyncio
+async def test_affiliation_seat_validation_and_missing_affiliation_professionals(client, session_factory):
+    admin_id = await _admin(session_factory, "validation-seats-admin")
+    independent = await _create_affiliation(client, admin_id, tipo="independiente")
+    response = await client.patch(f"/api/v1/medical-affiliations/{independent['id']}", headers=_headers(admin_id), json={"cupos_comprados":2})
+    assert response.status_code == 422
+    assert (await client.post("/api/v1/medical-affiliations", headers=_headers(admin_id), json={"tipo":"institucion","nombre":"Missing seats","correo_contacto":"missing@example.com","estado":"active","pago_estado":"paid"})).status_code == 422
+    assert (await client.post("/api/v1/medical-affiliations", headers=_headers(admin_id), json={"tipo":"independiente","nombre":"Missing independent seats","correo_contacto":"missing-independent@example.com","estado":"active","pago_estado":"paid"})).status_code == 422
+    assert (await client.get("/api/v1/medical-affiliations/999999/professionals", headers=_headers(admin_id))).status_code == 404

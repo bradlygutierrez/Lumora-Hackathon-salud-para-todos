@@ -1,6 +1,6 @@
-"""Reglas de autorizaciÃ³n compartidas entre recetas y horarios/dosis.
+"""Reglas de autorización compartidas entre recetas y horarios/dosis.
 
-Se separan aquÃ­ (en vez de duplicarlas en cada servicio) porque tanto
+Se separan aquí (en vez de duplicarlas en cada servicio) porque tanto
 `PrescriptionService` como `ScheduleService` necesitan la misma pregunta:
 "¿puede este usuario ver/editar los datos de este paciente?".
 """
@@ -29,7 +29,7 @@ def is_clinical_staff(user: Usuario) -> bool:
 
     Reutiliza el mismo permiso que ya protege /expedientes
     (Depends(require_permission("clinica:manage")) en medical_records.py)
-    en vez de inventar una segunda nociÃ³n de "quiÃ©n es staff".
+    en vez de inventar una segunda noción de "quién es staff".
     """
     return has_clinical_permission(user)
 
@@ -46,13 +46,13 @@ async def ensure_can_access_patient_data(
     paciente_id: int | None,
     action: str = "read",
 ) -> None:
-    """Autoriza personal clÃ­nico, paciente propio o cuidador con relaciÃ³n activa.
+    """Autoriza personal clínico, paciente propio o cuidador con relación activa.
 
-    `paciente_id` en None significa que el recurso todavÃ­a no se validÃ³
+    `paciente_id` en None significa que el recurso todavía no se validó
     como existente; se deja pasar para que el llamador lance su propio
-    ResourceNotFoundError (404) en vez de un 403 engaÃ±oso antes de saber
+    ResourceNotFoundError (404) en vez de un 403 engañoso antes de saber
     si el recurso siquiera existe. Las mutaciones de cuidador requieren
-    action="write" y una relaciÃ³n con nivel de acceso write.
+    action="write" y una relación con nivel de acceso write.
     """
     if paciente_id is None:
         return

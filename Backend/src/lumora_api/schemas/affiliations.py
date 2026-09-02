@@ -10,7 +10,6 @@ class AffiliationCreate(BaseModel):
     estado: str = Field(default="pending", pattern="^(pending|active|suspended|cancelled)$")
     pago_estado: str = Field(default="pending", pattern="^(pending|paid)$")
     pago_referencia: str | None = Field(default=None, max_length=255)
-    cupos_comprados: int | None = Field(default=None, ge=1)
     inicia_en: datetime | None = None
     expira_en: datetime | None = None
 
@@ -27,6 +26,7 @@ class AffiliationUpdate(BaseModel):
     estado: str | None = Field(default=None, pattern="^(pending|active|suspended|cancelled)$")
     pago_estado: str | None = Field(default=None, pattern="^(pending|paid)$")
     pago_referencia: str | None = Field(default=None, max_length=255)
+    cupos_comprados: int | None = Field(default=None, ge=1)
     inicia_en: datetime | None = None
     expira_en: datetime | None = None
 

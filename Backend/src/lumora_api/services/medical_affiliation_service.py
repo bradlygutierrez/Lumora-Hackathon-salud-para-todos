@@ -142,6 +142,7 @@ class MedicalAffiliationService:
         self.session.add(EventoAuditoria(accion=action, entidad=entity, entidad_id=resource_id, usuario_id=actor_id))
 
     async def professionals(self, affiliation_id: int):
+        await self.get(affiliation_id)
         rows = await self.session.scalars(select(AfiliacionProfesional).options(selectinload(AfiliacionProfesional.profesional).selectinload(ProfesionalSalud.persona).selectinload(Persona.usuario)).where(AfiliacionProfesional.afiliacion_id == affiliation_id))
         result=[]
         for membership in rows:

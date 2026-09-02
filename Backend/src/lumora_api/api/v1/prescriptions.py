@@ -18,7 +18,7 @@ from lumora_api.services.prescriptions import PrescriptionService
 
 router = APIRouter(prefix="/prescriptions", tags=["Recetas y medicamentos"])
 
-# Solo personal clÃ­nico (mismo permiso que ya protege /expedientes) puede
+# Solo personal clínico (mismo permiso que ya protege /expedientes) puede
 # crear o editar medicamentos, recetas y sus detalles. Los pacientes solo
 # leen -- y solo las suyas, gracias a PrescriptionService.
 RequireClinicalStaff = Depends(require_active_clinician)

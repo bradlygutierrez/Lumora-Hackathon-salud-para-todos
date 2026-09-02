@@ -25,7 +25,7 @@ async def get_current_user(
     if user is None:
         raise AuthenticationError("Usuario no autenticado")
     if session_id is not None and await repository.active_session(session_id, user_id) is None:
-        raise AuthenticationError("SesiÃ³n revocada o expirada")
+        raise AuthenticationError("Sesión revocada o expirada")
     return user
 
 
@@ -35,7 +35,7 @@ CurrentUser = Annotated[Usuario, Depends(get_current_user)]
 async def get_current_session_id(token: Annotated[str, Depends(oauth2_scheme)]) -> int:
     _, session_id = decode_access_claims(token)
     if session_id is None:
-        raise AuthenticationError("El token no pertenece a una sesiÃ³n")
+        raise AuthenticationError("El token no pertenece a una sesión")
     return session_id
 
 
@@ -50,7 +50,7 @@ def require_permission(permission_name: str):
             for permission in role.permisos
         }
         if permission_name not in permissions:
-            raise PermissionDeniedError("No tiene permiso para realizar esta acciÃ³n")
+            raise PermissionDeniedError("No tiene permiso para realizar esta acción")
         return current_user
 
     return dependency

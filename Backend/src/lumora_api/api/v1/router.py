@@ -87,7 +87,7 @@ api_router.include_router(conditions.router)
 api_router.include_router(clinical_integration.router)
 api_router.include_router(patient_documents.router)
 
-# CatÃ¡logos clÃ­nicos
+# Catálogos clínicos
 api_router.include_router(cargos_salud.router)
 api_router.include_router(especialidades.router)
 api_router.include_router(estados_expediente.router)
@@ -96,7 +96,7 @@ api_router.include_router(tipos_antecedente.router)
 api_router.include_router(tipos_diagnostico.router)
 api_router.include_router(motivos_consulta.router)
 
-# CatÃ¡logos
+# Catálogos
 api_router.include_router(estados_dosis.router)
 api_router.include_router(estados_receta.router)
 api_router.include_router(vias_administracion.router)

@@ -1,4 +1,4 @@
-﻿"""B17 medical affiliations and safe professional provisioning."""
+"""B17 medical affiliations and safe professional provisioning."""
 from alembic import op
 import sqlalchemy as sa
 
@@ -19,8 +19,8 @@ def upgrade():
     op.create_table("afiliaciones_profesionales", sa.Column("id", sa.Integer(), primary_key=True), sa.Column("afiliacion_id", sa.Integer(), sa.ForeignKey("afiliaciones_medicas.id", ondelete="CASCADE"), nullable=False), sa.Column("profesional_id", sa.Integer(), sa.ForeignKey("profesionales_salud.id"), nullable=False), sa.Column("activo", sa.Boolean(), server_default=sa.text("true"), nullable=False), sa.Column("joined_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False))
     op.create_index("ix_afiliaciones_profesionales_afiliacion_id", "afiliaciones_profesionales", ["afiliacion_id"])
     op.create_index("ix_afiliaciones_profesionales_profesional_id", "afiliaciones_profesionales", ["profesional_id"])
-    op.execute(sa.text("INSERT INTO permisos (nombre, descripcion) SELECT 'afiliaciones:manage', 'Administrar afiliaciones mÃ©dicas' WHERE NOT EXISTS (SELECT 1 FROM permisos WHERE nombre = 'afiliaciones:manage')"))
-    op.execute(sa.text("INSERT INTO roles (nombre, descripcion) SELECT 'Profesional de Salud', 'Acceso clÃ­nico sujeto a afiliaciÃ³n vigente' WHERE NOT EXISTS (SELECT 1 FROM roles WHERE nombre = 'Profesional de Salud')"))
+    op.execute(sa.text("INSERT INTO permisos (nombre, descripcion) SELECT 'afiliaciones:manage', 'Administrar afiliaciones médicas' WHERE NOT EXISTS (SELECT 1 FROM permisos WHERE nombre = 'afiliaciones:manage')"))
+    op.execute(sa.text("INSERT INTO roles (nombre, descripcion) SELECT 'Profesional de Salud', 'Acceso clínico sujeto a afiliación vigente' WHERE NOT EXISTS (SELECT 1 FROM roles WHERE nombre = 'Profesional de Salud')"))
     op.execute(sa.text("INSERT INTO roles_permisos (rol_id, permiso_id) SELECT r.id, p.id FROM roles r CROSS JOIN permisos p WHERE r.nombre = 'Profesional de Salud' AND p.nombre = 'clinica:manage' AND NOT EXISTS (SELECT 1 FROM roles_permisos rp WHERE rp.rol_id=r.id AND rp.permiso_id=p.id)"))
     op.execute(sa.text("INSERT INTO roles_permisos (rol_id, permiso_id) SELECT r.id, p.id FROM roles r CROSS JOIN permisos p WHERE r.nombre = 'Administrador' AND p.nombre = 'afiliaciones:manage' AND NOT EXISTS (SELECT 1 FROM roles_permisos rp WHERE rp.rol_id=r.id AND rp.permiso_id=p.id)"))
 

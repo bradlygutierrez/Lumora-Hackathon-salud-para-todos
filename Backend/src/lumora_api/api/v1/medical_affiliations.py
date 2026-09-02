@@ -1,4 +1,4 @@
-﻿from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status
 from lumora_api.api.dependencies import CurrentUser, SessionDep, require_permission
 from lumora_api.models import ProfesionalSalud
 from lumora_api.schemas.affiliations import AffiliationCreate, AffiliationRead, AffiliationUpdate, LicenseVerificationUpdate, MembershipRead, ProfessionalMembershipUpdate, ProfessionalProvisionCreate, ProvisionedProfessionalRead, AffiliationProfessionalRead

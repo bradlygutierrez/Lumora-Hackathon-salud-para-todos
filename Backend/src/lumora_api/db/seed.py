@@ -36,31 +36,31 @@ CATALOGS = {
         ("usuarios:leer", "Consultar usuarios"),
         ("usuarios:editar", "Modificar usuarios"),
         ("rbac:manage", "Administrar roles y permisos"),
-        ("clinica:manage", "Gestionar expedientes clÃ­nicos"),
+        ("clinica:manage", "Gestionar expedientes clínicos"),
         ("afiliaciones:manage", "Administrar afiliaciones médicas"),
     ],
     EstadoCita: ["Pendiente", "Confirmada", "Cancelada", "Completada"],
     TipoCita: ["Presencial", "Virtual"],
     Sexo: ["Femenino", "Masculino", "Otro", "Prefiero no indicar"],
     TipoSangre: ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"],
-    # CatÃ¡logos clÃ­nicos
-    CargoSalud: ["MÃ©dico general", "Especialista", "EnfermerÃ­a", "FarmacÃ©utico"],
-    Especialidad: ["Medicina general", "CardiologÃ­a", "PediatrÃ­a", "GinecologÃ­a"],
+    # Catálogos clínicos
+    CargoSalud: ["Médico general", "Especialista", "Enfermería", "Farmacéutico"],
+    Especialidad: ["Medicina general", "Cardiología", "Pediatría", "Ginecología"],
     EstadoExpediente: ["Activo", "Inactivo", "Archivado"],
-    EstadoCondicion: ["Activa", "Resuelta", "En observaciÃ³n", "CrÃ³nica"],
-    TipoAntecedente: ["Personal", "Familiar", "QuirÃºrgico", "AlergolÃ³gico"],
+    EstadoCondicion: ["Activa", "Resuelta", "En observación", "Crónica"],
+    TipoAntecedente: ["Personal", "Familiar", "Quirúrgico", "Alergológico"],
     TipoDiagnostico: ["Presuntivo", "Confirmado", "Diferencial"],
     MotivoConsulta: ["Control", "Dolor", "Seguimiento", "Emergencia"],
-    # Nuevos CatÃ¡logos A01
+    # Nuevos Catálogos A01
     EstadoDosis: ["Tomada", "Omitida", "Pospuesta", "Pendiente"],
     EstadoReceta: ["Activa", "Completada", "Suspendida", "Vencida"],
-    ViaAdministracion: ["Oral", "Intravenosa", "Intramuscular", "TÃ³pica", "SubcutÃ¡nea", "Inhalatoria", "OftÃ¡lmica", "OtorrinolaringolÃ³gica"],
-    UnidadMedida: ["mg", "g", "ml", "UI", "mcg", "Tableta", "CÃ¡psula", "Gota", "mmHg", "mg/dL", "kg", "%", "Â°C"],
+    ViaAdministracion: ["Oral", "Intravenosa", "Intramuscular", "Tópica", "Subcutánea", "Inhalatoria", "Oftálmica", "Otorrinolaringológica"],
+    UnidadMedida: ["mg", "g", "ml", "UI", "mcg", "Tableta", "Cápsula", "Gota", "mmHg", "mg/dL", "kg", "%", "°C"],
     OrigenRegistro: ["Manual", "Dispositivo", "Profesional"],
-    NivelSeveridad: ["Baja", "Media", "Alta", "CrÃ­tica"],
-    TipoAlerta: ["InteracciÃ³n", "Dosis Olvidada", "Reabastecimiento", "Efecto Secundario", "MediciÃ³n Fuera de Rango"],
-    TipoRecordatorio: ["MedicaciÃ³n", "Cita", "MediciÃ³n", "Seguimiento"],
-    TipoRelacion: ["Padre/Madre", "Hijo/a", "CÃ³nyuge", "Tutor Legal", "Otro"],
+    NivelSeveridad: ["Baja", "Media", "Alta", "Crítica"],
+    TipoAlerta: ["Interacción", "Dosis Olvidada", "Reabastecimiento", "Efecto Secundario", "Medición Fuera de Rango"],
+    TipoRecordatorio: ["Medicación", "Cita", "Medición", "Seguimiento"],
+    TipoRelacion: ["Padre/Madre", "Hijo/a", "Cónyuge", "Tutor Legal", "Otro"],
 }
 
 
@@ -81,9 +81,9 @@ ROLES = {
 HEALTH_INDICATORS = [
     (
         "presion_arterial_sistolica",
-        "PresiÃ³n arterial (sistÃ³lica)",
+        "Presión arterial (sistólica)",
         "mmHg",
-        "PresiÃ³n arterial sistÃ³lica en reposo.",
+        "Presión arterial sistólica en reposo.",
         ("Media", 90.0, 120.0, "Fuera de rango"),
     ),
     (
@@ -102,15 +102,15 @@ HEALTH_INDICATORS = [
     ),
     (
         "saturacion_oxigeno",
-        "SaturaciÃ³n de oxÃ­geno",
+        "Saturación de oxígeno",
         "%",
-        "SaturaciÃ³n de oxÃ­geno en sangre (SpO2).",
+        "Saturación de oxígeno en sangre (SpO2).",
         ("Alta", 95.0, 100.0, "Fuera de rango"),
     ),
     (
         "temperatura_corporal",
         "Temperatura corporal",
-        "Â°C",
+        "°C",
         "Temperatura corporal.",
         ("Media", 36.1, 37.2, "Fuera de rango"),
     ),
@@ -185,9 +185,9 @@ async def seed() -> None:
         await session.flush()
         await seed_health_indicators(session)
         professionals = list(await session.scalars(select(ProfesionalSalud).where(ProfesionalSalud.deleted_at.is_(None))))
-        location = await session.scalar(select(UbicacionAtencion).where(UbicacionAtencion.nombre == "ClÃ­nica Lumora"))
+        location = await session.scalar(select(UbicacionAtencion).where(UbicacionAtencion.nombre == "Clínica Lumora"))
         if professionals and location is None:
-            location = UbicacionAtencion(nombre="ClÃ­nica Lumora", direccion="Managua, Nicaragua", consultorio="Consultorio 1")
+            location = UbicacionAtencion(nombre="Clínica Lumora", direccion="Managua, Nicaragua", consultorio="Consultorio 1")
             session.add(location)
             await session.flush()
         if professionals:
