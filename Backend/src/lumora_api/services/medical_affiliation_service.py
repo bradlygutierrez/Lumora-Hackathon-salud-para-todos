@@ -76,23 +76,36 @@ class MedicalAffiliationService:
         active_count = await self.session.scalar(select(func.count(AfiliacionProfesional.id)).where(AfiliacionProfesional.afiliacion_id == affiliation_id, AfiliacionProfesional.activo.is_(True)))
         if active_count >= affiliation.cupos_comprados: raise ResourceConflictError("La afiliación no tiene cupos disponibles")
         email = str(data.email).lower()
-        if await self.session.scalar(select(Usuario.id).where(Usuario.email == email)):
-            raise ResourceConflictError("El correo ya está registrado")
         if await self.session.scalar(select(ProfesionalSalud.id).where(ProfesionalSalud.numero_licencia == data.numero_licencia)):
             raise ResourceConflictError("El número de licencia ya está registrado")
         role = await self.session.scalar(select(Rol).where(Rol.nombre == "Profesional de Salud"))
         if role is None: raise ResourceNotFoundError("El rol Profesional de Salud no está configurado")
-        username = await self._username(data.username or email.split("@", 1)[0])
-        person = Persona(nombres=data.first_names, apellidos=data.last_names, email=email, telefono=data.phone, fecha_nacimiento=data.birth_date, sexo_id=data.sex_id)
-        password = secrets.token_urlsafe(32)
-        user = Usuario(persona=person, email=email, username=username, password_hash=hash_password(password), email_verificado=False, roles=[role])
+        user = await self.session.scalar(
+            select(Usuario)
+            .options(selectinload(Usuario.persona).selectinload(Persona.profesional), selectinload(Usuario.roles))
+            .where(Usuario.email == email, Usuario.deleted_at.is_(None), Usuario.activo.is_(True))
+        )
+        account_created = user is None
+        if user is not None:
+            person = user.persona
+            if person.profesional is not None:
+                raise ResourceConflictError("La persona ya tiene un perfil profesional")
+            if role not in user.roles:
+                user.roles.append(role)
+        else:
+            username = await self._username(data.username or email.split("@", 1)[0])
+            person = Persona(nombres=data.first_names, apellidos=data.last_names, email=email, telefono=data.phone, fecha_nacimiento=data.birth_date, sexo_id=data.sex_id)
+            password = secrets.token_urlsafe(32)
+            user = Usuario(persona=person, email=email, username=username, password_hash=hash_password(password), email_verificado=False, roles=[role])
         professional = ProfesionalSalud(persona=person, especialidad=data.especialidad, numero_licencia=data.numero_licencia)
         membership = AfiliacionProfesional(afiliacion=affiliation, profesional=professional, activo=True)
-        self.session.add_all([person, user, professional, membership])
+        self.session.add_all([professional, membership])
+        raw_token = None
         try:
             await self.session.flush()
-            raw_token = generate_token()
-            self.session.add(TokenRecuperacion(usuario_id=user.id, token_hash=hash_token(raw_token), expires_at=datetime.now(timezone.utc) + timedelta(minutes=get_settings().recovery_token_minutes)))
+            if account_created:
+                raw_token = generate_token()
+                self.session.add(TokenRecuperacion(usuario_id=user.id, token_hash=hash_token(raw_token), expires_at=datetime.now(timezone.utc) + timedelta(minutes=get_settings().recovery_token_minutes)))
             self._audit("PROVISION_PROFESSIONAL", professional.id, actor_id)
             await self.session.commit()
         except IntegrityError as error:
@@ -101,14 +114,15 @@ class MedicalAffiliationService:
         except Exception:
             await self.session.rollback()
             raise
-        try:
-            (self.email_service or EmailService()).send_password_reset(email, raw_token)
-        except RuntimeError:
-            logger.exception("Professional activation delivery failed for user_id=%s", user.id)
-            activation_sent = False
-        else:
-            activation_sent = True
-        return {"user_id": user.id, "professional_id": professional.id, "membership_id": membership.id, "activation_sent": activation_sent}
+        activation_sent = False
+        if account_created:
+            try:
+                (self.email_service or EmailService()).send_password_reset(email, raw_token)
+            except RuntimeError:
+                logger.exception("Professional activation delivery failed for user_id=%s", user.id)
+            else:
+                activation_sent = True
+        return {"user_id": user.id, "professional_id": professional.id, "membership_id": membership.id, "activation_sent": activation_sent, "account_created": account_created}
 
     async def update_membership(self, affiliation_id: int, professional_id: int, active: bool, actor_id: int):
         item = await self.session.scalar(select(AfiliacionProfesional).where(AfiliacionProfesional.afiliacion_id == affiliation_id, AfiliacionProfesional.profesional_id == professional_id))

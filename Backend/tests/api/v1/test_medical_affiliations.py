@@ -421,3 +421,86 @@ async def test_affiliation_seat_validation_and_missing_affiliation_professionals
     assert (await client.post("/api/v1/medical-affiliations", headers=_headers(admin_id), json={"tipo":"institucion","nombre":"Missing seats","correo_contacto":"missing@example.com","estado":"active","pago_estado":"paid"})).status_code == 422
     assert (await client.post("/api/v1/medical-affiliations", headers=_headers(admin_id), json={"tipo":"independiente","nombre":"Missing independent seats","correo_contacto":"missing-independent@example.com","estado":"active","pago_estado":"paid"})).status_code == 422
     assert (await client.get("/api/v1/medical-affiliations/999999/professionals", headers=_headers(admin_id))).status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_provisioning_reuses_existing_patient_account_without_activation(client, session_factory):
+    admin_id = await _admin(session_factory, "existing-patient-admin")
+    affiliation = await _create_affiliation(client, admin_id)
+    await _ensure_standard_medical_role(session_factory)
+    async with session_factory() as session:
+        patient_role = Rol(nombre="Paciente")
+        person = Persona(nombres="Paciente Original", apellidos="Conservado", telefono="555-0000")
+        user = Usuario(persona=person, email="existing-patient@example.com", username="existing-patient", password_hash=hash_password("safe-password"), roles=[patient_role])
+        patient = Paciente(persona=person)
+        session.add_all([user, patient])
+        await session.commit()
+        user_id, person_id, password_hash = user.id, person.id, user.password_hash
+        users_before = await session.scalar(select(func.count(Usuario.id)))
+        people_before = await session.scalar(select(func.count(Persona.id)))
+        tokens_before = await session.scalar(select(func.count(TokenRecuperacion.id)))
+    response = await client.post(
+        f"/api/v1/medical-affiliations/{affiliation['id']}/professionals",
+        headers=_headers(admin_id),
+        json={"first_names": "No", "last_names": "Sobrescribir", "email": "existing-patient@example.com", "phone": "9999", "especialidad": "Cardiolog?a", "numero_licencia": "EXISTING-PATIENT-1"},
+    )
+    assert response.status_code == 201, response.text
+    body = response.json()
+    assert body["user_id"] == user_id
+    assert body["account_created"] is False
+    assert body["activation_sent"] is False
+    async with session_factory() as session:
+        user = await session.get(Usuario, user_id)
+        person = await session.get(Persona, person_id)
+        assert user.persona_id == person_id
+        assert user.password_hash == password_hash
+        assert person.nombres == "Paciente Original"
+        assert person.apellidos == "Conservado"
+        assert {role.nombre for role in user.roles} == {"Paciente", "Profesional de Salud"}
+        assert await session.scalar(select(func.count(Usuario.id))) == users_before
+        assert await session.scalar(select(func.count(Persona.id))) == people_before
+        assert await session.scalar(select(func.count(TokenRecuperacion.id))) == tokens_before
+    assert (await client.post("/api/v1/auth/login", json={"login": "existing-patient", "password": "safe-password"})).status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_provisioning_rejects_person_with_existing_professional_without_side_effects(client, session_factory):
+    admin_id = await _admin(session_factory, "already-professional-admin")
+    affiliation = await _create_affiliation(client, admin_id)
+    context = await _medical(session_factory, "already-professional")
+    response = await client.post(
+        f"/api/v1/medical-affiliations/{affiliation['id']}/professionals",
+        headers=_headers(admin_id),
+        json={"first_names": "Duplicate", "last_names": "Professional", "email": "already-professional@example.com", "especialidad": "Cardio", "numero_licencia": "NEW-LICENSE"},
+    )
+    assert response.status_code == 409
+    async with session_factory() as session:
+        assert await session.scalar(select(AfiliacionProfesional).where(AfiliacionProfesional.afiliacion_id == affiliation["id"])) is None
+        user = await session.get(Usuario, context["user"])
+        assert {role.nombre for role in user.roles} == {"Profesional de Salud"}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("existing_roles", [["Cuidador"], ["Paciente", "Cuidador"]])
+async def test_provisioning_preserves_existing_caregiver_and_multiple_roles(client, session_factory, existing_roles):
+    admin_id = await _admin(session_factory, "multi-role-admin-" + "-".join(existing_roles))
+    affiliation = await _create_affiliation(client, admin_id)
+    await _ensure_standard_medical_role(session_factory)
+    email = "multi-role-" + "-".join(existing_roles).lower() + "@example.com"
+    async with session_factory() as session:
+        roles = [Rol(nombre=name) for name in existing_roles]
+        user = Usuario(persona=Persona(nombres="Existing", apellidos="Account"), email=email, username="multi-" + existing_roles[0].lower(), password_hash=hash_password("safe-password"), roles=roles)
+        session.add(user)
+        await session.commit()
+        user_id = user.id
+    response = await client.post(
+        f"/api/v1/medical-affiliations/{affiliation['id']}/professionals",
+        headers=_headers(admin_id),
+        json={"first_names": "Ignored", "last_names": "Names", "email": email, "especialidad": "Medicina general", "numero_licencia": "MULTI-" + existing_roles[0].upper()},
+    )
+    assert response.status_code == 201, response.text
+    assert response.json()["user_id"] == user_id
+    assert response.json()["account_created"] is False
+    async with session_factory() as session:
+        user = await session.get(Usuario, user_id)
+        assert {role.nombre for role in user.roles} == set(existing_roles) | {"Profesional de Salud"}
