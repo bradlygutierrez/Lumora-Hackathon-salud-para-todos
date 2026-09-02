@@ -22,10 +22,12 @@ test('W01 convierte la web en portal interno y mantiene el backend como fuente d
   ])
 
   assert.match(index, /<html lang="es">/)
-  assert.match(index, /Lumora \| Afiliaciones/)
-  assert.match(index, /noindex,nofollow/)
+  assert.match(index, /Lumora \| Salud conectada/)
+  assert.match(index, /index,follow/)
   assert.match(main, /PortalApp/)
-  assert.doesNotMatch(main, /Hero|Experiences|AppShowcase|MedicalStaff|Contact/)
+  assert.match(main, /Hero|Experiences|AppShowcase|MedicalStaff|Contact/)
+  assert.match(main, /renderLanding/)
+  assert.match(main, /#\/afiliaciones/)
 
   assert.match(env, /^VITE_API_URL=/m)
   assert.match(client, /VITE_API_URL/)
@@ -38,6 +40,8 @@ test('W01 convierte la web en portal interno y mantiene el backend como fuente d
   assert.match(authApi, /'\/auth\/logout'/)
   assert.doesNotMatch(authApi + authViews, /\/auth\/register/)
   assert.match(app, /afiliaciones:manage/)
+  assert.match(await read('../src/components/Header.ts'), /Entrar al portal/)
+  assert.match(await read('../src/components/Hero.ts'), /Entrar al portal de afiliaciones/)
   assert.match(session, /sessionStorage/)
   assert.doesNotMatch(session, /localStorage/)
 
