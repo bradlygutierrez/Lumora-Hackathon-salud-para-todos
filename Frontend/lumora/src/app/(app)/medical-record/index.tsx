@@ -1,10 +1,6 @@
-import { useEffect, useState } from 'react';
-
-import * as Sharing from 'expo-sharing';
 import { Text, View } from 'react-native';
 
 import {
-  useDownloadMedicalRecordPdf,
   useShareMedicalRecordPdf,
 } from '@/features/medical-record/hooks/useMedicalRecordPdf';
 import { useMedicalRecordDocument } from '@/features/medical-record/hooks/useMedicalRecordDocument';
@@ -73,25 +69,7 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 export default function MedicalRecordRoute() {
   const { document, isLoading, isError, error, refetch } = useMedicalRecordDocument();
   const { showFeedback } = useFeedback();
-  const downloadPdf = useDownloadMedicalRecordPdf();
   const sharePdf = useShareMedicalRecordPdf();
-  const [canShare, setCanShare] = useState(false);
-
-  useEffect(() => {
-    let mounted = true;
-
-    Sharing.isAvailableAsync()
-      .then((available: boolean) => {
-        if (mounted) setCanShare(available);
-      })
-      .catch(() => {
-        if (mounted) setCanShare(false);
-      });
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
 
   if (isLoading) {
     return (
@@ -106,20 +84,7 @@ export default function MedicalRecordRoute() {
     return <FullScreenApiError error={error} onRetry={refetch} allowRetry />;
   }
 
-  const handleDownload = () => {
-    downloadPdf.mutate(document.paciente_id, {
-      onSuccess: () => showFeedback('Expediente descargado.', 'success'),
-      onError: (err) =>
-        showFeedback(
-          err instanceof MedicalRecordPdfUnavailableError
-            ? err.message
-            : 'No pudimos descargar el expediente. Intenta de nuevo.',
-          'error',
-        ),
-    });
-  };
-
-  const handleShare = () => {
+  const handleSharePdf = () => {
     sharePdf.mutate(document.paciente_id, {
       onError: (err) =>
         showFeedback(
@@ -150,19 +115,10 @@ export default function MedicalRecordRoute() {
 
         <View className="gap-3">
           <AppButton
-            title={downloadPdf.isPending ? 'Descargando…' : 'Descargar PDF'}
-            onPress={handleDownload}
-            loading={downloadPdf.isPending}
+            title={sharePdf.isPending ? 'Preparando PDF…' : 'Descargar / Ver PDF'}
+            onPress={handleSharePdf}
+            loading={sharePdf.isPending}
           />
-
-          {canShare ? (
-            <AppButton
-              title={sharePdf.isPending ? 'Abriendo…' : 'Compartir / Abrir PDF'}
-              variant="ghost"
-              onPress={handleShare}
-              loading={sharePdf.isPending}
-            />
-          ) : null}
         </View>
 
         <SectionCard title="Alergias">

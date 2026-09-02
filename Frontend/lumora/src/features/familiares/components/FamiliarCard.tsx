@@ -9,6 +9,7 @@ type FamiliarCardProps = {
   isUpdating: boolean;
   onToggleNotificaciones: (value: boolean) => void;
   onToggleNivelAcceso: (value: boolean) => void;
+  onTogglePuedeVerExpediente: (value: boolean) => void;
   onRevocar: () => void;
 };
 
@@ -24,6 +25,7 @@ export function FamiliarCard({
   isUpdating,
   onToggleNotificaciones,
   onToggleNivelAcceso,
+  onTogglePuedeVerExpediente,
   onRevocar,
 }: FamiliarCardProps) {
   const nombre = relacion.usuario_relacionado?.full_name ?? 'Familiar';
@@ -86,6 +88,19 @@ export function FamiliarCard({
           selected={accesoCompleto}
           disabled={isUpdating}
           onPress={() => onToggleNivelAcceso(true)}
+        />
+      </View>
+
+      <View className="flex-row items-center justify-between">
+        <View className="flex-row items-center gap-2">
+          <Ionicons name="document-text-outline" size={16} color="#505A61" />
+          <Text className="text-sm text-coal-900">Ver y descargar el historial</Text>
+        </View>
+        <Switch
+          value={relacion.puede_ver_expediente}
+          onValueChange={onTogglePuedeVerExpediente}
+          disabled={isUpdating}
+          trackColor={{ true: theme.colors.primary, false: '#D8DEE3' }}
         />
       </View>
     </View>
