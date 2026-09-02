@@ -53,6 +53,13 @@ export default function FamiliaresAutorizadosRoute() {
     );
   }
 
+  function handleTogglePuedeVerExpediente(relacionId: number, value: boolean) {
+    updatePermiso.mutate(
+      { relacionId, puedeVerExpediente: value },
+      { onError: handleUpdateError },
+    );
+  }
+
   function handleConfirmRevocar() {
     if (relacionARevocar === null) return;
     revocar.mutate(relacionARevocar.id, {
@@ -121,6 +128,9 @@ export default function FamiliaresAutorizadosRoute() {
               isUpdating={updatePermiso.isPending || revocar.isPending}
               onToggleNotificaciones={(value) => handleToggleNotificaciones(relacion.id, value)}
               onToggleNivelAcceso={(value) => handleToggleNivelAcceso(relacion.id, value)}
+              onTogglePuedeVerExpediente={(value) =>
+                handleTogglePuedeVerExpediente(relacion.id, value)
+              }
               onRevocar={() =>
                 setRelacionARevocar({
                   id: relacion.id,

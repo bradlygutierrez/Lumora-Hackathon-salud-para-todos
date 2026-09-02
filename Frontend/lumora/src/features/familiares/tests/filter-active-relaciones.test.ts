@@ -8,6 +8,7 @@ function relacion(overrides: Partial<RelacionPacienteResponse>): RelacionPacient
     usuario_relacionado_id: 5,
     tipo_relacion_id: 1,
     recibir_notificaciones: true,
+    puede_ver_expediente: true,
     activo: true,
     estado: 'active',
     nivel_acceso: 'read',
