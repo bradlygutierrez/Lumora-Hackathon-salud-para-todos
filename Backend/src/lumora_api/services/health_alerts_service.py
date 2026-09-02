@@ -107,13 +107,22 @@ class HealthAlertsService:
             .join(EstadoDosis, DosisAdministrada.estado_dosis_id == EstadoDosis.id)
             .where(
                 DosisAdministrada.horario_id.in_(horario_ids),
-                DosisAdministrada.fecha_programada >= ventana_inicio,
+                DosisAdministrada.fecha_programada >= ventana_inicio - timedelta(days=1),
+                DosisAdministrada.fecha_programada <= now + timedelta(days=2),
                 EstadoDosis.nombre == "Tomada",
             )
         )
         registradas = (await db.execute(dosis_query)).scalars().all()
+
         registradas_por_dia = {
             (dosis.horario_id, dosis.fecha_programada.date()) for dosis in registradas
+        }
+        # La fecha puede desplazarse al cruzar medianoche por la zona horaria
+        # del dispositivo; la hora del horario sigue siendo la identidad de
+        # la ocurrencia dentro de esta ventana acotada.
+        registradas_por_hora = {
+            (dosis.horario_id, dosis.fecha_programada.time().replace(microsecond=0))
+            for dosis in registradas
         }
 
         # horario.hora es solo una hora de reloj (sin fecha propia), asi
@@ -143,7 +152,10 @@ class HealthAlertsService:
             # UTC). Por eso el match contra `registradas_por_dia` se hace
             # contra el dia calculado Y sus vecinos, no solo el exacto.
             dias_vecinos = (dia - timedelta(days=1), dia, dia + timedelta(days=1))
-            if any((horario.id, d) in registradas_por_dia for d in dias_vecinos):
+            hora_normalizada = horario.hora.replace(microsecond=0)
+            if any((horario.id, d) in registradas_por_dia for d in dias_vecinos) or (
+                horario.id, hora_normalizada
+            ) in registradas_por_hora:
                 continue
 
             alertas.append(
