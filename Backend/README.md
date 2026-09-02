@@ -67,10 +67,10 @@ Para una entrega, registre también la evidencia de `alembic upgrade head` y del
 
 ## CORS
 
-`CORS_ORIGINS` es una lista JSON de orígenes autorizados. Los valores predeterminados cubren React Native/Expo local:
+`CORS_ORIGINS` es una lista JSON de orígenes autorizados. Los valores predeterminados cubren React Native/Expo local y el E2E web (Expo web en `127.0.0.1:4173`):
 
 ```dotenv
-CORS_ORIGINS=["http://localhost:8081","http://localhost:19006"]
+CORS_ORIGINS=["http://localhost:8081","http://localhost:19006","http://127.0.0.1:4173"]
 ```
 
 Agregue los orígenes HTTPS de producción de forma explícita; no use `*` con credenciales.

@@ -30,7 +30,11 @@ class Settings(BaseSettings):
     mfa_challenge_minutes: int = 5
     mfa_max_attempts: int = 5
     mfa_recovery_codes: int = 10
-    cors_origins: list[str] = ["http://localhost:8081", "http://localhost:19006"]
+    cors_origins: list[str] = [
+        "http://localhost:8081",
+        "http://localhost:19006",
+        "http://127.0.0.1:4173",
+    ]
     profile_image_dir: str = "storage/profile-images"
     profile_image_base_url: str = "/media/profile-images"
 
