@@ -6,6 +6,8 @@ import { ForbiddenView, LoginView, MfaView } from './features/auth/views'
 import { isMfaResponse, type CurrentUser } from './features/auth/types'
 import { AffiliationsApi } from './features/affiliations/api'
 import { DashboardView, DetailView, ErrorView, LoadingView } from './features/affiliations/views'
+import { UsersApi } from './features/users/api'
+import { UsersView } from './features/users/views'
 import type {
   AffiliationCreatePayload,
   AffiliationStatus,
@@ -16,6 +18,7 @@ import type {
 } from './features/affiliations/types'
 
 const MANAGE_PERMISSION = 'afiliaciones:manage'
+const MANAGE_USERS_PERMISSION = 'rbac:manage'
 
 function stringValue(form: FormData, key: string): string {
   const value = form.get(key)
@@ -51,6 +54,7 @@ export class PortalApp {
   private readonly root: HTMLDivElement
   private readonly authApi: AuthApi
   private readonly affiliationsApi: AffiliationsApi
+  private readonly usersApi: UsersApi
   private user: CurrentUser | null = null
   private challengeToken: string | null = null
   private currentAffiliationId: number | null = null
@@ -59,6 +63,7 @@ export class PortalApp {
     this.root = root
     this.authApi = new AuthApi()
     this.affiliationsApi = new AffiliationsApi()
+    this.usersApi = new UsersApi()
     this.root.addEventListener('submit', (event) => void this.onSubmit(event))
     this.root.addEventListener('click', (event) => void this.onClick(event))
     this.root.addEventListener('change', (event) => this.onChange(event))
@@ -86,7 +91,7 @@ export class PortalApp {
       const user = await this.authApi.me()
       this.user = user
       if (!this.canManageAffiliations(user)) {
-        this.root.innerHTML = ForbiddenView(`${user.persona.nombres} ${user.persona.apellidos}`.trim() || user.username)
+        this.root.innerHTML = ForbiddenView(`${this.user.persona.nombres} ${this.user.persona.apellidos}`.trim() || this.user.username)
         return
       }
       if (!window.location.hash.startsWith('#/afiliaciones')) {
@@ -113,7 +118,31 @@ export class PortalApp {
       await this.loadDetail(Number(detailMatch[1]))
       return
     }
+    if (window.location.hash === '#/cuentas') {
+      await this.loadUsers()
+      return
+    }
     await this.loadDashboard()
+  }
+
+  private canManageUsers(user: CurrentUser): boolean {
+    return user.roles.some((role) => role.permisos.some((permission) => permission.nombre === MANAGE_USERS_PERMISSION))
+  }
+
+  private async loadUsers(): Promise<void> {
+    if (!this.user) return
+    if (!this.canManageUsers(this.user)) {
+      this.root.innerHTML = ForbiddenView(`${this.user.persona.nombres} ${this.user.persona.apellidos}`.trim() || this.user.username)
+      return
+    }
+    this.root.innerHTML = LoadingView(this.user, 'Cargando cuentas…')
+    try {
+      const page = await this.usersApi.list()
+      this.root.innerHTML = UsersView(this.user, page.items)
+    } catch (error) {
+      if (this.handleAuthorizationError(error)) return
+      this.root.innerHTML = ErrorView(this.user, this.errorText(error))
+    }
   }
 
   private async loadDashboard(): Promise<void> {
@@ -173,6 +202,11 @@ export class PortalApp {
     if (form.matches('[data-add-professional-form]')) {
       event.preventDefault()
       await this.submitAddProfessional(form)
+      return
+    }
+    if (form.matches('[data-create-user-form]')) {
+      event.preventDefault()
+      await this.submitCreateUser(form)
     }
   }
 
@@ -196,6 +230,14 @@ export class PortalApp {
     }
     if (button.dataset.action === 'open-add-professional') {
       openDialog(this.root.querySelector<HTMLDialogElement>('[data-add-professional-dialog]'))
+      return
+    }
+    if (button.dataset.action === 'open-create-user') {
+      openDialog(this.root.querySelector<HTMLDialogElement>('[data-create-user-dialog]'))
+      return
+    }
+    if (button.dataset.resendPassword) {
+      await this.resendPassword(Number(button.dataset.resendPassword), button)
       return
     }
     if (button.dataset.action === 'close-dialog') {
@@ -261,6 +303,27 @@ export class PortalApp {
     } finally {
       setSubmitting(form, false)
     }
+  }
+
+  private async submitCreateUser(form: HTMLFormElement): Promise<void> {
+    const data = new FormData(form)
+    const email = stringValue(data, 'email')
+    setSubmitting(form, true)
+    try {
+      await this.usersApi.createAdmin({ email, username: stringValue(data, 'username'), password: stringValue(data, 'password'), persona: { nombres: stringValue(data, 'first_names'), apellidos: stringValue(data, 'last_names'), email } })
+      closeDialog(form.closest<HTMLDialogElement>('dialog'))
+      form.reset()
+      showToast('Cuenta de manejador creada correctamente.', 'success')
+      await this.loadUsers()
+    } catch (error) { this.reportError(error) } finally { setSubmitting(form, false) }
+  }
+
+  private async resendPassword(userId: number, button: HTMLElement): Promise<void> {
+    button.setAttribute('aria-disabled', 'true')
+    try {
+      const result = await this.usersApi.resendPasswordReset(userId)
+      showToast(result.message || 'Correo de cambio de contraseña reenviado.', 'success')
+    } catch (error) { this.reportError(error) } finally { button.removeAttribute('aria-disabled') }
   }
 
   private async submitCreateAffiliation(form: HTMLFormElement): Promise<void> {

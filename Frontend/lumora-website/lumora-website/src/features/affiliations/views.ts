@@ -34,6 +34,7 @@ function ShellStart(user: CurrentUser, active = 'affiliations'): string {
             <span aria-hidden="true">▦</span>
             Afiliaciones
           </a>
+          <a class="sidebar__link" href="#/cuentas"><span aria-hidden="true">◇</span>Cuentas Lumora</a>
         </nav>
         <div class="sidebar__foot">
           <span>Portal interno</span>
