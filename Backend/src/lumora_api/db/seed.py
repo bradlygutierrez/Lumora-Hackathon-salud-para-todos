@@ -40,6 +40,7 @@ CATALOGS = {
         ("rbac:manage", "Administrar roles y permisos"),
         ("clinica:manage", "Gestionar expedientes clínicos"),
         ("afiliaciones:manage", "Administrar afiliaciones médicas"),
+        ("sistema:clientes", "Administrar clientes API"),
     ],
     EstadoCita: ["Pendiente", "Confirmada", "Cancelada", "Completada"],
     TipoCita: ["Presencial", "Virtual"],
