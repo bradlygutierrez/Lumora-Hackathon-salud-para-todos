@@ -58,6 +58,12 @@ def require_permission(permission_name: str):
 
     return dependency
 
+def require_any_permission(*permission_names: str):
+    async def dependency(current_user: CurrentUser) -> Usuario:
+        permissions = {permission.nombre for role in current_user.roles for permission in role.permisos}
+        if not permissions.intersection(permission_names):
+            raise PermissionDeniedError("No tiene permiso para realizar esta acciÃ³n")
+        return current_user
 async def require_clinical_access(
     request: Request, session: SessionDep, current_user: CurrentUser
 ) -> Usuario:
