@@ -45,7 +45,7 @@ class PersonRead(BaseModel):
     apellidos: str
     fecha_nacimiento: date | None
     telefono: str | None
-    email: EmailStr | None = None
+    email: str | None = None
     sexo_id: int | None
     direcciones: list[AddressRead] = Field(default_factory=list)
     model_config = ConfigDict(from_attributes=True)

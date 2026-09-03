@@ -4,6 +4,7 @@ from uuid import uuid4
 import pytest
 from sqlalchemy import select
 
+from helpers.medical import create_active_medical_professional
 from lumora_api.core.security import hash_password
 from lumora_api.models import (
     Alergia, AntecedenteMedico, CondicionMedica, ConsultaMedica, DetalleReceta,
@@ -69,6 +70,7 @@ async def _setup(client, session_factory, *, with_record: bool = True) -> dict:
         ]
         session.add_all([patient, other_patient, professional, *users])
         await session.flush()
+        await create_active_medical_professional(session, user=users[2], professional=professional, username="staff-b15")
         relationship = RelacionPaciente(
             paciente_id=patient.id, usuario_relacionado_id=users[1].id,
             tipo_relacion_id=relationship_type.id, estado='active', nivel_acceso='read',

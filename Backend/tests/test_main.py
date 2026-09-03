@@ -36,6 +36,20 @@ async def test_cors_allows_configured_react_native_origin(client):
 
 
 @pytest.mark.asyncio
+async def test_cors_allows_configured_web_e2e_origin(client):
+    response = await client.options(
+        "/api/v1/auth/token",
+        headers={
+            "Origin": "http://127.0.0.1:4173",
+            "Access-Control-Request-Method": "POST",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "http://127.0.0.1:4173"
+
+
+@pytest.mark.asyncio
 async def test_unexpected_errors_are_500_without_internal_details():
     response = await global_exception_handler(None, RuntimeError("database password leaked"))
     assert response.status_code == 500

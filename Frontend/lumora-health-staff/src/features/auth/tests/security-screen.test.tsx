@@ -1,23 +1,34 @@
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 
 import SecurityCenterScreen from '@/app/(staff)/security';
-import { changeStaffPassword } from '@/src/features/auth/api/auth.api';
+import {
+  changeStaffPassword,
+  confirmMfaSetup,
+  setupMfa,
+} from '@/src/features/auth/api/auth.api';
 
 const mockSignOutAll = jest.fn();
 const mockRevokeSession = jest.fn();
 const mockLogoutOthers = jest.fn();
+const mockDisableMfa = jest.fn();
 const mockInvalidateQueries = jest.fn();
-
+const mockMfaMethods = jest.fn();
 
 jest.mock('@/src/features/auth/api/auth.api', () => ({
   changeStaffPassword: jest.fn(),
+  confirmMfaSetup: jest.fn(),
   setupMfa: jest.fn(),
 }));
 
 const mockedChangeStaffPassword = jest.mocked(changeStaffPassword);
+const mockedConfirmMfaSetup = jest.mocked(confirmMfaSetup);
+const mockedSetupMfa = jest.mocked(setupMfa);
 
 jest.mock('@/src/features/auth/hooks/use-auth-session', () => ({
-  useAuthSession: () => ({ signOutAll: mockSignOutAll }),
+  useAuthSession: () => ({
+    session: { isPreview: false },
+    signOutAll: mockSignOutAll,
+  }),
 }));
 
 jest.mock('@/src/features/auth/hooks/use-security', () => ({
@@ -53,9 +64,9 @@ jest.mock('@/src/features/auth/hooks/use-security', () => ({
       },
     ],
   }),
-  useMfaMethods: () => ({ isLoading: false, isError: false, data: [] }),
+  useMfaMethods: () => mockMfaMethods(),
   useSecurityActions: () => ({
-    disableMfa: { mutate: jest.fn() },
+    disableMfa: { mutateAsync: mockDisableMfa },
     revokeSession: { mutate: mockRevokeSession },
     logoutOthers: { mutateAsync: mockLogoutOthers },
   }),
@@ -73,15 +84,20 @@ jest.mock('@/src/shared/components/Button', () => {
   const React = jest.requireActual('react');
   const { Pressable, Text } = jest.requireActual('react-native');
   return {
-    Button: ({ children, onPress, accessibilityLabel }: {
+    Button: ({
+      accessibilityLabel,
+      children,
+      onPress,
+    }: {
+      accessibilityLabel?: string;
       children: React.ReactNode;
       onPress?: () => void;
-      accessibilityLabel?: string;
-    }) => React.createElement(
-      Pressable,
-      { onPress, accessibilityLabel, accessibilityRole: 'button' },
-      React.createElement(Text, null, children),
-    ),
+    }) =>
+      React.createElement(
+        Pressable,
+        { accessibilityLabel, accessibilityRole: 'button', onPress },
+        React.createElement(Text, null, children),
+      ),
   };
 });
 
@@ -89,11 +105,20 @@ jest.mock('@/src/shared/components/TextField', () => {
   const React = jest.requireActual('react');
   const { TextInput } = jest.requireActual('react-native');
   return {
-    TextField: ({ label, onChangeText, value }: {
+    TextField: ({
+      label,
+      onChangeText,
+      value,
+    }: {
       label: string;
       onChangeText?: (value: string) => void;
       value?: string;
-    }) => React.createElement(TextInput, { accessibilityLabel: label, onChangeText, value }),
+    }) =>
+      React.createElement(TextInput, {
+        accessibilityLabel: label,
+        onChangeText,
+        value,
+      }),
   };
 });
 jest.mock('@/src/shared/components/AppTopBar', () => ({ AppTopBar: () => null }));
@@ -110,11 +135,19 @@ jest.mock('@/src/shared/components/Screen', () => {
   };
 });
 
-describe('SecurityCenterScreen sessions', () => {
+describe('SecurityCenterScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockLogoutOthers.mockResolvedValue({ message: 'ok' });
-    mockedChangeStaffPassword.mockResolvedValue({ message: 'Contraseña actualizada' });
+    mockDisableMfa.mockResolvedValue(undefined);
+    mockMfaMethods.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: [],
+    });
+    mockedChangeStaffPassword.mockResolvedValue({
+      message: 'Contraseña actualizada',
+    });
   });
 
   it('uses backend current-session metadata and revokes only remote sessions', async () => {
@@ -143,11 +176,17 @@ describe('SecurityCenterScreen sessions', () => {
     expect(screen.queryByText('hace 45 días (Oct 12, 2026)')).toBeNull();
     expect(screen.queryByText('Recuperación por SMS')).toBeNull();
     expect(screen.queryByText('Actividad de Seguridad Reciente')).toBeNull();
+    expect(screen.queryByText('ID metodo MFA')).toBeNull();
 
-    await fireEvent.changeText(screen.getByLabelText('Contraseña actual'), 'StrongOld123!');
-    await fireEvent.changeText(screen.getByLabelText('Nueva contraseña'), 'Stronger123!');
+    await fireEvent.changeText(
+      screen.getByLabelText('Contraseña actual'),
+      'StrongOld123!',
+    );
+    await fireEvent.changeText(
+      screen.getByLabelText('Nueva contraseña'),
+      'Stronger123!',
+    );
     await fireEvent.press(screen.getByText('Cambiar contraseña'));
-
 
     await waitFor(() =>
       expect(mockedChangeStaffPassword).toHaveBeenCalledWith({
@@ -157,4 +196,81 @@ describe('SecurityCenterScreen sessions', () => {
     );
   });
 
+  it('configures TOTP through setup then confirm before exposing recovery codes', async () => {
+    mockMfaMethods.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: [
+        {
+          id: null,
+          metodo_id: 1,
+          nombre: 'totp',
+          activo: false,
+        },
+      ],
+    });
+    mockedSetupMfa.mockResolvedValue({
+      method_id: 44,
+      secret: 'TOTP-SECRET',
+      provisioning_uri: 'otpauth://totp/Lumora:test',
+    });
+    mockedConfirmMfaSetup.mockResolvedValue({
+      method_id: 44,
+      recovery_codes: ['recovery-one', 'recovery-two'],
+    });
+
+    const screen = await render(<SecurityCenterScreen />);
+
+    await fireEvent.press(
+      screen.getByLabelText('Configurar Aplicación de autenticación'),
+    );
+
+    await waitFor(() =>
+      expect(mockedSetupMfa).toHaveBeenCalledWith({ metodo_id: 1 }),
+    );
+    expect(screen.getByText('TOTP-SECRET')).toBeTruthy();
+    expect(
+      screen.getByText('otpauth://totp/Lumora:test'),
+    ).toBeTruthy();
+    expect(screen.queryByText('recovery-one')).toBeNull();
+
+    await fireEvent.changeText(
+      screen.getByLabelText('Código de confirmación'),
+      '123456',
+    );
+    await fireEvent.press(screen.getByText('Activar MFA'));
+
+    await waitFor(() =>
+      expect(mockedConfirmMfaSetup).toHaveBeenCalledWith({
+        method_id: 44,
+        code: '123456',
+      }),
+    );
+    expect(screen.getByText('recovery-one')).toBeTruthy();
+    expect(screen.getByText('recovery-two')).toBeTruthy();
+  });
+
+  it('disables an active MFA method using the configured method id, not the catalog id', async () => {
+    mockMfaMethods.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: [
+        {
+          id: 88,
+          metodo_id: 2,
+          nombre: 'email',
+          activo: true,
+        },
+      ],
+    });
+
+    const screen = await render(<SecurityCenterScreen />);
+
+    await fireEvent.press(
+      screen.getByLabelText('Desactivar Correo electrónico'),
+    );
+
+    await waitFor(() => expect(mockDisableMfa).toHaveBeenCalledWith(88));
+    expect(mockDisableMfa).not.toHaveBeenCalledWith(2);
+  });
 });

@@ -1,3 +1,4 @@
+from lumora_api.schemas.affiliations import AffiliationCreate, AffiliationRead, AffiliationUpdate, LicenseVerificationUpdate, MembershipRead, ProfessionalMembershipUpdate, ProfessionalProvisionCreate, ProvisionedProfessionalRead, AffiliationProfessionalRead
 from lumora_api.schemas.appointments import (
     AppointmentCreate,
     AppointmentRead,
@@ -70,6 +71,7 @@ from lumora_api.schemas.clinical import (
     MedicalRecordCreate,
     MedicalRecordRead,
     MedicalRecordUpdate,
+    PatientClinicalDocument,
     PatientClinicalSummary,
     VitalSignsCreate,
     VitalSignsRead,
@@ -197,6 +199,7 @@ __all__ = [
     "MedicalRecordCreate",
     "MedicalRecordRead",
     "MedicalRecordUpdate",
+    "PatientClinicalDocument",
     "PatientClinicalSummary",
     "VitalSignsCreate",
     "VitalSignsRead",

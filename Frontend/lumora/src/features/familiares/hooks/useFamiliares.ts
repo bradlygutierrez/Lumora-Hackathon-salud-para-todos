@@ -40,16 +40,21 @@ export function useUpdateFamiliarPermiso(patientId: number | null) {
       relacionId,
       recibirNotificaciones,
       nivelAcceso,
+      puedeVerExpediente,
     }: {
       relacionId: number;
       recibirNotificaciones?: boolean;
       nivelAcceso?: NivelAcceso;
+      puedeVerExpediente?: boolean;
     }) =>
       familiaresApi.updateRelacion(patientId as number, relacionId, {
         ...(recibirNotificaciones !== undefined && {
           recibir_notificaciones: recibirNotificaciones,
         }),
         ...(nivelAcceso !== undefined && { nivel_acceso: nivelAcceso }),
+        ...(puedeVerExpediente !== undefined && {
+          puede_ver_expediente: puedeVerExpediente,
+        }),
       }),
     onSuccess: () => {
       if (patientId !== null) {

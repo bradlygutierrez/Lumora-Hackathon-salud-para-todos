@@ -2,6 +2,8 @@ from datetime import datetime, timezone
 from uuid import uuid4
 
 import pytest
+
+from helpers.medical import create_active_medical_professional
 from sqlalchemy import select
 
 from lumora_api.models import (
@@ -74,6 +76,7 @@ async def _token(client, session_factory, username: str, *, clinical: bool) -> t
     async with session_factory() as session:
         role = await session.scalar(select(Rol).where(Rol.nombre == f"Rol {username}"))
         session.add(UsuarioRol(usuario_id=user_id, rol_id=role.id))
+        if clinical: await create_active_medical_professional(session, user=await session.get(Usuario, user_id))
         await session.commit()
 
     token = await client.post(

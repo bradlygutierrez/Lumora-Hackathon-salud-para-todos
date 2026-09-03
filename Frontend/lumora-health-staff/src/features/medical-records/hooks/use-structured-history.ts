@@ -112,7 +112,7 @@ function pageFromCatalog(items: CatalogItem[], limit = 100, offset = 0): Page<Ca
   };
 }
 
-async function invalidateClinicalViews(
+export async function invalidateClinicalViews(
   queryClient: QueryClient,
   patientId: number,
   recordId: number,
@@ -120,6 +120,9 @@ async function invalidateClinicalViews(
   await Promise.all([
     queryClient.invalidateQueries({ queryKey: structuredHistoryKeys.all }),
     queryClient.invalidateQueries({ queryKey: queryKeys.clinical.patientSummary(patientId) }),
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.clinical.medicalRecordDocument(patientId),
+    }),
     queryClient.invalidateQueries({
       queryKey: queryKeys.clinical.patientsDirectory.clinicalSummary(patientId),
     }),

@@ -9,6 +9,8 @@ export const queryKeys = {
     patients: () => [...queryKeys.clinical.all, 'patients'] as const,
     patientSummary: (patientId: number) =>
       [...queryKeys.clinical.patients(), patientId, 'summary'] as const,
+    medicalRecordDocument: (patientId: number) =>
+      [...queryKeys.clinical.patients(), patientId, 'document'] as const,
     medicalRecordTimeline: (recordId: number) =>
       [...queryKeys.clinical.all, 'records', recordId, 'timeline'] as const,
     consultations: {

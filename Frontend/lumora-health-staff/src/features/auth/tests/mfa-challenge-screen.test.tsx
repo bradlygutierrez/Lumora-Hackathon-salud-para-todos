@@ -4,19 +4,13 @@ import MfaChallengeScreen from '@/app/(auth)/mfa-challenge';
 import { verifyMfaChallenge } from '../api/auth.api';
 
 const mockCompleteTokenSignIn = jest.fn();
+const mockUseAuthSession = jest.fn();
 
 jest.mock('@/src/features/auth/hooks/use-auth-session', () => ({
-  useAuthSession: () => ({
-    completeTokenSignIn: mockCompleteTokenSignIn,
-    pendingMfa: {
-      challengeToken: 'c'.repeat(32),
-      expiresIn: 300,
-    },
-  }),
+  useAuthSession: () => mockUseAuthSession(),
 }));
 
 jest.mock('../api/auth.api', () => ({
-  createMfaChallenge: jest.fn(),
   recoverMfaChallenge: jest.fn(),
   verifyMfaChallenge: jest.fn(),
 }));
@@ -27,6 +21,8 @@ jest.mock('expo-router', () => {
   return {
     Link: ({ children }: { children: React.ReactNode }) =>
       React.createElement(Text, null, children),
+    Redirect: ({ href }: { href: string }) =>
+      React.createElement(Text, null, `redirect:${href}`),
   };
 });
 
@@ -47,7 +43,13 @@ jest.mock('@/src/shared/components/Button', () => {
   const React = jest.requireActual('react');
   const { Pressable, Text } = jest.requireActual('react-native');
   return {
-    Button: ({ children, onPress }: { children: React.ReactNode; onPress?: () => void }) =>
+    Button: ({
+      children,
+      onPress,
+    }: {
+      children: React.ReactNode;
+      onPress?: () => void;
+    }) =>
       React.createElement(
         Pressable,
         { onPress },
@@ -73,6 +75,14 @@ const mockedVerifyMfaChallenge = jest.mocked(verifyMfaChallenge);
 describe('MfaChallengeScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseAuthSession.mockReturnValue({
+      completeTokenSignIn: mockCompleteTokenSignIn,
+      pendingMfa: {
+        challengeToken: 'c'.repeat(32),
+        expiresIn: 300,
+        method: 'totp',
+      },
+    });
     mockedVerifyMfaChallenge.mockResolvedValue({
       access_token: 'access',
       refresh_token: 'refresh',
@@ -80,15 +90,18 @@ describe('MfaChallengeScreen', () => {
     });
   });
 
-  it('uses the pending login challenge and does not ask for credentials again', async () => {
+  it('uses the pending login challenge and backend MFA method', async () => {
     const screen = await render(<MfaChallengeScreen />);
 
+    expect(screen.getByText('Aplicación de autenticación')).toBeTruthy();
     expect(screen.queryByTestId('Usuario')).toBeNull();
     expect(screen.queryByTestId('Contraseña')).toBeNull();
 
-    await fireEvent.changeText(screen.getByTestId('Codigo MFA'), '123456');
+    await fireEvent.changeText(
+      screen.getByTestId('Código de verificación'),
+      '123456',
+    );
     await fireEvent.press(screen.getByText('Verificar'));
-
 
     await waitFor(() => {
       expect(mockedVerifyMfaChallenge).toHaveBeenCalledWith({
@@ -101,5 +114,16 @@ describe('MfaChallengeScreen', () => {
         token_type: 'bearer',
       });
     });
+  });
+
+  it('redirects to login when there is no pending MFA challenge', async () => {
+    mockUseAuthSession.mockReturnValue({
+      completeTokenSignIn: mockCompleteTokenSignIn,
+      pendingMfa: null,
+    });
+
+    const screen = await render(<MfaChallengeScreen />);
+
+    expect(screen.getByText('redirect:/(auth)/login')).toBeTruthy();
   });
 });

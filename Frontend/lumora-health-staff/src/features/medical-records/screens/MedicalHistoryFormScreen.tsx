@@ -2,15 +2,18 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { type Href, useRouter } from 'expo-router';
 import { useEffect, useRef } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { useAuthSession } from '@/src/features/auth/hooks/use-auth-session';
 import { ChoiceField } from '@/src/features/patients/components/ChoiceField';
 import { Button } from '@/src/shared/components/Button';
-import { ErrorState, LoadingState } from '@/src/shared/components/RemoteState';
-import { Screen } from '@/src/shared/components/Screen';
+import {
+  ErrorState,
+  LoadingState,
+} from '@/src/shared/components/RemoteState';
 import { TextField } from '@/src/shared/components/TextField';
 import { theme } from '@/src/shared/constants/theme';
+import { ClinicalFormShell } from '../components/ClinicalFormShell';
 import { structuredHistoryErrorMessage } from '../components/structured-history.ui';
 import {
   useCreateMedicalHistoryEntry,
@@ -49,9 +52,17 @@ export function MedicalHistoryFormScreen({
   const allowed = permissions.has('clinica:manage');
   const isEditing = typeof historyId === 'number';
   const types = useMedicalHistoryTypes(allowed);
-  const detail = useMedicalHistoryEntry(recordId, historyId ?? 0, allowed && isEditing);
+  const detail = useMedicalHistoryEntry(
+    recordId,
+    historyId ?? 0,
+    allowed && isEditing,
+  );
   const creation = useCreateMedicalHistoryEntry(patientId, recordId);
-  const update = useUpdateMedicalHistoryEntry(patientId, recordId, historyId ?? 0);
+  const update = useUpdateMedicalHistoryEntry(
+    patientId,
+    recordId,
+    historyId ?? 0,
+  );
   const loadedId = useRef<number | null>(null);
 
   const {
@@ -59,13 +70,23 @@ export function MedicalHistoryFormScreen({
     formState: { errors, isSubmitting },
     handleSubmit,
     reset,
-  } = useForm<MedicalHistoryFormInput, unknown, MedicalHistoryForm>({
+  } = useForm<
+    MedicalHistoryFormInput,
+    unknown,
+    MedicalHistoryForm
+  >({
     resolver: zodResolver(medicalHistoryFormSchema),
     defaultValues: emptyValues,
   });
 
   useEffect(() => {
-    if (!isEditing || !detail.data || loadedId.current === detail.data.id) return;
+    if (
+      !isEditing ||
+      !detail.data ||
+      loadedId.current === detail.data.id
+    ) {
+      return;
+    }
     loadedId.current = detail.data.id;
     reset({
       tipo_antecedente_id: detail.data.tipo_antecedente_id,
@@ -134,106 +155,116 @@ export function MedicalHistoryFormScreen({
 
   const serverError = structuredHistoryErrorMessage(
     mutation.error,
-    isEditing ? 'editar antecedentes médicos' : 'registrar antecedentes médicos',
+    isEditing
+      ? 'editar antecedentes médicos'
+      : 'registrar antecedentes médicos',
   );
 
   return (
-    <Screen>
-      <View style={styles.header}>
-        <Button icon="arrow-back" onPress={() => router.back()} variant="ghost">
-          Volver
-        </Button>
-        <View style={styles.headerCopy}>
-          <Text style={styles.title}>
-            {isEditing ? 'Editar Historial Médico' : 'Añadir Historial Médico'}
-          </Text>
-          <Text style={styles.subtitle}>Expediente #{recordId}</Text>
-        </View>
-      </View>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    <ClinicalFormShell
+      eyebrow="HISTORIAL DEL PACIENTE"
+      onBack={() => router.back()}
+      subtitle={`Paciente #${patientId} · Expediente #${recordId}`}
+      title={
+        isEditing ? 'Editar Historial Médico' : 'Añadir Historial Médico'
+      }
+    >
+      <Controller
+        control={control}
+        name="tipo_antecedente_id"
+        render={({ field }) => (
+          <ChoiceField
+            error={errors.tipo_antecedente_id?.message}
+            items={types.data?.items ?? []}
+            label="Tipo de antecedente *"
+            onChange={(value) => field.onChange(value ?? 0)}
+            value={field.value || undefined}
+          />
+        )}
+      />
+      <Controller
+        control={control}
+        name="descripcion"
+        render={({ field }) => (
+          <TextField
+            accessibilityLabel="Descripción de antecedente"
+            error={errors.descripcion?.message}
+            label="Descripción *"
+            multiline
+            onBlur={field.onBlur}
+            onChangeText={field.onChange}
+            placeholder="Descripción clínica del antecedente"
+            value={field.value}
+          />
+        )}
+      />
+      <Controller
+        control={control}
+        name="fecha"
+        render={({ field }) => (
+          <TextField
+            accessibilityLabel="Fecha de antecedente"
+            error={errors.fecha?.message}
+            label="Fecha"
+            onBlur={field.onBlur}
+            onChangeText={field.onChange}
+            placeholder="AAAA-MM-DD"
+            value={field.value}
+          />
+        )}
+      />
+      {isEditing ? (
         <Controller
           control={control}
-          name="tipo_antecedente_id"
+          name="activo"
           render={({ field }) => (
             <ChoiceField
-              error={errors.tipo_antecedente_id?.message}
-              items={types.data?.items ?? []}
-              label="Tipo de antecedente *"
-              onChange={(value) => field.onChange(value ?? 0)}
-              value={field.value || undefined}
+              items={[
+                { id: 1, nombre: 'Activo' },
+                { id: 2, nombre: 'Inactivo' },
+              ]}
+              label="Visibilidad del registro"
+              onChange={(value) => field.onChange(value !== 2)}
+              value={field.value ? 1 : 2}
             />
           )}
         />
-        <Controller
-          control={control}
-          name="descripcion"
-          render={({ field }) => (
-            <TextField
-              accessibilityLabel="Descripción de antecedente"
-              error={errors.descripcion?.message}
-              label="Descripción *"
-              multiline
-              onBlur={field.onBlur}
-              onChangeText={field.onChange}
-              placeholder="Descripción clínica del antecedente"
-              value={field.value}
-            />
-          )}
-        />
-        <Controller
-          control={control}
-          name="fecha"
-          render={({ field }) => (
-            <TextField
-              accessibilityLabel="Fecha de antecedente"
-              error={errors.fecha?.message}
-              label="Fecha"
-              onBlur={field.onBlur}
-              onChangeText={field.onChange}
-              placeholder="AAAA-MM-DD"
-              value={field.value}
-            />
-          )}
-        />
-        {isEditing ? (
-          <Controller
-            control={control}
-            name="activo"
-            render={({ field }) => (
-              <ChoiceField
-                items={[
-                  { id: 1, nombre: 'Activo' },
-                  { id: 2, nombre: 'Inactivo' },
-                ]}
-                label="Visibilidad del registro"
-                onChange={(value) => field.onChange(value !== 2)}
-                value={field.value ? 1 : 2}
-              />
-            )}
-          />
-        ) : null}
-        {serverError ? (
-          <View accessibilityRole="alert" style={styles.errorBox}>
-            <Text style={styles.errorText}>{serverError}</Text>
-          </View>
-        ) : null}
-        <Button disabled={busy} icon="save-outline" loading={busy} onPress={onSubmit}>
-          {isEditing ? 'Guardar cambios' : 'Registrar antecedente'}
-        </Button>
-        <Button disabled={busy} onPress={() => router.back()} variant="secondary">
-          Cancelar
-        </Button>
-      </ScrollView>
-    </Screen>
+      ) : null}
+      {serverError ? (
+        <View accessibilityRole="alert" style={styles.errorBox}>
+          <Text style={styles.errorText}>{serverError}</Text>
+        </View>
+      ) : null}
+      <Button
+        disabled={busy}
+        icon="save-outline"
+        loading={busy}
+        onPress={onSubmit}
+      >
+        {isEditing ? 'Guardar cambios' : 'Registrar antecedente'}
+      </Button>
+      <Button
+        disabled={busy}
+        onPress={() => router.back()}
+        variant="secondary"
+      >
+        Cancelar
+      </Button>
+    </ClinicalFormShell>
   );
 }
 
 const styles = StyleSheet.create({
-  header: { alignItems: 'center', flexDirection: 'row', gap: theme.spacing.sm },
-  headerCopy: { flex: 1, gap: 2 },
-  title: { color: theme.color.text, fontSize: 24, fontWeight: '900' },
-  subtitle: { color: theme.color.mutedText, fontSize: 12 },
-  content: { gap: theme.spacing.lg, paddingBottom: theme.spacing.xxl, paddingTop: theme.spacing.lg },
-  errorBox: { backgroundColor: '#FFD7D2', borderRadius: theme.radius.md, padding: theme.spacing.md },
-  errorText: { color: theme.color.danger, fontSize: 13, fontWeight: '700' },
+  errorBox: {
+    backgroundColor: theme.color.dangerSoft,
+    borderLeftColor: theme.color.danger,
+    borderLeftWidth: 4,
+    borderRadius: theme.radius.md,
+    padding: theme.spacing.md,
+  },
+  errorText: {
+    color: theme.color.dangerText,
+    fontSize: 13,
+    fontWeight: '700',
+  },
 });

@@ -7,7 +7,7 @@ export function Hero(): string {
           <h1>Cuidado de salud conectado, <span>para pacientes y profesionales</span></h1>
           <p class="lead">Lumora reúne dos experiencias diseñadas para hacer más simple el seguimiento de la salud, la atención y la gestión de información clínica.</p>
           <div class="button-row">
-            <a class="button" href="#lumora">Conocer Lumora</a>
+            <a class="button" href="#/afiliaciones">Entrar al portal de afiliaciones</a>
             <a class="button button--outline" href="#lumora-medicos">Para profesionales</a>
           </div>
         </div>

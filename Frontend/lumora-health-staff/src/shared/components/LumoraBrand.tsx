@@ -5,6 +5,7 @@ import { theme } from '../constants/theme';
 
 type LumoraBrandProps = {
   compact?: boolean;
+  stacked?: boolean;
 };
 
 const lumoraLogoSvg = encodeURIComponent(`
@@ -15,15 +16,27 @@ const lumoraLogoSvg = encodeURIComponent(`
 </svg>
 `);
 
-export function LumoraBrand({ compact = false }: LumoraBrandProps) {
+export function LumoraBrand({ compact = false, stacked = false }: LumoraBrandProps) {
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, stacked ? styles.containerStacked : null]}>
       <Image
         accessibilityLabel="Lumora"
         source={{ uri: `data:image/svg+xml;utf8,${lumoraLogoSvg}` }}
-        style={[styles.mark, compact ? styles.markCompact : null]}
+        style={[
+          styles.mark,
+          compact ? styles.markCompact : null,
+          stacked ? styles.markStacked : null,
+        ]}
       />
-      <Text style={[styles.word, compact ? styles.wordCompact : null]}>Lumora</Text>
+      <Text
+        style={[
+          styles.word,
+          compact ? styles.wordCompact : null,
+          stacked ? styles.wordStacked : null,
+        ]}
+      >
+        Lumora
+      </Text>
     </View>
   );
 }
@@ -32,6 +45,10 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     flexDirection: 'row',
+  },
+  containerStacked: {
+    flexDirection: 'column',
+    gap: theme.spacing.sm,
   },
   mark: {
     height: 56,
@@ -43,6 +60,9 @@ const styles = StyleSheet.create({
     marginRight: theme.spacing.xs,
     width: 34,
   },
+  markStacked: {
+    marginRight: 0,
+  },
   word: {
     color: theme.color.text,
     fontSize: 34,
@@ -50,5 +70,8 @@ const styles = StyleSheet.create({
   },
   wordCompact: {
     fontSize: 28,
+  },
+  wordStacked: {
+    fontSize: 38,
   },
 });

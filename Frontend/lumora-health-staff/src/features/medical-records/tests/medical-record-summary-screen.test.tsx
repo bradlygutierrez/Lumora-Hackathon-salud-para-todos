@@ -81,13 +81,25 @@ describe('MedicalRecordSummaryScreen', () => {
     expect(screen.getByText('Alertas')).toBeTruthy();
   });
 
-  it('routes diagnoses through consultation history from the clinical summary', async () => {
+  it('opens aggregate diagnoses from the clinical summary', async () => {
     const screen = await render(<MedicalRecordSummaryScreen patientId={9} />);
 
     await fireEvent.press(screen.getByLabelText('Abrir sección Diagnósticos'));
 
     expect(mockPush).toHaveBeenCalledWith(
-      '/(staff)/patients/9/record/consultations?recordId=17',
+      '/(staff)/patients/9/record/diagnoses?recordId=17',
+    );
+  });
+
+  it('opens measurements and alerts from their clinical summary cards', async () => {
+    const screen = await render(<MedicalRecordSummaryScreen patientId={9} />);
+
+    await fireEvent.press(screen.getByLabelText('Abrir sección Indicadores'));
+    expect(mockPush).toHaveBeenCalledWith('/(staff)/patients/9/measurements');
+
+    await fireEvent.press(screen.getByLabelText('Abrir sección Alertas'));
+    expect(mockPush).toHaveBeenCalledWith(
+      '/(staff)/patients/9/record/alerts?recordId=17',
     );
   });
 
@@ -127,6 +139,16 @@ describe('MedicalRecordSummaryScreen', () => {
     await fireEvent.press(screen.getByLabelText('Abrir línea de tiempo médica'));
 
     expect(mockPush).toHaveBeenCalledWith('/(staff)/patients/9/record/timeline?recordId=17');
+  });
+
+  it('opens the canonical B15 document from the clinical summary', async () => {
+    const screen = await render(<MedicalRecordSummaryScreen patientId={9} />);
+
+    await fireEvent.press(screen.getByLabelText('Abrir expediente documental'));
+
+    expect(mockPush).toHaveBeenCalledWith(
+      '/(staff)/patients/9/record/document',
+    );
   });
 
   it('blocks users without clinical permission', async () => {

@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from sqlalchemy import select
 
+from helpers.medical import create_active_medical_professional
 from lumora_api.core.security import create_access_token, hash_password
 from lumora_api.models import (
     Cita,
@@ -15,6 +16,8 @@ from lumora_api.models import (
     RelacionPaciente,
     Rol,
     TipoRelacion,
+    TipoCita,
+    UbicacionAtencion,
     Usuario,
 )
 
@@ -107,6 +110,10 @@ async def seed(session_factory) -> dict[str, int]:
             ]
         )
         await session.flush()
+        clinician_context = await create_active_medical_professional(session, user=clinician)
+        clinician_professional = clinician_context["professional"]
+        await create_active_medical_professional(session, professional=professional_a, username="availability-a")
+        await create_active_medical_professional(session, professional=professional_b, username="availability-b")
         session.add_all(
             [
                 RelacionPaciente(
@@ -136,6 +143,7 @@ async def seed(session_factory) -> dict[str, int]:
             "caregiver": caregiver.id,
             "revoked_caregiver": revoked_caregiver.id,
             "clinician": clinician.id,
+            "clinician_professional": clinician_professional.id,
             "professional_a": professional_a.id,
             "professional_b": professional_b.id,
             "pending": pending.id,
@@ -311,6 +319,44 @@ async def test_reschedule_authorization_conflict_and_audit(client, session_facto
 
 
 @pytest.mark.asyncio
+async def test_reschedule_presencial_preserves_location(client, session_factory):
+    ctx = await seed(session_factory)
+    async with session_factory() as session:
+        tipo = TipoCita(nombre="Presencial")
+        location = UbicacionAtencion(
+            nombre="Clinica Central", direccion="Calle Principal 1", activo=True
+        )
+        session.add_all([tipo, location])
+        await session.commit()
+        tipo_id, location_id = tipo.id, location.id
+
+    start = datetime.now(timezone.utc) + timedelta(days=5)
+    created = await client.post(
+        "/api/v1/citas",
+        json={
+            **payload(ctx, start),
+            "tipo_cita_id": tipo_id,
+            "ubicacion_id": location_id,
+        },
+        headers=headers(ctx["patient_a_user"]),
+    )
+    assert created.status_code == 201
+
+    new_start = start + timedelta(days=1)
+    rescheduled = await client.patch(
+        f"/api/v1/citas/{created.json()['id']}/reprogramar",
+        json={
+            "inicio": new_start.isoformat(),
+            "fin": (new_start + timedelta(hours=1)).isoformat(),
+        },
+        headers=headers(ctx["patient_a_user"]),
+    )
+
+    assert rescheduled.status_code == 200
+    assert rescheduled.json()["ubicacion_id"] == location_id
+
+
+@pytest.mark.asyncio
 async def test_cancellation_preserves_history_and_audit(client, session_factory):
     ctx = await seed(session_factory)
     start = datetime.now(timezone.utc) + timedelta(days=1)
@@ -391,6 +437,7 @@ async def test_safe_professional_discovery_and_admin_route_protection(client, se
     )
 
     expected = [
+        {"id": ctx["clinician_professional"], "full_name": "Claudio Clinico", "specialty": "Medicina general"},
         {"id": ctx["professional_b"], "full_name": "Dario Dos", "specialty": "Cardiología"},
         {"id": ctx["professional_a"], "full_name": "Dora Uno", "specialty": "Medicina general"},
     ]

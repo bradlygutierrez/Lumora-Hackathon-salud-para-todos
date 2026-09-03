@@ -1,4 +1,5 @@
 import asyncio
+import os
 from datetime import time
 
 from sqlalchemy import select
@@ -27,9 +28,10 @@ from lumora_api.models import (
     TipoSangre,
     UnidadMedida,
     ViaAdministracion,
-    ProfesionalSalud, HorarioProfesional, UbicacionAtencion,
+    ProfesionalSalud, HorarioProfesional, UbicacionAtencion, Persona, Usuario,
 )
 from lumora_api.models.health_indicators import IndicadorMedico, RangoIndicador
+from lumora_api.core.security import hash_password
 
 CATALOGS = {
     Permiso: [
@@ -37,6 +39,7 @@ CATALOGS = {
         ("usuarios:editar", "Modificar usuarios"),
         ("rbac:manage", "Administrar roles y permisos"),
         ("clinica:manage", "Gestionar expedientes clínicos"),
+        ("afiliaciones:manage", "Administrar afiliaciones médicas"),
     ],
     EstadoCita: ["Pendiente", "Confirmada", "Cancelada", "Completada"],
     TipoCita: ["Presencial", "Virtual"],
@@ -67,6 +70,7 @@ ROLES = {
     "Paciente": "Acceso base de paciente",
     "Cuidador": "Acceso base de cuidador",
     "Administrador": "Acceso administrativo",
+    "Profesional de Salud": "Acceso clínico sujeto a afiliación vigente",
 }
 
 
@@ -178,7 +182,27 @@ async def seed() -> None:
             roles[name] = role
         await session.flush()
         roles["Administrador"].permisos = list(await session.scalars(select(Permiso)))
+        clinical_permission = await session.scalar(select(Permiso).where(Permiso.nombre == "clinica:manage"))
+        roles["Profesional de Salud"].permisos = [clinical_permission] if clinical_permission else []
         await session.flush()
+        if os.getenv("ENVIRONMENT", "development") != "production":
+            admin_email = os.getenv("SEED_ADMIN_EMAIL", "admin@lumora.local").lower()
+            admin_username = os.getenv("SEED_ADMIN_USERNAME", "admin").lower()
+            admin_password = os.getenv("SEED_ADMIN_PASSWORD", "Admin123!ChangeMe")
+            admin = await session.scalar(select(Usuario).where(Usuario.email == admin_email))
+            if admin is None:
+                admin = Usuario(
+                    persona=Persona(nombres="Admin", apellidos="Lumora", email=admin_email),
+                    email=admin_email,
+                    username=admin_username,
+                    password_hash=hash_password(admin_password),
+                    email_verificado=True,
+                    roles=[roles["Administrador"]],
+                )
+                session.add(admin)
+            elif roles["Administrador"] not in admin.roles:
+                admin.roles.append(roles["Administrador"])
+            await session.flush()
         await seed_health_indicators(session)
         professionals = list(await session.scalars(select(ProfesionalSalud).where(ProfesionalSalud.deleted_at.is_(None))))
         location = await session.scalar(select(UbicacionAtencion).where(UbicacionAtencion.nombre == "Clínica Lumora"))

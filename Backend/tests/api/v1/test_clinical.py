@@ -1,4 +1,6 @@
 import pytest
+
+from helpers.medical import create_active_medical_professional
 from sqlalchemy import select
 
 from lumora_api.models import (
@@ -51,6 +53,7 @@ async def _register(client, session_factory, username: str, *, clinical: bool) -
         user = await session.get(Usuario, response.json()["id"])
         role = await session.scalar(select(Rol).where(Rol.nombre == f"Rol {username}"))
         session.add(UsuarioRol(usuario_id=user.id, rol_id=role.id))
+        if clinical: await create_active_medical_professional(session, user=user)
         await session.commit()
     token = await client.post(
         "/api/v1/auth/token",

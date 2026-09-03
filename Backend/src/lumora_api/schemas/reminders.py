@@ -210,6 +210,9 @@ class RelacionPacienteBase(BaseModel):
     usuario_relacionado_id: int
     tipo_relacion_id: int
     recibir_notificaciones: bool = True
+    # A15/B15 -- independiente de nivel_acceso: si es false, el cuidador no
+    # puede ver ni descargar el expediente medico documental.
+    puede_ver_expediente: bool = True
     activo: bool = True
     estado: Literal["pending", "active", "revoked", "inactive", "rejected"] = "active"
     nivel_acceso: Literal["read", "write"] = "read"
@@ -223,6 +226,7 @@ class RelacionPacienteCreate(RelacionPacienteBase):
 class RelacionPacienteUpdate(BaseModel):
     nivel_acceso: Optional[Literal["read", "write"]] = None
     recibir_notificaciones: Optional[bool] = None
+    puede_ver_expediente: Optional[bool] = None
     estado: Optional[Literal["pending", "active", "revoked", "inactive", "rejected"]] = None
 
 

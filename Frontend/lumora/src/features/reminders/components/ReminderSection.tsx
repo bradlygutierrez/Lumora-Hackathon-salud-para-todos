@@ -22,6 +22,9 @@ type ReminderSectionProps = {
   deletingId: string | null;
   onDelete: (item: ReminderBoardItem) => void;
   onEdit: (item: ReminderBoardItem) => void;
+
+  /** false para un cuidador con acceso de solo lectura. */
+  canManage: boolean;
 };
 
 /** Grupo "Próximamente"/"Más tarde" del tablero de Recordatorios. */
@@ -42,6 +45,7 @@ export function ReminderSection({
   deletingId,
   onDelete,
   onEdit,
+  canManage,
 }: ReminderSectionProps) {
   return (
     <View className="gap-3">
@@ -70,6 +74,7 @@ export function ReminderSection({
               onDelete={onDelete}
               isDeleting={deletingId === item.id}
               onEdit={onEdit}
+              canManage={canManage}
             />
           ))}
         </View>

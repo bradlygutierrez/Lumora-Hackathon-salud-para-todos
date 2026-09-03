@@ -45,7 +45,12 @@ export function Button({
         styles[variant],
         pressed && !isDisabled ? styles.pressed : null,
         isDisabled ? styles.disabled : null,
-        typeof style === 'function' ? style({ pressed, hovered: false }) : style,
+        // react-native-web adds a required `hovered` field to this callback's
+        // parameter type that plain react-native doesn't declare, so the cast
+        // is needed to satisfy both platforms' resolved types.
+        typeof style === 'function'
+          ? style({ pressed } as Parameters<typeof style>[0])
+          : style,
       ]}
       {...props}
     >

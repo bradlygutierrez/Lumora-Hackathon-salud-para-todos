@@ -1,0 +1,53 @@
+name: Health Staff CI
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - main
+    paths:
+      - "Frontend/lumora-health-staff/**"
+      - ".github/workflows/health-staff-ci.yml"
+
+jobs:
+  health-staff-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      EXPO_PUBLIC_API_URL: https://backend-3d83d7df.fastapicloud.dev
+      EXPO_PUBLIC_APP_ENV: test
+      EXPO_PUBLIC_ENABLE_UI_PREVIEW: "false"
+
+    defaults:
+      run:
+        working-directory: Frontend/lumora-health-staff
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: Frontend/lumora-health-staff/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit and integration tests
+        run: npm test -- --runInBand
+
+      - name: Export Expo web
+        run: npx expo export --platform web
+
+      - name: Public auth E2E smoke
+        run: npm run e2e:web:smoke

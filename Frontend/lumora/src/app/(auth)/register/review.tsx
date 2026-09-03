@@ -23,7 +23,7 @@ function Agreement({ checked, label, onPress }: AgreementProps) {
       accessibilityRole="checkbox"
       accessibilityState={{ checked }}
       onPress={onPress}
-      className="flex-row items-start gap-3"
+      className="min-h-12 flex-row items-start gap-3"
     >
       <View
         className={`mt-0.5 h-5 w-5 items-center justify-center rounded border border-lumen-500 ${
@@ -37,24 +37,40 @@ function Agreement({ checked, label, onPress }: AgreementProps) {
   );
 }
 
-/**
- * Paso 4 de 4.
- *
- * Esta es la PRIMERA pantalla que llama al backend. `buildRequest()` reúne
- * todos los pasos y FastAPI crea las entidades en una sola transacción.
- */
 export default function RegisterReviewRoute() {
+  const accountType = useRegistrationStore((state) => state.accountType);
   const account = useRegistrationStore((state) => state.account);
   const personal = useRegistrationStore((state) => state.personal);
   const emergency = useRegistrationStore((state) => state.emergency);
-  const buildRequest = useRegistrationStore((state) => state.buildRequest);
+  const buildPatientRequest = useRegistrationStore(
+    (state) => state.buildPatientRequest,
+  );
+  const buildCaregiverRequest = useRegistrationStore(
+    (state) => state.buildCaregiverRequest,
+  );
   const resetRegistration = useRegistrationStore((state) => state.reset);
 
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [acceptPrivacy, setAcceptPrivacy] = useState(false);
 
+  const registrationIsComplete =
+    accountType !== null &&
+    account !== null &&
+    personal !== null &&
+    (accountType === 'caregiver' || emergency !== null);
+
   const register = useMutation({
-    mutationFn: () => authApi.register(buildRequest(true, true)),
+    mutationFn: () => {
+      if (accountType === 'caregiver') {
+        return authApi.registerCaregiver(
+          buildCaregiverRequest(true, true),
+        );
+      }
+
+      return authApi.register(
+        buildPatientRequest(true, true),
+      );
+    },
     onSuccess: () => {
       const email = account?.email ?? '';
       resetRegistration();
@@ -65,11 +81,7 @@ export default function RegisterReviewRoute() {
     },
   });
 
-  /**
-   * Si el usuario llega por deep link o refresh sin pasos previos, no enviamos
-   * datos incompletos. Lo regresamos al inicio del wizard.
-   */
-  if (!account || !personal || !emergency) {
+  if (!registrationIsComplete || accountType === null || !account || !personal) {
     return (
       <Screen contentClassName="justify-center gap-4">
         <Text className="text-xl font-bold text-coal-900">
@@ -80,21 +92,33 @@ export default function RegisterReviewRoute() {
         </Text>
         <AppButton
           title="Volver a empezar"
-          onPress={() => router.replace('/(auth)/register/account')}
+          onPress={() => router.replace('/(auth)/register')}
         />
       </Screen>
     );
   }
 
+  const isCaregiver = accountType === 'caregiver';
+  const total = isCaregiver ? 3 : 4;
+
   return (
     <Screen scrollable contentClassName="gap-6">
       <AuthHeader
         title="Revisión y Confirmación"
-        subtitle="Revisa tus datos antes de crear la cuenta."
+        subtitle={
+          isCaregiver
+            ? 'Revisa los datos de tu cuenta cuidadora.'
+            : 'Revisa tus datos antes de crear la cuenta.'
+        }
       />
-      <RegistrationProgress step={4} />
+      <RegistrationProgress step={total} total={total} />
 
       <View className="gap-4 rounded-2xl bg-bone-300 p-4">
+        <Text className="font-bold text-coal-900">Tipo de cuenta</Text>
+        <Text className="leading-6 text-coal-700">
+          {isCaregiver ? 'Cuidador' : 'Paciente'}
+        </Text>
+
         <Text className="font-bold text-coal-900">Cuenta</Text>
         <Text className="leading-6 text-coal-700">
           {account.username}{'\n'}
@@ -109,14 +133,25 @@ export default function RegisterReviewRoute() {
           {personal.addressLine1}
         </Text>
 
-        <Text className="font-bold text-coal-900">
-          Contacto de emergencia
-        </Text>
-        <Text className="leading-6 text-coal-700">
-          {emergency.name}{'\n'}
-          {emergency.relationship}{'\n'}
-          {emergency.phone}
-        </Text>
+        {!isCaregiver && emergency ? (
+          <>
+            <Text className="font-bold text-coal-900">
+              Contacto de emergencia
+            </Text>
+            <Text className="leading-6 text-coal-700">
+              {emergency.name}{'\n'}
+              {emergency.relationship}{'\n'}
+              {emergency.phone}
+            </Text>
+          </>
+        ) : null}
+
+        {isCaregiver ? (
+          <Text className="text-sm leading-5 text-coal-500">
+            Tu cuenta no tendrá acceso a pacientes hasta que uno de ellos te
+            autorice como familiar/cuidador.
+          </Text>
+        ) : null}
       </View>
 
       <Agreement

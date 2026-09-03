@@ -25,6 +25,21 @@ describe('resolveLumoraRole', () => {
     ).toBe('caregiver');
   });
 
+  it('requires mode selection for Paciente + Cuidador', () => {
+    expect(
+      resolveLumoraRole([
+        {
+          id: 1,
+          nombre: 'Paciente',
+        },
+        {
+          id: 2,
+          nombre: 'Cuidador',
+        },
+      ]),
+    ).toBe('dual');
+  });
+
   it('rejects roles from another app', () => {
     expect(
       resolveLumoraRole([

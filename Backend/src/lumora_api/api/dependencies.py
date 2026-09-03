@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import Depends
+from fastapi import Depends, Request
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -9,6 +9,7 @@ from lumora_api.core.exceptions import AuthenticationError, PermissionDeniedErro
 from lumora_api.core.security import decode_access_claims
 from lumora_api.models import Usuario
 from lumora_api.repositories.auth_repository import AuthRepository
+from lumora_api.services.medical_authorization import ensure_active_medical_affiliation
 
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
 
@@ -53,3 +54,21 @@ def require_permission(permission_name: str):
         return current_user
 
     return dependency
+
+async def require_clinical_access(
+    request: Request, session: SessionDep, current_user: CurrentUser
+) -> Usuario:
+    permissions = {
+        permission.nombre
+        for role in current_user.roles
+        for permission in role.permisos
+    }
+    if "clinica:manage" not in permissions:
+        raise PermissionDeniedError("Clinical permission required")
+    if request.method in {"POST", "PUT", "PATCH", "DELETE"}:
+        await ensure_active_medical_affiliation(session, current_user)
+    return current_user
+
+async def require_active_clinician(session: SessionDep, current_user: CurrentUser) -> Usuario:
+    await ensure_active_medical_affiliation(session, current_user)
+    return current_user

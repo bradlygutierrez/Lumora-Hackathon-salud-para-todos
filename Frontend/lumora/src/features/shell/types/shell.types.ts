@@ -1,4 +1,12 @@
-export type LumoraRole = 'patient' | 'caregiver' | 'unsupported';
+export type LumoraRole =
+  | 'patient'
+  | 'caregiver'
+  | 'dual'
+  | 'unsupported';
+
+export type SelectableLumoraRole =
+  | 'patient'
+  | 'caregiver';
 
 export type ApiRole = {
   id: number;
@@ -49,7 +57,6 @@ export type PatientContext = {
   patientId: number;
   displayName: string;
   relationship: string | null;
-  /** Solo aplica a caregivers -- nivel de acceso otorgado por el paciente (A11). */
   accessLevel: string | null;
 };
 

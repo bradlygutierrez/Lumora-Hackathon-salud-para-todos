@@ -338,6 +338,22 @@ class PatientClinicalSummary(BaseModel):
     alertas: list[ClinicalAlertSummary]
 
 
+class PatientClinicalDocument(PatientClinicalSummary):
+    """A15/B15 -- representación documental exportable del expediente.
+
+    Envuelve exactamente las mismas secciones que PatientClinicalSummary
+    (misma fuente de datos, sin reglas nuevas) y le agrega los dos
+    metadatos que pide la tarjeta B15: cuándo se generó el documento y,
+    cuando exista, qué profesional lo generó (personal clínico actuando
+    sobre el paciente). Para un paciente o cuidador exportando su propio
+    expediente, autor queda en None -- no hay "profesional autor" de un
+    autoexport.
+    """
+
+    generado_en: datetime
+    autor: str | None = None
+
+
 class ClinicalTimelineItem(BaseModel):
     occurred_at: datetime
     tipo: str

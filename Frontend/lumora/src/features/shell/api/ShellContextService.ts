@@ -10,28 +10,16 @@ import type {
   CaregiverPatientLink,
   CurrentUser,
   PatientContext,
+  SelectableLumoraRole,
   ShellIdentity,
 } from '@/features/shell/types/shell.types';
 
-/**
- * Respuesta del endpoint seguro:
- *
- * GET /patients/me
- *
- * El backend resuelve el paciente utilizando
- * exclusivamente la identidad autenticada.
- */
 type OwnPatientContextResponse = {
   patient_id: number;
   first_names: string;
   last_names: string;
 };
 
-/**
- * Error específico para indicar que el backend
- * todavía no expone correctamente las relaciones
- * Caregiver -> Patient.
- */
 export class CaregiverRelationsUnavailableError
   extends Error {
   constructor() {
@@ -44,24 +32,7 @@ export class CaregiverRelationsUnavailableError
   }
 }
 
-/**
- * Servicio responsable de construir el contexto
- * de navegación privado de Lumora.
- *
- * Responsabilidades:
- *
- * 1. Resolver el usuario autenticado.
- * 2. Resolver su rol funcional.
- * 3. Resolver los pacientes permitidos.
- * 4. Entregar esa información al ShellBootstrap.
- *
- * Este servicio NO almacena datos clínicos.
- */
 export class ShellContextService {
-  /**
-   * Construye la identidad completa utilizada
-   * por el shell privado de la aplicación.
-   */
   public async loadIdentity():
     Promise<ShellIdentity> {
     const user =
@@ -74,50 +45,33 @@ export class ShellContextService {
         user.roles,
       );
 
-    /**
-     * Paciente:
-     *
-     * Su único contexto válido es su propio
-     * perfil de paciente.
-     */
     if (
       role ===
       'patient'
     ) {
-      const availablePatients =
-        await this.ownPatientContext();
-
       return {
         user,
         role,
-        availablePatients,
+        availablePatients:
+          await this.ownPatientContext(),
       };
     }
 
-    /**
-     * Cuidador:
-     *
-     * Puede tener uno o varios pacientes
-     * vinculados mediante relaciones activas.
-     */
     if (
       role ===
       'caregiver'
     ) {
-      const availablePatients =
-        await this
-          .caregiverPatientContexts();
-
       return {
         user,
         role,
-        availablePatients,
+        availablePatients:
+          await this.caregiverPatientContexts(),
       };
     }
 
     /**
-     * Roles fuera del alcance de la app
-     * Patient/Caregiver.
+     * En cuentas dual-role esperamos selección explícita.
+     * No consultamos ni mezclamos patientContext hasta saber el modo.
      */
     return {
       user,
@@ -126,33 +80,16 @@ export class ShellContextService {
     };
   }
 
-  /**
-   * Resuelve el patientContext del usuario
-   * autenticado cuando su rol es Paciente.
-   *
-   * IMPORTANTE:
-   *
-   * Anteriormente B09 hacía:
-   *
-   * GET /pacientes?limit=100
-   *
-   * y buscaba manualmente el paciente dentro
-   * de la lista completa.
-   *
-   * Eso ya no es válido porque el backend
-   * protege la enumeración de pacientes.
-   *
-   * El endpoint correcto es:
-   *
-   * GET /patients/me
-   *
-   * De esta manera:
-   *
-   * - no enumeramos otros pacientes;
-   * - evitamos 403;
-   * - no dependemos de persona.id;
-   * - dejamos al backend como fuente de verdad.
-   */
+  public async contextsForRole(
+    role: SelectableLumoraRole,
+  ): Promise<PatientContext[]> {
+    if (role === 'patient') {
+      return this.ownPatientContext();
+    }
+
+    return this.caregiverPatientContexts();
+  }
+
   private async ownPatientContext():
     Promise<PatientContext[]> {
     const patient =
@@ -179,20 +116,6 @@ export class ShellContextService {
     ];
   }
 
-  /**
-   * Obtiene todos los pacientes autorizados
-   * para el caregiver autenticado.
-   *
-   * Solo incluimos relaciones activas.
-   *
-   * La validación de autorización real continúa
-   * siendo responsabilidad del backend.
-   */
-  /**
-   * Público para que useCaregiverPatientsSync pueda re-consultarlo
-   * periódicamente (A12: detectar cuando un paciente revoca el acceso
-   * a mitad de sesión).
-   */
   public async caregiverPatientContexts():
     Promise<PatientContext[]> {
     try {
@@ -227,10 +150,6 @@ export class ShellContextService {
           }),
         );
     } catch (error) {
-      /**
-       * Normalizamos únicamente el caso donde
-       * el endpoint todavía no está disponible.
-       */
       const maybeStatus =
         typeof error ===
           'object' &&
@@ -253,11 +172,7 @@ export class ShellContextService {
       throw error;
     }
   }
-
 }
 
-/**
- * Singleton compartido por ShellBootstrap.
- */
 export const shellContextService =
   new ShellContextService();

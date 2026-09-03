@@ -1,10 +1,10 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from lumora_api.models import Cita, EstadoCita, ProfesionalSalud, HorarioProfesional, UbicacionAtencion
+from lumora_api.models import Cita, EstadoCita, ProfesionalSalud, HorarioProfesional, UbicacionAtencion, AfiliacionProfesional, AfiliacionMedica
 from lumora_api.models.identity import Persona
 
 
@@ -67,8 +67,15 @@ class AppointmentRepository:
                 select(ProfesionalSalud)
                 .join(Persona, Persona.id == ProfesionalSalud.persona_id)
                 .options(selectinload(ProfesionalSalud.persona))
+                .join(AfiliacionProfesional, AfiliacionProfesional.profesional_id == ProfesionalSalud.id).join(AfiliacionMedica, AfiliacionMedica.id == AfiliacionProfesional.afiliacion_id)
                 .where(
                     ProfesionalSalud.deleted_at.is_(None),
+                    ProfesionalSalud.licencia_verificada.is_(True),
+                    AfiliacionProfesional.activo.is_(True),
+                    AfiliacionMedica.estado == "active",
+                    (AfiliacionMedica.inicia_en.is_(None) | (AfiliacionMedica.inicia_en <= datetime.now(timezone.utc))),
+                    AfiliacionMedica.pago_estado == "paid",
+                    (AfiliacionMedica.expira_en.is_(None) | (AfiliacionMedica.expira_en > datetime.now(timezone.utc))),
                     Persona.deleted_at.is_(None),
                     *( [or_(func.lower(Persona.nombres).contains(search.lower()), func.lower(Persona.apellidos).contains(search.lower()))] if search else [] ),
                     *( [func.lower(ProfesionalSalud.especialidad).contains(specialty.lower())] if specialty else [] ),

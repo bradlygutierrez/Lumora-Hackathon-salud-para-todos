@@ -68,6 +68,17 @@ class IdentityService:
 
 
 class UserService(IdentityService):
+    async def create_admin(self, data: UserCreate) -> Usuario:
+        role = await self.repository.role_by_name('Administrador')
+        if role is None:
+            raise ResourceNotFoundError('El rol Administrador no está configurado')
+        person_values = data.persona.model_dump(exclude={'direcciones'})
+        person = Persona(**person_values)
+        person.direcciones = [Direccion(**address.model_dump()) for address in data.persona.direcciones]
+        user = await self.repository.create({'persona': person, 'email': str(data.email).lower(), 'username': data.username.lower(), 'password_hash': hash_password(data.password)})
+        user.roles = [role]
+        await _commit(self.repository, 'El correo o nombre de usuario ya existe')
+        return user
     resource_name = "Usuario"
 
     def __init__(self, repository: UserRepository) -> None:

@@ -1,4 +1,4 @@
-import { Link } from 'expo-router';
+import { Link, router } from 'expo-router';
 import { Text, View } from 'react-native';
 
 import { canManagePatientData } from '@/features/caregiver-access/utils/caregiver-permissions';
@@ -72,7 +72,13 @@ export default function MedicationRoute() {
 
   return (
     <Screen scrollable contentClassName="px-0 py-0">
-      <AppHeader title="Plan de Hoy" subtitle={formatPlanDate(planDate)} />
+      <AppHeader
+        title="Plan de Hoy"
+        subtitle={formatPlanDate(planDate)}
+        rightIcon="time-outline"
+        rightIconLabel="Ver recordatorios"
+        onRightIconPress={() => router.push('/(app)/reminders')}
+      />
 
       <View className="gap-6 px-4 py-4">
         {plan.totalCount > 0 ? (
@@ -119,25 +125,14 @@ export default function MedicationRoute() {
           </Link>
         ) : null}
 
-        {/* Entrada provisional a Alertas de Salud (A09): la entrada
-            "oficial" del Figma es desde el dashboard de "Mi Salud" que un
-            compañero está construyendo aparte, así que mientras esa
-            pantalla no la conecte se deja este acceso acá para poder
-            probar la feature. Quitar esta línea cuando "Mi Salud" conecte
-            su propio enlace.
+        {/* El acceso a Alertas de Salud (A09) ya vive en el tab "Mi
+            Salud" (ver app/(app)/(tabs)/health.tsx) -- el acceso
+            provisional que estaba aquí se quitó para no duplicarlo. */}
 
-            (Reemplaza el acceso provisional a Indicadores de Salud (A08):
-            ese ya no hace falta, "Mi Salud" ya tiene su propio tab
-            "Indicadores" -- ver app/(app)/(tabs)/health.tsx.) */}
-        <Link href="/(app)/health-alerts" asChild>
-          <AppButton title="Ver alertas de salud" variant="ghost" />
-        </Link>
-
-        {/* A10: acceso a "Recordatorios" (dosis + citas + seguimiento en
-            un solo tablero, agrupado Próximamente/Más tarde). */}
-        <Link href="/(app)/reminders" asChild>
-          <AppButton title="Ver recordatorios" variant="ghost" />
-        </Link>
+        {/* A10: acceso a "Recordatorios" ahora vive como ícono de
+            reloj en la esquina superior derecha del header (junto a
+            "Plan de Hoy"), para no competir con "Ver receta completa"
+            como acción principal de esta pantalla. */}
       </View>
     </Screen>
   );

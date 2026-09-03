@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query
 
-from lumora_api.api.dependencies import SessionDep, require_permission
+from lumora_api.api.dependencies import SessionDep, require_permission, require_clinical_access
 from lumora_api.api.v1.catalog_router import ERRORS
 from lumora_api.repositories.clinical_integration_repository import (
     ClinicalIntegrationRepository,
@@ -15,7 +15,7 @@ from lumora_api.services.clinical_integration_service import ClinicalIntegration
 
 router = APIRouter(
     tags=["Integración clínica"],
-    dependencies=[Depends(require_permission("clinica:manage"))],
+    dependencies=[Depends(require_clinical_access)],
 )
 
 

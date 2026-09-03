@@ -1,3 +1,4 @@
+import { Redirect } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { useAuthSession } from '@/src/features/auth/hooks/use-auth-session';
@@ -6,7 +7,11 @@ import { Screen } from '@/src/shared/components/Screen';
 import { theme } from '@/src/shared/constants/theme';
 
 export default function UnauthorizedScreen() {
-  const { signOut } = useAuthSession();
+  const { signOut, status } = useAuthSession();
+
+  if (status === 'anonymous') {
+    return <Redirect href="/(auth)/login" />;
+  }
 
   return (
     <Screen>
