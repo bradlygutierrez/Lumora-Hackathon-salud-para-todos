@@ -4,6 +4,10 @@ import { AppState, Text } from 'react-native';
 
 jest.mock('@expo/vector-icons', () => ({ Ionicons: () => null }));
 jest.mock('react-native', () => ({
+  Platform: {
+    OS: 'ios',
+    select: (specifics: Record<string, unknown>) => specifics.ios ?? specifics.native ?? specifics.default,
+  },
   AppState: { addEventListener: jest.fn() },
   StyleSheet: { flatten: (style: unknown) => style ?? {} },
   Text: 'Text',

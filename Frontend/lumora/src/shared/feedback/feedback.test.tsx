@@ -3,6 +3,10 @@ import { Alert, Pressable, Text } from 'react-native';
 
 jest.mock('@expo/vector-icons', () => ({ Ionicons: () => null }));
 jest.mock('react-native', () => ({
+  Platform: {
+    OS: 'ios',
+    select: (specifics: Record<string, unknown>) => specifics.ios ?? specifics.native ?? specifics.default,
+  },
   AccessibilityInfo: { announceForAccessibility: jest.fn() },
   Alert: { alert: jest.fn() },
   Pressable: 'Pressable',

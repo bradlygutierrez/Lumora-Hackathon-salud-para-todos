@@ -2,6 +2,10 @@ import { act, fireEvent, render } from '@testing-library/react-native';
 
 jest.mock('@expo/vector-icons', () => ({ Ionicons: () => null }));
 jest.mock('react-native', () => ({
+  Platform: {
+    OS: 'ios',
+    select: (specifics: Record<string, unknown>) => specifics.ios ?? specifics.native ?? specifics.default,
+  },
   Pressable: 'Pressable',
   StyleSheet: { flatten: (style: unknown) => style ?? {} },
   Text: 'Text',
