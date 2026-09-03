@@ -64,6 +64,8 @@ def require_any_permission(*permission_names: str):
         if not permissions.intersection(permission_names):
             raise PermissionDeniedError("No tiene permiso para realizar esta acciÃ³n")
         return current_user
+    return dependency
+
 async def require_clinical_access(
     request: Request, session: SessionDep, current_user: CurrentUser
 ) -> Usuario:
