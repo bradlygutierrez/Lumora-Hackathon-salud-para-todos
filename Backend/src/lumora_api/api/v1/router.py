@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from lumora_api.api.v1 import (
     account,
+    api_clients,
     appointments,
     auth,
     cargos_salud,
@@ -54,6 +55,7 @@ from lumora_api.api.v1 import (
 
 api_router = APIRouter()
 api_router.include_router(account.router)
+api_router.include_router(api_clients.router)
 api_router.include_router(medical_affiliations.router)
 api_router.include_router(roles.router)
 api_router.include_router(permisos.router)

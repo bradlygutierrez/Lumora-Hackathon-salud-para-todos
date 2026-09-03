@@ -1,5 +1,6 @@
 from lumora_api.models.appointments import Cita, EventoAuditoria, HorarioProfesional, UbicacionAtencion
 from lumora_api.models.affiliations import AfiliacionMedica, AfiliacionProfesional
+from lumora_api.models.api_clients import ClaveApiCliente, ClienteApi
 from lumora_api.models.auth import (
     IntentoInicioSesion,
     SesionUsuario,
@@ -137,6 +138,8 @@ __all__ = [
     "UbicacionAtencion",
     "AfiliacionMedica",
     "AfiliacionProfesional",
+    "ClaveApiCliente",
+    "ClienteApi",
     "Medicamento",
     "Receta",
     "DetalleReceta",

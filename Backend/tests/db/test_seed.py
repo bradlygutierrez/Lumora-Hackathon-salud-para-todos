@@ -13,7 +13,7 @@ async def test_seed_loads_all_catalogs_and_is_idempotent(session_factory, monkey
 
     async with session_factory() as session:
         assert await session.scalar(select(func.count()).select_from(Rol)) == 4
-        assert await session.scalar(select(func.count()).select_from(Permiso)) == 5
+        assert await session.scalar(select(func.count()).select_from(Permiso)) == 6
         assert await session.scalar(select(func.count()).select_from(EstadoCita)) == 4
         assert await session.scalar(select(func.count()).select_from(TipoCita)) == 2
         assert await session.scalar(select(func.count()).select_from(Sexo)) == 4
@@ -25,6 +25,7 @@ async def test_seed_loads_all_catalogs_and_is_idempotent(session_factory, monkey
             "rbac:manage",
             "clinica:manage",
             "afiliaciones:manage",
+            "sistema:clientes",
         }
         assert await session.scalar(select(Especialidad).where(Especialidad.nombre == "Cardiolog\u00eda")) is not None
         assert await session.scalar(select(CargoSalud).where(CargoSalud.nombre == "M\u00e9dico general")) is not None
