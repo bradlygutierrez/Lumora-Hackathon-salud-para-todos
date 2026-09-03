@@ -38,6 +38,40 @@ class Settings(BaseSettings):
     profile_image_dir: str = "storage/profile-images"
     profile_image_base_url: str = "/media/profile-images"
 
+    # I04 -- almacenamiento durable de imágenes de perfil. "local" (default)
+    # usa el filesystem (solo para desarrollo, ver LocalProfileImageStorage);
+    # "r2"/"b2" usan Cloudflare R2 / Backblaze B2 vía su API S3-compatible
+    # (ver S3CompatibleProfileImageStorage). Nunca se comitean credenciales
+    # -- todo esto llega por variables de entorno/secret manager del hosting.
+    profile_image_storage_provider: Literal["local", "r2", "b2"] = "local"
+    r2_account_id: str = ""
+    r2_access_key_id: str = ""
+    r2_secret_access_key: SecretStr = SecretStr("")
+    r2_bucket_name: str = ""
+    # URL pública desde la que se sirven los objetos del bucket (dominio
+    # propio conectado al bucket, o el *.r2.dev público habilitado en
+    # Cloudflare). Sin "/" al final.
+    r2_public_base_url: str = ""
+
+    # Backblaze B2 (alternativa a R2 -- no exige tarjeta para la cuenta en
+    # sí, solo si se quiere el bucket público, ver más abajo). key_id/
+    # application_key son el equivalente de access key id/secret de B2 (se
+    # generan en "App Keys" del bucket). region es el sufijo de B2 (ej.
+    # "us-west-004", visible en el detalle del bucket) usado para construir
+    # el endpoint https://s3.<region>.backblazeb2.com.
+    b2_key_id: str = ""
+    b2_application_key: SecretStr = SecretStr("")
+    b2_bucket_name: str = ""
+    b2_region: str = ""
+    # Base URL desde la que la app pide las imágenes. Si el bucket es
+    # público, apunta directo al proveedor (dominio propio, o el público
+    # de R2/B2). Si el bucket es privado (B2 sin tarjeta -- hacerlo público
+    # exige historial de pagos o una tarifa única, ver api/media.py), apunta
+    # a este mismo backend (ej. https://<host>/media/profile-images) y es
+    # media_router quien descarga el objeto con credenciales privadas. Sin
+    # "/" al final.
+    b2_public_base_url: str = ""
+
     @model_validator(mode="after")
     def validate_jwt_secret(self) -> "Settings":
         if not self.jwt_secret:
@@ -46,6 +80,48 @@ class Settings(BaseSettings):
             self.jwt_secret = secrets.token_urlsafe(48)
         if len(self.jwt_secret) < 32:
             raise ValueError("JWT_SECRET debe tener al menos 32 caracteres")
+        return self
+
+    @model_validator(mode="after")
+    def validate_r2_storage_config(self) -> "Settings":
+        if self.profile_image_storage_provider != "r2":
+            return self
+        missing = [
+            name
+            for name, value in (
+                ("R2_ACCOUNT_ID", self.r2_account_id),
+                ("R2_ACCESS_KEY_ID", self.r2_access_key_id),
+                ("R2_SECRET_ACCESS_KEY", self.r2_secret_access_key.get_secret_value()),
+                ("R2_BUCKET_NAME", self.r2_bucket_name),
+                ("R2_PUBLIC_BASE_URL", self.r2_public_base_url),
+            )
+            if not value
+        ]
+        if missing:
+            raise ValueError(
+                "PROFILE_IMAGE_STORAGE_PROVIDER=r2 requiere: " + ", ".join(missing)
+            )
+        return self
+
+    @model_validator(mode="after")
+    def validate_b2_storage_config(self) -> "Settings":
+        if self.profile_image_storage_provider != "b2":
+            return self
+        missing = [
+            name
+            for name, value in (
+                ("B2_KEY_ID", self.b2_key_id),
+                ("B2_APPLICATION_KEY", self.b2_application_key.get_secret_value()),
+                ("B2_BUCKET_NAME", self.b2_bucket_name),
+                ("B2_REGION", self.b2_region),
+                ("B2_PUBLIC_BASE_URL", self.b2_public_base_url),
+            )
+            if not value
+        ]
+        if missing:
+            raise ValueError(
+                "PROFILE_IMAGE_STORAGE_PROVIDER=b2 requiere: " + ", ".join(missing)
+            )
         return self
 
     @field_validator("database_url")
