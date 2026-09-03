@@ -27,6 +27,21 @@ async def list_users(
     return Page(items=items, total=total, limit=limit, offset=offset)
 
 
+@router.get(
+    "/admins",
+    response_model=Page[UserRead],
+    summary="Listar administradores",
+    dependencies=[Depends(require_any_permission("usuarios:editar", "afiliaciones:manage"))],
+)
+async def list_admins(
+    session: SessionDep,
+    limit: int = Query(100, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+):
+    items, total = await UserService(UserRepository(session)).list_admins(limit, offset)
+    return Page(items=items, total=total, limit=limit, offset=offset)
+
+
 @router.post(
     "",
     response_model=UserRead,
