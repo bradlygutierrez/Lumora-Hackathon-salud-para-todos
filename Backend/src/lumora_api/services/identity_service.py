@@ -68,6 +68,9 @@ class IdentityService:
 
 
 class UserService(IdentityService):
+    async def list_admins(self, limit: int, offset: int):
+        return await self.repository.list_admins(limit, offset)
+
     async def create_admin(self, data: UserCreate) -> Usuario:
         role = await self.repository.role_by_name('Administrador')
         if role is None:
