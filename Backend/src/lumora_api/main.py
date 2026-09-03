@@ -2,9 +2,11 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy import text
 from urllib.parse import urlencode
 from html import escape
 
+from lumora_api.api.dependencies import SessionDep
 from lumora_api.api.v1.router import api_router
 from lumora_api.api.media import router as media_router
 from lumora_api.api.middleware import RequestContextMiddleware, get_request_id
@@ -134,6 +136,23 @@ async def global_exception_handler(request: Request | None, error: Exception) ->
 @app.get("/", tags=["Health"], summary="Comprobar estado de la API")
 async def root() -> dict[str, str]:
     return {"message": "Lumora API"}
+
+
+@app.get(
+    "/healthz",
+    tags=["Health"],
+    summary="Readiness check para el balanceador de carga",
+    include_in_schema=False,
+)
+async def healthz(session: SessionDep) -> JSONResponse:
+    # Liviano a propósito: solo confirma que esta réplica puede hablar con
+    # PostgreSQL/Neon (compartido entre réplicas). Sin autenticación -- el
+    # balanceador/health check del hosting no manda credenciales.
+    try:
+        await session.execute(text("SELECT 1"))
+    except Exception:
+        return JSONResponse(status_code=503, content={"status": "unavailable"})
+    return JSONResponse(status_code=200, content={"status": "ok"})
 
 
 @app.get("/reset-password", include_in_schema=False, response_class=HTMLResponse)
