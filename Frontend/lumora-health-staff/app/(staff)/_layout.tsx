@@ -46,6 +46,14 @@ export default function StaffLayout() {
       }}
     >
       <Tabs.Screen
+        name='administration'
+        options={{
+          title: 'Administración',
+          href: permissions.has('rbac:manage') ? undefined : null,
+          tabBarIcon: ({ color, size }) => <Ionicons color={color} name='shield-outline' size={size} />,
+        }}
+      />
+      <Tabs.Screen
         name="index"
         options={{
           title: 'Panel',

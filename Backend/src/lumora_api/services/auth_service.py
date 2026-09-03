@@ -332,6 +332,12 @@ class AuthService:
             logger.exception("Password recovery email delivery failed for user_id=%s", user.id)
         return raw_token
 
+    async def create_recovery_for_user(self, user_id: int) -> None:
+        user = await self.repository.user_by_id(user_id)
+        if user is None:
+            raise ResourceNotFoundError('Usuario no existe')
+        await self.create_recovery(user.email)
+
     async def reset_password(self, raw_token: str, new_password: str) -> None:
         validate_password_policy(new_password)
         token = await self.repository.recovery_by_hash(hash_token(raw_token))
