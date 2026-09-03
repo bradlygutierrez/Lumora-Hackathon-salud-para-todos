@@ -22,6 +22,13 @@ class ApiClientRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class ApiClientSelfRead(BaseModel):
+    client_id: str
+    nombre: str
+    activo: bool
+    model_config = ConfigDict(from_attributes=True)
+
+
 class ApiClientKeyRead(BaseModel):
     id: int
     key_prefix: str
