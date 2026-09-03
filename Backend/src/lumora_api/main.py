@@ -7,10 +7,13 @@ from html import escape
 
 from lumora_api.api.v1.router import api_router
 from lumora_api.api.media import router as media_router
+from lumora_api.api.middleware import RequestContextMiddleware, get_request_id
 from lumora_api.core.config import get_settings
 from lumora_api.core.exceptions import DomainError
+from lumora_api.core.logging import configure_logging, logger
 
 settings = get_settings()
+configure_logging()
 OPENAPI_TAGS = [
     {"name": "Health", "description": "Estado del servicio."},
     {"name": "Autenticación", "description": "Login, sesiones y recuperación de cuenta."},
@@ -77,6 +80,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# Outermost: agrega/propaga el request ID antes que cualquier otra
+# capa, y ve la respuesta final (incluyendo headers de CORS) para el
+# log de cierre de la petición.
+app.add_middleware(RequestContextMiddleware)
 # I04 -- en modo "local" (desarrollo) las imágenes se sirven desde el
 # filesystem propio via StaticFiles. En modo r2/b2, si el bucket del
 # proveedor es público (r2_public_base_url/b2_public_base_url apunta
@@ -107,10 +114,12 @@ async def domain_error_handler(_: Request, error: DomainError) -> JSONResponse:
 
 
 @app.exception_handler(Exception)
-async def global_exception_handler(_: Request, error: Exception) -> JSONResponse:
-    # TODO(debug-temporal): quitar una vez resuelto el bug de 500 en recordatorios.
-    import traceback
-    traceback.print_exception(type(error), error, error.__traceback__)
+async def global_exception_handler(request: Request | None, error: Exception) -> JSONResponse:
+    logger.error(
+        "unhandled exception",
+        exc_info=error,
+        extra={"request_id": get_request_id(request) if request is not None else None},
+    )
     return JSONResponse(
         status_code=500,
         content={
