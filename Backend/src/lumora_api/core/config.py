@@ -38,6 +38,16 @@ class Settings(BaseSettings):
     profile_image_dir: str = "storage/profile-images"
     profile_image_base_url: str = "/media/profile-images"
 
+    # I03 -- clave de API maestra fija, configurada por variable de entorno.
+    # Vacía por defecto (deshabilitada): identify_api_client solo la acepta
+    # si tiene un valor. No pasa por la tabla clientes_api/claves_api_cliente
+    # ni por hash -- es un atajo de configuración, no reemplaza el flujo de
+    # clientes/claves rotables emitidas por /clientes-api. No commitear un
+    # valor real; generarla con algo como `python -c "import secrets;
+    # print(secrets.token_urlsafe(32))"` y cargarla solo por env var/secret
+    # manager del hosting.
+    api_master_key: SecretStr = SecretStr("")
+
     # I04 -- almacenamiento durable de imágenes de perfil. "local" (default)
     # usa el filesystem (solo para desarrollo, ver LocalProfileImageStorage);
     # "r2"/"b2" usan Cloudflare R2 / Backblaze B2 vía su API S3-compatible
