@@ -1,3 +1,4 @@
+import secrets
 from typing import Annotated
 
 from fastapi import Depends, Request
@@ -5,6 +6,7 @@ from fastapi.security import APIKeyHeader, OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from lumora_api.db.session import get_session
+from lumora_api.core.config import get_settings
 from lumora_api.core.exceptions import AuthenticationError, PermissionDeniedError
 from lumora_api.core.security import decode_access_claims
 from lumora_api.models import ClienteApi, Usuario
@@ -87,11 +89,20 @@ async def require_active_clinician(session: SessionDep, current_user: CurrentUse
     return current_user
 
 
+def _matches_master_key(api_key: str) -> bool:
+    master_key = get_settings().api_master_key.get_secret_value()
+    if not master_key:
+        return False
+    return secrets.compare_digest(api_key, master_key)
+
+
 async def identify_api_client(
     session: SessionDep, api_key: Annotated[str | None, Depends(api_key_header)]
 ) -> ClienteApi:
     if not api_key:
         raise AuthenticationError("Falta la cabecera X-API-Key")
+    if _matches_master_key(api_key):
+        return ClienteApi(client_id="master", nombre="Clave maestra (configuración)", activo=True)
     client = await ApiClientService(ApiClientRepository(session)).resolve(api_key)
     if client is None:
         raise AuthenticationError("Clave de API inválida o inactiva")
