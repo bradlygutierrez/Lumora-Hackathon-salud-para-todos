@@ -38,12 +38,51 @@ remain at POST /auth/change-password.
 - DELETE /account/me/profile-image clears the image and returns a null
   profile_image_url.
 
-The development adapter stores unique names in PROFILE_IMAGE_DIR, defaulting
-to storage/profile-images, and serves PROFILE_IMAGE_BASE_URL, defaulting to
-/media/profile-images. Original filenames are ignored. This local filesystem
-is not production-durable. Production must supply a durable object-storage
-adapter and public URL configuration; no provider or cloud credentials are
-bundled. Tests use in-memory storage without network access.
+PROFILE_IMAGE_STORAGE_PROVIDER selects the adapter, defaulting to "local"
+for development: it stores unique names in PROFILE_IMAGE_DIR (default
+storage/profile-images) and serves them under PROFILE_IMAGE_BASE_URL
+(default /media/profile-images). This filesystem is per-replica and is
+lost on redeploys/restarts -- it is not production-durable (I04).
+
+Setting it to "r2" or "b2" switches to Cloudflare R2 / Backblaze B2
+through the same S3-compatible API (S3CompatibleProfileImageStorage in
+profile_image_storage.py), so an image uploaded through any replica is
+immediately servable from every other replica and survives redeploys.
+"r2" requires R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY,
+R2_BUCKET_NAME, and R2_PUBLIC_BASE_URL; "b2" requires B2_KEY_ID,
+B2_APPLICATION_KEY, B2_BUCKET_NAME, B2_REGION, and B2_PUBLIC_BASE_URL --
+Settings fails fast at startup if any of the selected provider's
+variables is missing. No provider credentials are bundled in the repo;
+they are supplied only per-environment/secret manager. In "r2"/"b2" mode
+the local StaticFiles mount is skipped entirely.
+
+*_PUBLIC_BASE_URL has two valid shapes, and both work with the exact
+same adapter code. If the bucket is public (a custom domain, or the
+provider's own public dev URL), point it directly at the provider --
+images are served straight from there, never touching this backend. If
+the bucket is private (e.g. Backblaze B2 without adding a credit card:
+making a B2 bucket public requires either payment history on file or a
+one-time verification fee, which a project may reasonably want to
+avoid), point it at this backend's own origin instead
+(https://<host>/media/profile-images) -- api/media.py mounts a router
+under that exact path (only when the provider isn't "local") that
+downloads the object using the backend's own private credentials via
+ProfileImageStorage.read() and streams it back, so the bucket itself
+never needs public access. Deciding which shape to use is purely a
+config choice (what URL ops puts in *_PUBLIC_BASE_URL); no code branches
+on it.
+
+In all modes, filenames are generated server-side (token_urlsafe); the
+original uploaded filename is never used as or derived into a path.
+Deleting or replacing an image removes the old object from storage so no
+stale reference is left behind (see AccountService.set_image/delete_image).
+
+Tests use in-memory/fake storage without network access -- the existing
+MemoryImageStorage fake at the AccountService/route level, a FakeS3Client
+fake for the S3-compatible adapter's own contract tests (save/delete/
+read), and route-level tests for GET /media/profile-images/{filename}
+(found, not-found, and path-traversal-style filenames) with a fake
+storage swapped in via dependency override.
 
 ## Patient-scoped B11 data
 

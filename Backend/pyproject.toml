@@ -16,6 +16,7 @@ dependencies = [
     "pyotp>=2.10.0",
     "reportlab>=5.0.1",
     "sqlalchemy>=2.0.52",
+    "boto3>=1.40.0",
 ]
 
 [tool.fastapi]

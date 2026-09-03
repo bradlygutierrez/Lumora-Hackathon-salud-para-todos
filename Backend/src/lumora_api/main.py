@@ -6,6 +6,7 @@ from urllib.parse import urlencode
 from html import escape
 
 from lumora_api.api.v1.router import api_router
+from lumora_api.api.media import router as media_router
 from lumora_api.core.config import get_settings
 from lumora_api.core.exceptions import DomainError
 
@@ -59,6 +60,7 @@ OPENAPI_TAGS = [
     {"name": "Tipos de recordatorio", "description": "Catálogo de recordatorios."},
     {"name": "Tipos de relación", "description": "Catálogo de relaciones entre pacientes."},
     {"name": "Cuidadores", "description": "Contextos autorizados."},
+    {"name": "Media", "description": "Servir archivos almacenados (imágenes de perfil) cuando el bucket del proveedor es privado."},
     {"name": "Salud del paciente", "description": "Resumen de salud para pacientes y cuidadores."},
 ]
 app = FastAPI(
@@ -74,11 +76,24 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.mount(
-    settings.profile_image_base_url,
-    StaticFiles(directory=settings.profile_image_dir, check_dir=False),
-    name="profile-images",
-)
+# I04 -- en modo "local" (desarrollo) las imágenes se sirven desde el
+# filesystem propio via StaticFiles. En modo r2/b2, si el bucket del
+# proveedor es público (r2_public_base_url/b2_public_base_url apunta
+# directo al proveedor) tampoco hace falta nada acá -- el navegador pide
+# la imagen directo al proveedor. Pero si el bucket es privado (ej.
+# Backblaze B2 sin tarjeta -- ver media.py), *_public_base_url apunta a
+# este mismo backend, y es media_router quien descarga el objeto con
+# credenciales privadas y lo sirve. Se monta siempre que el provider no
+# sea "local" -- no hace daño si el bucket resulta ser público, ese
+# router simplemente no se usaría en ese caso.
+if settings.profile_image_storage_provider == "local":
+    app.mount(
+        settings.profile_image_base_url,
+        StaticFiles(directory=settings.profile_image_dir, check_dir=False),
+        name="profile-images",
+    )
+else:
+    app.include_router(media_router)
 app.include_router(api_router, prefix=settings.api_v1_prefix)
 
 

@@ -1,12 +1,11 @@
 from fastapi import APIRouter, File, UploadFile, status
 
 from lumora_api.api.dependencies import CurrentUser, SessionDep
-from lumora_api.core.config import get_settings
 from lumora_api.core.exceptions import ValidationError
 from lumora_api.schemas.account import AccountRead, AccountUpdate, ProfileImageRead
 from lumora_api.services.account_service import AccountService
 from lumora_api.repositories.account_repository import AccountRepository
-from lumora_api.services.profile_image_storage import LocalProfileImageStorage
+from lumora_api.services.profile_image_storage import get_profile_image_storage
 
 
 router = APIRouter(prefix="/account", tags=["Cuenta"])
@@ -15,11 +14,7 @@ IMAGE_TYPES = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp"}
 
 
 def service(session: SessionDep) -> AccountService:
-    settings = get_settings()
-    return AccountService(
-        AccountRepository(session),
-        LocalProfileImageStorage(settings.profile_image_dir, settings.profile_image_base_url),
-    )
+    return AccountService(AccountRepository(session), get_profile_image_storage())
 
 
 @router.get("/me", response_model=AccountRead)
