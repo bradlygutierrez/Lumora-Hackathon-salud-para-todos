@@ -181,7 +181,7 @@ export default function SecurityCenterScreen() {
 
         <SectionCard icon="keypad-outline" title="Contraseña">
           <Text style={styles.description}>
-            Al cambiarla, FastAPI conserva la sesión actual y revoca las demás sesiones activas.
+            Al cambiarla, se conserva la sesión actual y se revocan las demás sesiones activas.
           </Text>
           <TextField
             label="Contraseña actual"
@@ -218,7 +218,7 @@ export default function SecurityCenterScreen() {
           {methods.isLoading ? <LoadingState title="Cargando MFA" /> : null}
           {methods.isError ? <ErrorState title="No se pudo cargar MFA" /> : null}
           {!methods.isLoading && !methods.isError && methods.data?.length === 0 ? (
-            <EmptyState title="MFA no disponible" message="FastAPI no anunció métodos MFA para esta cuenta." />
+            <EmptyState title="MFA no disponible" message="No hay métodos de MFA disponibles para esta cuenta." />
           ) : null}
 
           {methods.data?.map((method) => (
@@ -297,7 +297,7 @@ export default function SecurityCenterScreen() {
                 <View style={styles.methodText}>
                   <Text style={styles.recoveryTitle}>MFA activado</Text>
                   <Text style={styles.methodMeta}>
-                    Guarda estos códigos de recuperación ahora. FastAPI solo los entrega al activar el método.
+                    Guardá estos códigos de recuperación ahora. Solo se muestran al activar el método.
                   </Text>
                 </View>
               </View>

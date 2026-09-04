@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
+from sqlalchemy.exc import TimeoutError as PoolTimeoutError
 from urllib.parse import urlencode
 from html import escape
 
@@ -112,6 +113,31 @@ async def domain_error_handler(_: Request, error: DomainError) -> JSONResponse:
     return JSONResponse(
         status_code=error.status_code,
         content={"error": {"code": error.code, "message": error.message}},
+    )
+
+
+# I06 -- el pool de conexiones tiene un limite explicito (ver
+# core/config.py). Si se agota (todas las conexiones del pool_size +
+# max_overflow ocupadas) SQLAlchemy espera como maximo db_pool_timeout_seconds
+# y despues lanza sqlalchemy.exc.TimeoutError -- nunca se queda esperando
+# indefinidamente. Sin este handler, ese error caeria en el generico de
+# abajo (500 "error interno"); aca se distingue con su propio log y un 503
+# (el cliente puede reintentar) en vez de un 500 generico.
+@app.exception_handler(PoolTimeoutError)
+async def pool_timeout_handler(request: Request, error: PoolTimeoutError) -> JSONResponse:
+    logger.error(
+        "database pool exhausted",
+        exc_info=error,
+        extra={"request_id": get_request_id(request)},
+    )
+    return JSONResponse(
+        status_code=503,
+        content={
+            "error": {
+                "code": "database_unavailable",
+                "message": "El servicio está saturado en este momento, intentá de nuevo en unos segundos",
+            }
+        },
     )
 
 

@@ -100,7 +100,7 @@ export function DisabilitiesScreen({ patientId, recordId }: { patientId: number;
       onNext={() => setOffset((current) => current + LIMIT)}
       onPrevious={() => setOffset((current) => Math.max(0, current - LIMIT))}
       rows={rows}
-      subtitle="Discapacidades registradas para el paciente con estado clínico controlado por FastAPI."
+      subtitle="Discapacidades registradas para el paciente, con estado clínico actualizado."
       title="Discapacidades del Paciente"
       total={disabilities.data?.total ?? 0}
     />

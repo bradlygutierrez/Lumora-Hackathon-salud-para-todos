@@ -22,9 +22,11 @@ export async function uploadProfileImage(
 ): Promise<ProfileImageResponse> {
   const body = new FormData();
   body.append('file', { uri, type: mimeType, name: fileName } as unknown as Blob);
-  const response = await apiClient.post<ProfileImageResponse>('/account/me/profile-image', body, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
+  // No fuerces el header Content-Type acá: axios/RN necesitan generarlo
+  // ellos mismos para un FormData, porque incluye el "boundary" que separa
+  // las partes del multipart. Un Content-Type fijo sin boundary rompe el
+  // parseo en el backend y siempre devuelve 422.
+  const response = await apiClient.post<ProfileImageResponse>('/account/me/profile-image', body);
   return response.data;
 }
 

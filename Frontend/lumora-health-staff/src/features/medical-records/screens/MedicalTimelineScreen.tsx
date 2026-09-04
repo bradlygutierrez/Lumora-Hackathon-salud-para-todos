@@ -182,7 +182,7 @@ export function MedicalTimelineScreen({
             <Text style={styles.eyebrow}>EXPEDIENTE #{recordId}</Text>
             <Text style={styles.title}>Línea de Tiempo Médica</Text>
             <Text style={styles.subtitle}>
-              Eventos clínicos ordenados cronológicamente desde FastAPI.
+              Eventos clínicos ordenados cronológicamente.
             </Text>
           </View>
         </View>

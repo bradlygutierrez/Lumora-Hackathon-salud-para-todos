@@ -24,9 +24,10 @@ if (!app) {
 }
 
 const portal = new PortalApp(app)
-if (window.location.hash.startsWith('#/afiliaciones')) void portal.start()
+const isPortalRoute = (hash: string): boolean => hash.startsWith('#/afiliaciones') || ['#/cuentas', '#/pacientes', '#/medicos'].includes(hash)
+if (isPortalRoute(window.location.hash)) void portal.start()
 else renderLanding(app)
 window.addEventListener('hashchange', () => {
-  if (window.location.hash.startsWith('#/afiliaciones')) void portal.start()
+  if (isPortalRoute(window.location.hash)) void portal.start()
   else renderLanding(app)
 })

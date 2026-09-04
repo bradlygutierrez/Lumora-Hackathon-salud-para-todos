@@ -106,7 +106,7 @@ export function MedicalHistoryEntriesScreen({
       onNext={() => setOffset((current) => current + LIMIT)}
       onPrevious={() => setOffset((current) => Math.max(0, current - LIMIT))}
       rows={rows}
-      subtitle="Antecedentes estructurados del expediente, clasificados por tipo desde FastAPI."
+      subtitle="Antecedentes estructurados del expediente, clasificados por tipo."
       title="Historial Médico"
       total={history.data?.total ?? 0}
     />

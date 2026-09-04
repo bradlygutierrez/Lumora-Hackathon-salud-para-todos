@@ -447,7 +447,7 @@ export function PrescriptionDetailScreen({
                   <View accessibilityRole="alert" style={styles.deleteConfirmation}>
                     <Text style={styles.deleteTitle}>Eliminar medicamento de la receta</Text>
                     <Text style={styles.deleteMessage}>
-                      FastAPI eliminará este detalle de receta. La receta principal se conserva.
+                      Se eliminará este detalle de receta. La receta principal se conserva.
                     </Text>
                     <View style={styles.deleteActions}>
                       <Button

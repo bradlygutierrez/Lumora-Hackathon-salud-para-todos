@@ -36,7 +36,7 @@ export function structuredHistoryErrorMessage(error: unknown, action: string) {
     return apiError.message;
   }
   if (apiError.code === 'validation_error') {
-    return 'FastAPI rechazó uno o más datos. Revisá el formulario.';
+    return 'El servidor rechazó uno o más datos. Revisá el formulario.';
   }
   return apiError.message;
 }

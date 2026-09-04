@@ -111,7 +111,7 @@ export function MedicalHistoryFormScreen({
     return (
       <ErrorState
         title="Tipos no disponibles"
-        message="No se pudo cargar el catálogo de tipos de antecedente desde FastAPI."
+        message="No se pudo cargar el catálogo de tipos de antecedente."
       />
     );
   }
