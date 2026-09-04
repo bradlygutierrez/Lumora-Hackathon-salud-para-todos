@@ -97,7 +97,7 @@ async def registrar_medicion(
     # valor que mande el cliente (mismo criterio que
     # schedules.py::create_dosis_log con responsable_id).
     data.registrado_por_id = current_user.id
-    return await HealthIndicatorsService.registrar_medicion(session, paciente_id, data)
+    return await HealthIndicatorsService.registrar_medicion(session, paciente_id, data, current_user)
 
 
 @router.get(
@@ -155,4 +155,4 @@ async def atender_alerta(
     # Mismo criterio que registrado_por_id: quien atiende la alerta es
     # siempre el usuario autenticado, no un valor que mande el cliente.
     data.atendida_por_id = current_user.id
-    return await HealthIndicatorsService.atender_alerta(session, alerta_id, data)
+    return await HealthIndicatorsService.atender_alerta(session, alerta_id, data, current_user)

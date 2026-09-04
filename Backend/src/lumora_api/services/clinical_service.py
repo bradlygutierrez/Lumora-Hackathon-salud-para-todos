@@ -12,8 +12,13 @@ from lumora_api.models import (
     NivelSeveridad,
     Paciente,
     TipoAntecedente,
+    Usuario,
 )
 from lumora_api.repositories.clinical_repository import ClinicalRepository
+from lumora_api.services.authorization import (
+    ensure_patient_is_assigned_to_professional,
+    resolve_current_professional,
+)
 
 
 async def _commit(repository: ClinicalRepository, message: str) -> None:
@@ -102,8 +107,17 @@ class MedicalHistoryService(ClinicalService):
             raise ResourceNotFoundError(f"Antecedente médico con id {history_id} no existe")
         return item
 
-    async def create_for_record(self, record_id: int, data: BaseModel) -> AntecedenteMedico:
-        await self._record(record_id)
+    async def _ensure_assigned(self, current_user: Usuario, record: Expediente) -> None:
+        professional = await resolve_current_professional(self.repository.session, current_user)
+        await ensure_patient_is_assigned_to_professional(
+            self.repository.session, professional.id, record.paciente_id
+        )
+
+    async def create_for_record(
+        self, record_id: int, data: BaseModel, current_user: Usuario
+    ) -> AntecedenteMedico:
+        record = await self._record(record_id)
+        await self._ensure_assigned(current_user, record)
         await self._require_catalog(
             TipoAntecedente, data.tipo_antecedente_id, "Tipo de antecedente"
         )
@@ -118,9 +132,11 @@ class MedicalHistoryService(ClinicalService):
         return item
 
     async def update_for_record(
-        self, record_id: int, history_id: int, data: BaseModel
+        self, record_id: int, history_id: int, data: BaseModel, current_user: Usuario
     ) -> AntecedenteMedico:
         item = await self.get_for_record(record_id, history_id)
+        record = await self._record(record_id)
+        await self._ensure_assigned(current_user, record)
         values = data.model_dump(exclude_unset=True)
         await self._require_catalog(
             TipoAntecedente, values.get("tipo_antecedente_id"), "Tipo de antecedente"
@@ -135,8 +151,13 @@ class MedicalHistoryService(ClinicalService):
         await self.repository.session.commit()
         return item
 
-    async def delete_for_record(self, record_id: int, history_id: int) -> None:
-        await self.repository.soft_delete(await self.get_for_record(record_id, history_id))
+    async def delete_for_record(
+        self, record_id: int, history_id: int, current_user: Usuario
+    ) -> None:
+        item = await self.get_for_record(record_id, history_id)
+        record = await self._record(record_id)
+        await self._ensure_assigned(current_user, record)
+        await self.repository.soft_delete(item)
         await self.repository.session.commit()
 
 
@@ -162,8 +183,15 @@ class PatientClinicalItemService(ClinicalService):
             raise ResourceNotFoundError(f"{self.resource_name} con id {item_id} no existe")
         return item
 
-    async def create_for_patient(self, patient_id: int, data: BaseModel):
+    async def _ensure_assigned(self, current_user: Usuario, patient_id: int) -> None:
+        professional = await resolve_current_professional(self.repository.session, current_user)
+        await ensure_patient_is_assigned_to_professional(
+            self.repository.session, professional.id, patient_id
+        )
+
+    async def create_for_patient(self, patient_id: int, data: BaseModel, current_user: Usuario):
         await self._patient(patient_id)
+        await self._ensure_assigned(current_user, patient_id)
         await self._validate_catalogs(data)
         if await self.repository.duplicate_patient_item(
             self.model, patient_id, data.nombre
@@ -173,8 +201,11 @@ class PatientClinicalItemService(ClinicalService):
         await self.repository.session.commit()
         return item
 
-    async def update_for_patient(self, patient_id: int, item_id: int, data: BaseModel):
+    async def update_for_patient(
+        self, patient_id: int, item_id: int, data: BaseModel, current_user: Usuario
+    ):
         item = await self.get_for_patient(patient_id, item_id)
+        await self._ensure_assigned(current_user, patient_id)
         values = data.model_dump(exclude_unset=True)
         await self._validate_catalogs(data)
         nombre = values.get("nombre", item.nombre)
@@ -186,8 +217,12 @@ class PatientClinicalItemService(ClinicalService):
         await self.repository.session.commit()
         return item
 
-    async def delete_for_patient(self, patient_id: int, item_id: int) -> None:
-        await self.repository.soft_delete(await self.get_for_patient(patient_id, item_id))
+    async def delete_for_patient(
+        self, patient_id: int, item_id: int, current_user: Usuario
+    ) -> None:
+        item = await self.get_for_patient(patient_id, item_id)
+        await self._ensure_assigned(current_user, patient_id)
+        await self.repository.soft_delete(item)
         await self.repository.session.commit()
 
     async def _validate_catalogs(self, data: BaseModel) -> None:

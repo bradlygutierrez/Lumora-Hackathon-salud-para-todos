@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query, Response, status
 
-from lumora_api.api.dependencies import SessionDep, require_permission, require_clinical_access
+from lumora_api.api.dependencies import CurrentUser, SessionDep, require_permission, require_clinical_access
 from lumora_api.api.v1.catalog_router import ERRORS
 from lumora_api.models import Alergia, Discapacidad
 from lumora_api.repositories.clinical_repository import ClinicalRepository
@@ -45,8 +45,10 @@ async def list_allergies(
 
 
 @router.post("/alergias", response_model=AllergyRead, status_code=201, responses=ERRORS)
-async def create_allergy(patient_id: int, data: AllergyCreate, session: SessionDep):
-    return await allergy_service(session).create_for_patient(patient_id, data)
+async def create_allergy(
+    patient_id: int, data: AllergyCreate, current_user: CurrentUser, session: SessionDep
+):
+    return await allergy_service(session).create_for_patient(patient_id, data, current_user)
 
 
 @router.get("/alergias/{allergy_id}", response_model=AllergyRead, responses={404: ERRORS[404]})
@@ -56,9 +58,15 @@ async def get_allergy(patient_id: int, allergy_id: int, session: SessionDep):
 
 @router.patch("/alergias/{allergy_id}", response_model=AllergyRead, responses=ERRORS)
 async def update_allergy(
-    patient_id: int, allergy_id: int, data: AllergyUpdate, session: SessionDep
+    patient_id: int,
+    allergy_id: int,
+    data: AllergyUpdate,
+    current_user: CurrentUser,
+    session: SessionDep,
 ):
-    return await allergy_service(session).update_for_patient(patient_id, allergy_id, data)
+    return await allergy_service(session).update_for_patient(
+        patient_id, allergy_id, data, current_user
+    )
 
 
 @router.delete(
@@ -66,8 +74,10 @@ async def update_allergy(
     status_code=status.HTTP_204_NO_CONTENT,
     responses={404: ERRORS[404]},
 )
-async def delete_allergy(patient_id: int, allergy_id: int, session: SessionDep) -> Response:
-    await allergy_service(session).delete_for_patient(patient_id, allergy_id)
+async def delete_allergy(
+    patient_id: int, allergy_id: int, current_user: CurrentUser, session: SessionDep
+) -> Response:
+    await allergy_service(session).delete_for_patient(patient_id, allergy_id, current_user)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -89,9 +99,9 @@ async def list_disabilities(
     "/discapacidades", response_model=DisabilityRead, status_code=201, responses=ERRORS
 )
 async def create_disability(
-    patient_id: int, data: DisabilityCreate, session: SessionDep
+    patient_id: int, data: DisabilityCreate, current_user: CurrentUser, session: SessionDep
 ):
-    return await disability_service(session).create_for_patient(patient_id, data)
+    return await disability_service(session).create_for_patient(patient_id, data, current_user)
 
 
 @router.get(
@@ -109,10 +119,14 @@ async def get_disability(patient_id: int, disability_id: int, session: SessionDe
     responses=ERRORS,
 )
 async def update_disability(
-    patient_id: int, disability_id: int, data: DisabilityUpdate, session: SessionDep
+    patient_id: int,
+    disability_id: int,
+    data: DisabilityUpdate,
+    current_user: CurrentUser,
+    session: SessionDep,
 ):
     return await disability_service(session).update_for_patient(
-        patient_id, disability_id, data
+        patient_id, disability_id, data, current_user
     )
 
 
@@ -122,7 +136,7 @@ async def update_disability(
     responses={404: ERRORS[404]},
 )
 async def delete_disability(
-    patient_id: int, disability_id: int, session: SessionDep
+    patient_id: int, disability_id: int, current_user: CurrentUser, session: SessionDep
 ) -> Response:
-    await disability_service(session).delete_for_patient(patient_id, disability_id)
+    await disability_service(session).delete_for_patient(patient_id, disability_id, current_user)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

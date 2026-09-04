@@ -15,6 +15,7 @@ from lumora_api.models import (
     Permiso,
     Persona,
     ProfesionalSalud,
+    Receta,
     Rol,
     Usuario,
 )
@@ -506,3 +507,101 @@ async def test_other_professional_cannot_edit_recipe_or_its_details(
         headers=other_headers,
     )
     assert detail_delete.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_staff_cannot_edit_recipe_after_losing_the_patient_relationship(
+    client: AsyncClient, session_factory
+):
+    # Regresión: _owned_recipe solo validaba la propiedad de la receta,
+    # nunca revalidaba que la relación con el paciente siguiera vigente.
+    patient_id = await _create_patient(session_factory, "Revocado")
+    token, professional_id = await _staff_login_with_professional(
+        client,
+        session_factory,
+        username="doc-rx-revoked",
+        email="doc-rx-revoked@example.com",
+        numero_licencia="L-RX-REVOKED",
+    )
+    consultation_id = await _create_consultation(
+        session_factory,
+        patient_id=patient_id,
+        professional_id=professional_id,
+        suffix="REVOKED",
+    )
+    headers = {"Authorization": f"Bearer {token}"}
+
+    created = await client.post(
+        "/api/v1/prescriptions",
+        json={
+            "paciente_id": patient_id,
+            "profesional_id": professional_id,
+            "consulta_id": consultation_id,
+            "titulo": "Receta a revocar",
+            "detalles": [],
+        },
+        headers=headers,
+    )
+    assert created.status_code == 201
+    recipe_id = created.json()["id"]
+
+    # La única consulta que establecía la relación se borra lógicamente.
+    async with session_factory() as session:
+        consultation = await session.get(ConsultaMedica, consultation_id)
+        consultation.deleted_at = datetime.now(timezone.utc)
+        await session.commit()
+
+    update = await client.patch(
+        f"/api/v1/prescriptions/{recipe_id}",
+        json={"titulo": "Ya no debería poder editarla"},
+        headers=headers,
+    )
+    assert update.status_code == 403
+    assert update.json()["error"]["code"] == "forbidden"
+
+
+@pytest.mark.asyncio
+async def test_staff_cannot_edit_recipe_past_the_editable_window(
+    client: AsyncClient, session_factory
+):
+    patient_id = await _create_patient(session_factory, "Vencida")
+    token, professional_id = await _staff_login_with_professional(
+        client,
+        session_factory,
+        username="doc-rx-stale",
+        email="doc-rx-stale@example.com",
+        numero_licencia="L-RX-STALE",
+    )
+    await _create_consultation(
+        session_factory,
+        patient_id=patient_id,
+        professional_id=professional_id,
+        suffix="STALE",
+    )
+    headers = {"Authorization": f"Bearer {token}"}
+
+    created = await client.post(
+        "/api/v1/prescriptions",
+        json={
+            "paciente_id": patient_id,
+            "profesional_id": professional_id,
+            "titulo": "Receta vieja",
+            "detalles": [],
+        },
+        headers=headers,
+    )
+    assert created.status_code == 201
+    recipe_id = created.json()["id"]
+
+    async with session_factory() as session:
+        receta = await session.get(Receta, recipe_id)
+        receta.fecha_emision = datetime.utcnow() - timedelta(hours=49)
+        await session.commit()
+
+    update = await client.patch(
+        f"/api/v1/prescriptions/{recipe_id}",
+        json={"titulo": "Ya no debería ser editable"},
+        headers=headers,
+    )
+    assert update.status_code == 409
+    assert update.json()["error"]["code"] == "conflict"

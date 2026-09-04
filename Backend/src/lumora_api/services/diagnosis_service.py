@@ -14,6 +14,7 @@ from lumora_api.models import (
 from lumora_api.repositories.diagnosis_repository import DiagnosisRepository
 from lumora_api.services.authorization import (
     ensure_patient_is_assigned_to_professional,
+    ensure_within_editable_window,
     resolve_current_professional,
 )
 
@@ -81,8 +82,18 @@ class DiagnosisService:
         await self.repository.session.commit()
         return item
 
-    async def update_diagnosis(self, diagnosis_id: int, data: BaseModel) -> Diagnostico:
+    async def update_diagnosis(
+        self, diagnosis_id: int, data: BaseModel, current_user: Usuario
+    ) -> Diagnostico:
         item = await self.get_diagnosis(diagnosis_id)
+        record = await self._require(Expediente, item.expediente_id, "Expediente")
+        professional = await resolve_current_professional(
+            self.repository.session, current_user
+        )
+        await ensure_patient_is_assigned_to_professional(
+            self.repository.session, professional.id, record.paciente_id
+        )
+        ensure_within_editable_window(item.created_at)
         values = data.model_dump(exclude_unset=True, exclude_none=True)
         await self._require_catalog(
             TipoDiagnostico, values.get("tipo_diagnostico_id"), "Tipo de diagnóstico"
@@ -91,8 +102,17 @@ class DiagnosisService:
         await self.repository.session.commit()
         return item
 
-    async def delete_diagnosis(self, diagnosis_id: int) -> None:
-        await self.repository.soft_delete_diagnosis(await self.get_diagnosis(diagnosis_id))
+    async def delete_diagnosis(self, diagnosis_id: int, current_user: Usuario) -> None:
+        item = await self.get_diagnosis(diagnosis_id)
+        record = await self._require(Expediente, item.expediente_id, "Expediente")
+        professional = await resolve_current_professional(
+            self.repository.session, current_user
+        )
+        await ensure_patient_is_assigned_to_professional(
+            self.repository.session, professional.id, record.paciente_id
+        )
+        ensure_within_editable_window(item.created_at)
+        await self.repository.soft_delete_diagnosis(item)
         await self.repository.session.commit()
 
     async def list_conditions(self, record_id: int, limit: int, offset: int, activo: bool | None):
