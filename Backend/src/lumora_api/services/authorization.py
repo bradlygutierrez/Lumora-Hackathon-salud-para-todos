@@ -5,9 +5,11 @@ Se separan aquí (en vez de duplicarlas en cada servicio) porque tanto
 "¿puede este usuario ver/editar los datos de este paciente?".
 """
 
+from datetime import datetime, timedelta, timezone
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from lumora_api.core.exceptions import PermissionDeniedError
+from lumora_api.core.exceptions import PermissionDeniedError, ResourceConflictError
 from lumora_api.models.identity import Paciente, ProfesionalSalud, Usuario
 from lumora_api.repositories.identity_repository import IdentityRepository
 from lumora_api.repositories.professional_workspace_repository import (
@@ -122,4 +124,52 @@ async def ensure_patient_is_assigned_to_professional(
         raise PermissionDeniedError(
             "El paciente no está asignado a este profesional; "
             "agende una cita o consulta antes de registrar datos clínicos"
+        )
+
+
+async def ensure_clinical_relationship_if_professional(
+    session: AsyncSession, user: Usuario, paciente_id: int
+) -> None:
+    """Para mediciones/alertas: si quien actúa es personal clínico con un
+    perfil de `ProfesionalSalud` real, exige que esté asignado a ese
+    paciente (mismo criterio que recetas/consultas/diagnósticos). No
+    afecta a administradores con `clinica:manage` pero sin perfil
+    profesional -- ese acceso más amplio ya se decide en otro lado
+    (`PatientAccessService.require_access`) y no es lo que se está
+    corrigiendo acá.
+    """
+    if not has_clinical_permission(user):
+        return
+    professional = await IdentityRepository(session, ProfesionalSalud).get_by_persona_id(
+        user.persona_id
+    )
+    if professional is None:
+        return
+    await ensure_patient_is_assigned_to_professional(session, professional.id, paciente_id)
+
+
+EDITABLE_WINDOW_HOURS = 48
+
+
+def ensure_within_editable_window(
+    registered_at: datetime, hours: int = EDITABLE_WINDOW_HOURS
+) -> None:
+    """Bloquea la edición/borrado de un registro clínico (diagnóstico,
+    receta) una vez pasada la ventana de corrección.
+
+    Sin esto, un diagnóstico o receta de una consulta de hace meses se
+    podía seguir editando o borrando sin ningún límite. Se ata a la fecha
+    de registro del propio dato (no al estado de la cita/consulta, que no
+    siempre existe o no refleja cuándo se escribió el dato) -- decisión
+    de producto: ventana de tiempo fija en vez de depender del estado de
+    la cita.
+    """
+    reference = (
+        registered_at
+        if registered_at.tzinfo is not None
+        else registered_at.replace(tzinfo=timezone.utc)
+    )
+    if datetime.now(timezone.utc) - reference > timedelta(hours=hours):
+        raise ResourceConflictError(
+            f"No se puede modificar: pasaron más de {hours} horas desde su registro"
         )

@@ -52,8 +52,10 @@ async def get_diagnosis(diagnosis_id: int, session: SessionDep):
 
 
 @router.patch("/diagnosticos/{diagnosis_id}", response_model=DiagnosisRead, responses=ERRORS)
-async def update_diagnosis(diagnosis_id: int, data: DiagnosisUpdate, session: SessionDep):
-    return await service(session).update_diagnosis(diagnosis_id, data)
+async def update_diagnosis(
+    diagnosis_id: int, data: DiagnosisUpdate, current_user: CurrentUser, session: SessionDep
+):
+    return await service(session).update_diagnosis(diagnosis_id, data, current_user)
 
 
 @router.delete(
@@ -61,6 +63,8 @@ async def update_diagnosis(diagnosis_id: int, data: DiagnosisUpdate, session: Se
     status_code=status.HTTP_204_NO_CONTENT,
     responses={404: ERRORS[404]},
 )
-async def delete_diagnosis(diagnosis_id: int, session: SessionDep) -> Response:
-    await service(session).delete_diagnosis(diagnosis_id)
+async def delete_diagnosis(
+    diagnosis_id: int, current_user: CurrentUser, session: SessionDep
+) -> Response:
+    await service(session).delete_diagnosis(diagnosis_id, current_user)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

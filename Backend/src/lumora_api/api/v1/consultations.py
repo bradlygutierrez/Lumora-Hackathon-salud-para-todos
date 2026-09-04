@@ -134,7 +134,7 @@ async def create_note(
     current_user: CurrentUser,
     session: SessionDep,
 ):
-    return await service(session).create_note(consultation_id, current_user.id, data)
+    return await service(session).create_note(consultation_id, current_user, data)
 
 
 @router.get(
@@ -155,6 +155,7 @@ async def update_note(
     consultation_id: int,
     note_id: int,
     data: ClinicalNoteUpdate,
+    current_user: CurrentUser,
     session: SessionDep,
 ):
-    return await service(session).update_note(consultation_id, note_id, data)
+    return await service(session).update_note(consultation_id, note_id, current_user, data)
