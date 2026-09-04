@@ -1,6 +1,8 @@
 import { apiClient } from '@/src/shared/api/client';
 import type {
   CatalogItem,
+  EmergencyPatientRegistrationPayload,
+  EmergencyPatientRegistrationResult,
   Page,
   Patient,
   PatientClinicalSummary,
@@ -24,6 +26,16 @@ export async function registerClinicalPatient(
   payload: StaffPatientRegistrationPayload,
 ): Promise<PatientDetail> {
   const response = await apiClient.post<PatientDetail>('/pacientes/registro-clinico', payload);
+  return response.data;
+}
+
+export async function registerEmergencyPatient(
+  payload: EmergencyPatientRegistrationPayload,
+): Promise<EmergencyPatientRegistrationResult> {
+  const response = await apiClient.post<EmergencyPatientRegistrationResult>(
+    '/pacientes/registro-emergencia',
+    payload,
+  );
   return response.data;
 }
 

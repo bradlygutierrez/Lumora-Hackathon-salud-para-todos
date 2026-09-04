@@ -18,8 +18,13 @@ import {
   listPatients,
   listSexes,
   registerClinicalPatient,
+  registerEmergencyPatient,
 } from '../api/patients.api';
-import type { PatientListParams, StaffPatientRegistrationPayload } from '../types/patient.types';
+import type {
+  EmergencyPatientRegistrationPayload,
+  PatientListParams,
+  StaffPatientRegistrationPayload,
+} from '../types/patient.types';
 
 function usePatientPreviewMode() {
   const { session } = useAuthSession();
@@ -137,6 +142,26 @@ export function useRegisterPatient() {
       isPreview
         ? Promise.resolve(previewPatientDetails[101])
         : registerClinicalPatient(payload),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: [...queryKeys.clinical.all, 'patients-directory'],
+      });
+    },
+  });
+}
+
+export function useRegisterEmergencyPatient() {
+  const isPreview = usePatientPreviewMode();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: EmergencyPatientRegistrationPayload) =>
+      isPreview
+        ? Promise.resolve({
+            paciente: previewPatientDetails[101],
+            expediente_id: 7001,
+            consulta_id: 9001,
+          })
+        : registerEmergencyPatient(payload),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: [...queryKeys.clinical.all, 'patients-directory'],
