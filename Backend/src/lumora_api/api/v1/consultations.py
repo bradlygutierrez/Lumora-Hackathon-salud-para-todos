@@ -55,8 +55,10 @@ async def list_consultations(
 
 
 @router.post("", response_model=ConsultationRead, status_code=201, responses=ERRORS)
-async def create_consultation(data: ConsultationCreate, session: SessionDep):
-    return await service(session).create(data)
+async def create_consultation(
+    data: ConsultationCreate, current_user: CurrentUser, session: SessionDep
+):
+    return await service(session).create(data, current_user)
 
 
 @router.get("/{consultation_id}", response_model=ConsultationRead, responses={404: ERRORS[404]})

@@ -1,6 +1,11 @@
 from fastapi import APIRouter, Depends, Query, Response, status
 
-from lumora_api.api.dependencies import SessionDep, require_permission, require_clinical_access
+from lumora_api.api.dependencies import (
+    CurrentUser,
+    SessionDep,
+    require_permission,
+    require_clinical_access,
+)
 from lumora_api.api.v1.catalog_router import ERRORS
 from lumora_api.repositories.diagnosis_repository import DiagnosisRepository
 from lumora_api.schemas import DiagnosisCreate, DiagnosisRead, DiagnosisUpdate, Page
@@ -36,9 +41,9 @@ async def list_diagnoses(
     responses=ERRORS,
 )
 async def create_diagnosis(
-    consultation_id: int, data: DiagnosisCreate, session: SessionDep
+    consultation_id: int, data: DiagnosisCreate, current_user: CurrentUser, session: SessionDep
 ):
-    return await service(session).create_diagnosis(consultation_id, data)
+    return await service(session).create_diagnosis(consultation_id, data, current_user)
 
 
 @router.get("/diagnosticos/{diagnosis_id}", response_model=DiagnosisRead, responses={404: ERRORS[404]})
