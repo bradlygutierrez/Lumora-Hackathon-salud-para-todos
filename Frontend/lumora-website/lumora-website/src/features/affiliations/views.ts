@@ -35,7 +35,10 @@ function ShellStart(user: CurrentUser, active = 'affiliations'): string {
             Afiliaciones
           </a>
           <a class="sidebar__link" href="#/cuentas"><span aria-hidden="true">◇</span>Cuentas Lumora</a>
-        </nav>
+                  <a class="sidebar__link" href="#/cuentas"><span aria-hidden="true">◇</span>Manejadores</a>
+          <a class="sidebar__link" href="#/pacientes"><span aria-hidden="true">◌</span>Pacientes</a>
+          <a class="sidebar__link" href="#/medicos"><span aria-hidden="true">✦</span>Médicos</a>
+</nav>
         <div class="sidebar__foot">
           <span>Portal interno</span>
           <small>Acceso con afiliaciones:manage</small>
