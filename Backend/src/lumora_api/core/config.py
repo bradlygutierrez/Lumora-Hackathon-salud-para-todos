@@ -16,6 +16,11 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     access_token_minutes: int = 30
     refresh_token_days: int = 30
+    # I02 -- minutos de inactividad tras los que una sesion se considera
+    # expirada por idle timeout, sin importar que el limite absoluto
+    # (refresh_token_days) todavia no se haya cumplido. Se compara contra
+    # sesiones_usuario.last_used_at en AuthService.refresh().
+    session_idle_minutes: int = 10
     recovery_token_minutes: int = 30
     email_verification_hours: int = 24
     verification_code_minutes: int = 15
