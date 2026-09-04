@@ -301,3 +301,39 @@ async def test_staff_cannot_create_consultation_as_another_professional(
     )
     assert response.status_code == 403
     assert response.json()["error"]["code"] == "forbidden"
+
+
+@pytest.mark.asyncio
+async def test_staff_cannot_add_a_note_to_a_patient_with_no_relationship(
+    client, session_factory
+):
+    # Consulta real de OTRO profesional, con SU paciente.
+    owner_token, owner_professional_id = await _token(
+        client, session_factory, "clinical-note-owner", clinical=True
+    )
+    owner_setup = await _setup(session_factory, owner_professional_id)
+    consultation = await client.post(
+        "/api/v1/consultas",
+        json={
+            "expediente_id": owner_setup["record_id"],
+            "paciente_id": owner_setup["patient_id"],
+            "profesional_id": owner_professional_id,
+            "motivo_consulta_id": owner_setup["reason_id"],
+            "motivo": "Control general",
+        },
+        headers={"Authorization": f"Bearer {owner_token}"},
+    )
+    assert consultation.status_code == 201
+    consultation_id = consultation.json()["id"]
+
+    # Otro profesional clínico, sin ninguna relación con ese paciente.
+    outsider_token, _ = await _token(
+        client, session_factory, "clinical-note-outsider", clinical=True
+    )
+    response = await client.post(
+        f"/api/v1/consultas/{consultation_id}/notas",
+        json={"contenido": "Nota no autorizada"},
+        headers={"Authorization": f"Bearer {outsider_token}"},
+    )
+    assert response.status_code == 403
+    assert response.json()["error"]["code"] == "forbidden"

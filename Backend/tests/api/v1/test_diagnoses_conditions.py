@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta, timezone
+
 import pytest
 
 from helpers.medical import create_active_medical_professional
@@ -315,3 +317,80 @@ async def test_staff_cannot_modify_condition_of_a_patient_with_no_relationship(
     )
     assert delete.status_code == 403
     assert delete.json()["error"]["code"] == "forbidden"
+
+
+@pytest.mark.asyncio
+async def test_staff_cannot_edit_or_delete_a_diagnosis_of_a_patient_with_no_relationship(
+    client, session_factory
+):
+    owner_token, owner_professional_id = await _token(
+        client, session_factory, "j04-diag-owner", clinical=True
+    )
+    owner_setup = await _setup(session_factory, owner_professional_id)
+    diagnosis = await client.post(
+        f"/api/v1/consultas/{owner_setup['consultation_id']}/diagnosticos",
+        json={
+            "tipo_diagnostico_id": owner_setup["diagnosis_type_id"],
+            "descripcion": "Diabetes tipo 2",
+        },
+        headers={"Authorization": f"Bearer {owner_token}"},
+    )
+    assert diagnosis.status_code == 201
+    diagnosis_id = diagnosis.json()["id"]
+
+    outsider_token, _ = await _token(
+        client, session_factory, "j04-diag-outsider", clinical=True
+    )
+    outsider_headers = {"Authorization": f"Bearer {outsider_token}"}
+
+    update = await client.patch(
+        f"/api/v1/diagnosticos/{diagnosis_id}",
+        json={"descripcion": "Diabetes tipo 1"},
+        headers=outsider_headers,
+    )
+    assert update.status_code == 403
+    assert update.json()["error"]["code"] == "forbidden"
+
+    delete = await client.delete(
+        f"/api/v1/diagnosticos/{diagnosis_id}", headers=outsider_headers
+    )
+    assert delete.status_code == 403
+    assert delete.json()["error"]["code"] == "forbidden"
+
+
+@pytest.mark.asyncio
+async def test_staff_cannot_edit_a_diagnosis_past_the_editable_window(
+    client, session_factory
+):
+    token, professional_id = await _token(
+        client, session_factory, "j04-diag-stale", clinical=True
+    )
+    headers = {"Authorization": f"Bearer {token}"}
+    setup = await _setup(session_factory, professional_id)
+    diagnosis = await client.post(
+        f"/api/v1/consultas/{setup['consultation_id']}/diagnosticos",
+        json={
+            "tipo_diagnostico_id": setup["diagnosis_type_id"],
+            "descripcion": "Migraña",
+        },
+        headers=headers,
+    )
+    assert diagnosis.status_code == 201
+    diagnosis_id = diagnosis.json()["id"]
+
+    async with session_factory() as session:
+        item = await session.get(Diagnostico, diagnosis_id)
+        item.created_at = datetime.now(timezone.utc) - timedelta(hours=49)
+        await session.commit()
+
+    update = await client.patch(
+        f"/api/v1/diagnosticos/{diagnosis_id}",
+        json={"descripcion": "Migraña crónica"},
+        headers=headers,
+    )
+    assert update.status_code == 409
+    assert update.json()["error"]["code"] == "conflict"
+
+    delete = await client.delete(f"/api/v1/diagnosticos/{diagnosis_id}", headers=headers)
+    assert delete.status_code == 409
+    assert delete.json()["error"]["code"] == "conflict"
