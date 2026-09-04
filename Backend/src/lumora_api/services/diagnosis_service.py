@@ -116,9 +116,15 @@ class DiagnosisService:
                 raise ResourceNotFoundError("El diagnóstico no pertenece al expediente")
 
     async def create_condition(
-        self, record_id: int, data: BaseModel, user_id: int
+        self, record_id: int, data: BaseModel, current_user: Usuario
     ) -> CondicionMedica:
         record = await self._require(Expediente, record_id, "Expediente")
+        professional = await resolve_current_professional(
+            self.repository.session, current_user
+        )
+        await ensure_patient_is_assigned_to_professional(
+            self.repository.session, professional.id, record.paciente_id
+        )
         values = data.model_dump(exclude={"motivo_historial"}, exclude_none=True)
         await self._validate_condition_values(record, values)
         if await self.repository.duplicate_condition(record_id, values["nombre"]):
@@ -133,17 +139,23 @@ class DiagnosisService:
                 "estado_nuevo_id": item.estado_condicion_id,
                 "accion": "CREADA",
                 "motivo": data.motivo_historial,
-                "usuario_id": user_id,
+                "usuario_id": current_user.id,
             }
         )
         await self.repository.session.commit()
         return item
 
     async def update_condition(
-        self, condition_id: int, data: BaseModel, user_id: int
+        self, condition_id: int, data: BaseModel, current_user: Usuario
     ) -> CondicionMedica:
         item = await self.get_condition(condition_id)
         record = await self._require(Expediente, item.expediente_id, "Expediente")
+        professional = await resolve_current_professional(
+            self.repository.session, current_user
+        )
+        await ensure_patient_is_assigned_to_professional(
+            self.repository.session, professional.id, item.paciente_id
+        )
         values = data.model_dump(exclude={"motivo_historial"}, exclude_unset=True, exclude_none=True)
         await self._validate_condition_values(record, values)
         if "nombre" in values and await self.repository.duplicate_condition(
@@ -163,7 +175,7 @@ class DiagnosisService:
                     "estado_nuevo_id": next_state,
                     "accion": "CAMBIO_ESTADO",
                     "motivo": data.motivo_historial,
-                    "usuario_id": user_id,
+                    "usuario_id": current_user.id,
                 }
             )
         await self.repository.session.commit()
@@ -182,8 +194,14 @@ class DiagnosisService:
                 f"No se puede cambiar una condición de {previous.nombre} a {next_state.nombre}"
             )
 
-    async def delete_condition(self, condition_id: int, user_id: int) -> None:
+    async def delete_condition(self, condition_id: int, current_user: Usuario) -> None:
         item = await self.get_condition(condition_id)
+        professional = await resolve_current_professional(
+            self.repository.session, current_user
+        )
+        await ensure_patient_is_assigned_to_professional(
+            self.repository.session, professional.id, item.paciente_id
+        )
         previous_state = item.estado_condicion_id
         await self.repository.soft_delete_condition(item)
         await self.repository.add_history(
@@ -193,7 +211,7 @@ class DiagnosisService:
                 "estado_nuevo_id": previous_state,
                 "accion": "BORRADO_LOGICO",
                 "motivo": "Borrado lógico",
-                "usuario_id": user_id,
+                "usuario_id": current_user.id,
             }
         )
         await self.repository.session.commit()
