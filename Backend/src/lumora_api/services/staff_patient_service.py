@@ -1,9 +1,25 @@
+from uuid import uuid4
+
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
-from lumora_api.core.exceptions import ResourceConflictError
-from lumora_api.models import ContactoEmergencia, Direccion, Paciente, Persona
+from lumora_api.core.exceptions import ResourceConflictError, ResourceNotFoundError
+from lumora_api.models import (
+    ConsultaMedica,
+    ContactoEmergencia,
+    Direccion,
+    EstadoExpediente,
+    Expediente,
+    Paciente,
+    Persona,
+    Usuario,
+)
 from lumora_api.repositories.patient_repository import PatientRepository
-from lumora_api.schemas.identity import StaffPatientRegistrationCreate
+from lumora_api.schemas.identity import (
+    EmergencyPatientRegistrationCreate,
+    StaffPatientRegistrationCreate,
+)
+from lumora_api.services.authorization import resolve_current_professional
 
 
 class StaffPatientService:
@@ -49,6 +65,72 @@ class StaffPatientService:
             await self.repository.session.rollback()
             raise ResourceConflictError("No se pudo registrar el paciente") from error
         return patient
+
+    async def register_emergency(
+        self, data: EmergencyPatientRegistrationCreate, current_user: Usuario
+    ) -> dict:
+        """Alta rápida de un paciente que llega en emergencia: solo nombre y
+        apellido son obligatorios, el contacto de emergencia es opcional, y
+        de una vez se abre el expediente y se registra la primera consulta
+        -- todo en la misma transacción, para que el personal no tenga que
+        pasar por el alta completa (dirección, tipo de sangre, etc.) antes
+        de poder atender al paciente.
+        """
+        professional = await resolve_current_professional(self.repository.session, current_user)
+
+        person = Persona(**data.persona.model_dump(exclude={"direcciones"}))
+        # Se inicializan vacías a propósito (en vez de dejarlas sin tocar):
+        # de lo contrario, el lazy-load de estas relaciones falla al
+        # serializar la respuesta fuera del greenlet async de SQLAlchemy.
+        person.direcciones = []
+        patient = Paciente(persona=person)
+        patient.contactos_emergencia = (
+            [ContactoEmergencia(**data.contacto_emergencia.model_dump())]
+            if data.contacto_emergencia is not None
+            else []
+        )
+        self.repository.session.add(patient)
+        await self.repository.session.flush()
+
+        estado_activo = await self.repository.session.scalar(
+            select(EstadoExpediente).where(EstadoExpediente.nombre == "Activo")
+        )
+        if estado_activo is None:
+            raise ResourceNotFoundError(
+                "No existe el estado de expediente 'Activo'; falta correr el seed"
+            )
+        record = Expediente(
+            paciente_id=patient.id,
+            estado_expediente_id=estado_activo.id,
+            # Único y generado acá porque en una emergencia el personal no
+            # trae un número de expediente preparado de antemano.
+            numero_expediente=f"EMG-{uuid4().hex[:10].upper()}",
+        )
+        self.repository.session.add(record)
+        await self.repository.session.flush()
+
+        consultation = ConsultaMedica(
+            expediente_id=record.id,
+            paciente_id=patient.id,
+            profesional_id=professional.id,
+            motivo=data.motivo_consulta,
+        )
+        self.repository.session.add(consultation)
+
+        try:
+            await self.repository.session.commit()
+        except IntegrityError as error:
+            await self.repository.session.rollback()
+            raise ResourceConflictError(
+                "No se pudo registrar la atención de emergencia"
+            ) from error
+
+        await self.repository.session.refresh(patient)
+        return {
+            "paciente": patient,
+            "expediente_id": record.id,
+            "consulta_id": consultation.id,
+        }
 
     async def family(self, patient_id: int):
         relationships = await self.repository.family_relationships(patient_id)
