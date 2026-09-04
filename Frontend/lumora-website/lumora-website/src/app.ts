@@ -7,7 +7,7 @@ import { isMfaResponse, type CurrentUser } from './features/auth/types'
 import { AffiliationsApi } from './features/affiliations/api'
 import { DashboardView, DetailView, ErrorView, LoadingView } from './features/affiliations/views'
 import { UsersApi } from './features/users/api'
-import { UsersView } from './features/users/views'
+import { UsersView, type SupportSection } from './features/users/views'
 import type {
   AffiliationCreatePayload,
   AffiliationStatus,
@@ -67,7 +67,7 @@ export class PortalApp {
     this.root.addEventListener('submit', (event) => void this.onSubmit(event))
     this.root.addEventListener('click', (event) => void this.onClick(event))
     this.root.addEventListener('change', (event) => this.onChange(event))
-    this.root.addEventListener('input', () => this.applyDashboardFilters())
+    this.root.addEventListener('input', () => { this.applyDashboardFilters(); this.applySupportFilters() })
     window.addEventListener('hashchange', () => void this.route())
   }
 
@@ -94,7 +94,9 @@ export class PortalApp {
         this.root.innerHTML = ForbiddenView(`${this.user.persona.nombres} ${this.user.persona.apellidos}`.trim() || this.user.username)
         return
       }
-      if (!window.location.hash.startsWith('#/afiliaciones')) {
+      const hash = window.location.hash
+      const supportRoute = ['#/cuentas', '#/pacientes', '#/medicos'].includes(hash)
+      if (!hash.startsWith('#/afiliaciones') && !supportRoute) {
         window.location.hash = '#/afiliaciones'
         return
       }
@@ -118,8 +120,9 @@ export class PortalApp {
       await this.loadDetail(Number(detailMatch[1]))
       return
     }
-    if (window.location.hash === '#/cuentas') {
-      await this.loadUsers()
+    if (['#/cuentas', '#/pacientes', '#/medicos'].includes(window.location.hash)) {
+      const section: SupportSection = window.location.hash === '#/pacientes' ? 'patients' : window.location.hash === '#/medicos' ? 'professionals' : 'admins'
+      await this.loadUsers(section)
       return
     }
     await this.loadDashboard()
@@ -129,7 +132,7 @@ export class PortalApp {
     return user.roles.some((role) => role.permisos.some((permission) => permission.nombre === MANAGE_USERS_PERMISSION))
   }
 
-  private async loadUsers(): Promise<void> {
+  private async loadUsers(section: SupportSection = 'admins'): Promise<void> {
     if (!this.user) return
     if (!this.canManageUsers(this.user)) {
       this.root.innerHTML = ForbiddenView(`${this.user.persona.nombres} ${this.user.persona.apellidos}`.trim() || this.user.username)
@@ -137,8 +140,8 @@ export class PortalApp {
     }
     this.root.innerHTML = LoadingView(this.user, 'Cargando cuentas…')
     try {
-      const page = await this.usersApi.list()
-      this.root.innerHTML = UsersView(this.user, page.items)
+      const page = await this.usersApi.listAll()
+      this.root.innerHTML = UsersView(this.user, page.items, section)
     } catch (error) {
       if (this.handleAuthorizationError(error)) return
       this.root.innerHTML = ErrorView(this.user, this.errorText(error))
@@ -456,6 +459,13 @@ export class PortalApp {
 
     independentFields.querySelectorAll<HTMLInputElement>('input').forEach((input) => {
       input.required = independent
+    })
+  }
+
+  private applySupportFilters(): void {
+    const query = this.root.querySelector<HTMLInputElement>('[data-support-search]')?.value.trim().toLowerCase() ?? ''
+    this.root.querySelectorAll<HTMLElement>('[data-support-row]').forEach((row) => {
+      row.hidden = Boolean(query) && !(row.dataset.search ?? '').includes(query)
     })
   }
 

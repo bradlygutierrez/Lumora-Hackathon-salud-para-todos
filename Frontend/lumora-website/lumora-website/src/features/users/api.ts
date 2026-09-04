@@ -4,6 +4,10 @@ import type { StaffUser, StaffUserCreatePayload, UserPage } from './types'
 export class UsersApi {
   private readonly client: ApiClient
   constructor(client: ApiClient = apiClient) { this.client = client }
+  listAll(): Promise<UserPage> {
+    return this.client.request<UserPage>('/usuarios?limit=100')
+  }
+
   async list(): Promise<UserPage> {
     try {
       return await this.client.request<UserPage>('/usuarios/admins?limit=100')
