@@ -29,7 +29,7 @@ export default function StaffDetailScreen() {
         {professional.isError ? <ErrorState title="No se pudo cargar el perfil" /> : null}
         {professional.data ? (
           <ScrollView contentContainerStyle={styles.container}>
-            <AppTopBar />
+            <AppTopBar showBack />
             <View style={styles.header}>
               <Text style={styles.title}>Perfil del Staff</Text>
               <Text style={styles.subtitle}>Información profesional registrada en Lumora.</Text>

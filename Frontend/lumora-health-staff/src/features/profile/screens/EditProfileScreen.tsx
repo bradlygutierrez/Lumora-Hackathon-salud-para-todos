@@ -122,7 +122,7 @@ export function EditProfileScreen() {
 
   return (
     <Screen>
-      <AppTopBar />
+      <AppTopBar showBack />
       <View style={styles.content}>
         <Text style={styles.title}>Editar Perfil</Text>
 

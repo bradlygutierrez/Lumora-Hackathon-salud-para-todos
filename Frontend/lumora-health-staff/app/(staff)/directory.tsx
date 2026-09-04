@@ -50,7 +50,7 @@ export default function MedicalDirectoryScreen() {
         }
       >
         <ScrollView contentContainerStyle={styles.container}>
-          <AppTopBar />
+          <AppTopBar showBack />
           <View style={styles.header}>
             <Text style={styles.title}>Directorio de Personal Médico</Text>
             <Text style={styles.subtitle}>Consulta el personal clínico registrado.</Text>
