@@ -113,7 +113,7 @@ class HealthAlertsService:
         )
         registradas = (await db.execute(dosis_query)).scalars().all()
         registradas_por_dia = {
-            (dosis.horario_id, dosis.fecha_programada.date()) for dosis in registradas
+            (str(dosis.horario_id), dosis.fecha_programada.date()) for dosis in registradas
         }
 
         # horario.hora es solo una hora de reloj (sin fecha propia), asi
@@ -143,7 +143,7 @@ class HealthAlertsService:
             # UTC). Por eso el match contra `registradas_por_dia` se hace
             # contra el dia calculado Y sus vecinos, no solo el exacto.
             dias_vecinos = (dia - timedelta(days=1), dia, dia + timedelta(days=1))
-            if any((horario.id, d) in registradas_por_dia for d in dias_vecinos):
+            if any((str(horario.id), d) in registradas_por_dia for d in dias_vecinos):
                 continue
 
             alertas.append(

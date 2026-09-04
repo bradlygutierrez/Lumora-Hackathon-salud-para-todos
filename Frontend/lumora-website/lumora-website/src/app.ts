@@ -7,7 +7,7 @@ import { isMfaResponse, type CurrentUser } from './features/auth/types'
 import { AffiliationsApi } from './features/affiliations/api'
 import { DashboardView, DetailView, ErrorView, LoadingView } from './features/affiliations/views'
 import { UsersApi } from './features/users/api'
-import { UsersView } from './features/users/views'
+import { UsersView, type SupportSection } from './features/users/views'
 import type {
   AffiliationCreatePayload,
   AffiliationStatus,
@@ -129,7 +129,7 @@ export class PortalApp {
     return user.roles.some((role) => role.permisos.some((permission) => permission.nombre === MANAGE_USERS_PERMISSION))
   }
 
-  private async loadUsers(): Promise<void> {
+  private async loadUsers(section: SupportSection = 'admins'): Promise<void> {
     if (!this.user) return
     if (!this.canManageUsers(this.user)) {
       this.root.innerHTML = ForbiddenView(`${this.user.persona.nombres} ${this.user.persona.apellidos}`.trim() || this.user.username)
@@ -138,7 +138,7 @@ export class PortalApp {
     this.root.innerHTML = LoadingView(this.user, 'Cargando cuentas…')
     try {
       const page = await this.usersApi.listAll()
-      this.root.innerHTML = UsersView(this.user, page.items)
+      this.root.innerHTML = UsersView(this.user, page.items, section)
     } catch (error) {
       if (this.handleAuthorizationError(error)) return
       this.root.innerHTML = ErrorView(this.user, this.errorText(error))
