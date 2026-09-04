@@ -5,19 +5,17 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AppTopBar } from '@/src/shared/components/AppTopBar';
 import { useAuthSession } from '@/src/features/auth/hooks/use-auth-session';
 import { useMfaMethods } from '@/src/features/auth/hooks/use-security';
-import { useProfessionals } from '@/src/features/profile/hooks/use-professionals';
+import { useCurrentProfessional } from '@/src/features/profile/hooks/use-professionals';
 import { Screen } from '@/src/shared/components/Screen';
 import { StaffAvatar } from '@/src/shared/components/StaffAvatar';
 import { theme } from '@/src/shared/constants/theme';
 
 export default function StaffProfileScreen() {
   const { session, signOut } = useAuthSession();
-  const professionals = useProfessionals();
+  const currentProfessional = useCurrentProfessional();
   const mfaMethods = useMfaMethods();
   const user = session?.user;
-  const professional = professionals.data?.items.find(
-    (item) => item.persona.id === user?.persona.id,
-  );
+  const professional = currentProfessional.data;
   const fullName = user ? `${user.persona.nombres} ${user.persona.apellidos}` : 'Perfil no resuelto';
   const mfaActive = Boolean(mfaMethods.data?.some((method) => method.activo));
 
@@ -36,7 +34,9 @@ export default function StaffProfileScreen() {
           </View>
           <Text style={styles.title}>{fullName}</Text>
           <Text style={styles.subtitle}>{user?.email ?? 'Correo no disponible'}</Text>
-          <Text style={styles.subtitle}>{professional?.persona.telefono ?? 'Teléfono no disponible'}</Text>
+          <Text style={styles.subtitle}>
+            {user?.persona.telefono ?? professional?.persona.telefono ?? 'Teléfono no disponible'}
+          </Text>
           <View style={styles.badges}>
             <Badge
               icon="mail-outline"
