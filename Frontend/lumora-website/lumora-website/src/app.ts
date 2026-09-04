@@ -67,7 +67,7 @@ export class PortalApp {
     this.root.addEventListener('submit', (event) => void this.onSubmit(event))
     this.root.addEventListener('click', (event) => void this.onClick(event))
     this.root.addEventListener('change', (event) => this.onChange(event))
-    this.root.addEventListener('input', () => this.applyDashboardFilters())
+    this.root.addEventListener('input', () => { this.applyDashboardFilters(); this.applySupportFilters() })
     window.addEventListener('hashchange', () => void this.route())
   }
 
@@ -137,7 +137,7 @@ export class PortalApp {
     }
     this.root.innerHTML = LoadingView(this.user, 'Cargando cuentas…')
     try {
-      const page = await this.usersApi.list()
+      const page = await this.usersApi.listAll()
       this.root.innerHTML = UsersView(this.user, page.items)
     } catch (error) {
       if (this.handleAuthorizationError(error)) return
@@ -456,6 +456,13 @@ export class PortalApp {
 
     independentFields.querySelectorAll<HTMLInputElement>('input').forEach((input) => {
       input.required = independent
+    })
+  }
+
+  private applySupportFilters(): void {
+    const query = this.root.querySelector<HTMLInputElement>('[data-support-search]')?.value.trim().toLowerCase() ?? ''
+    this.root.querySelectorAll<HTMLElement>('[data-support-row]').forEach((row) => {
+      row.hidden = Boolean(query) && !(row.dataset.search ?? '').includes(query)
     })
   }
 
