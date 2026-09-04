@@ -12,6 +12,7 @@ import {
   LoadingState,
 } from '@/src/shared/components/RemoteState';
 import { TextField } from '@/src/shared/components/TextField';
+import { DateField } from '@/src/shared/components/DateField';
 import { theme } from '@/src/shared/constants/theme';
 import { ClinicalFormShell } from '../components/ClinicalFormShell';
 import { structuredHistoryErrorMessage } from '../components/structured-history.ui';
@@ -169,50 +170,9 @@ export function MedicalHistoryFormScreen({
         isEditing ? 'Editar Historial Médico' : 'Añadir Historial Médico'
       }
     >
-      <Controller
-        control={control}
-        name="tipo_antecedente_id"
-        render={({ field }) => (
-          <ChoiceField
-            error={errors.tipo_antecedente_id?.message}
-            items={types.data?.items ?? []}
-            label="Tipo de antecedente *"
-            onChange={(value) => field.onChange(value ?? 0)}
-            value={field.value || undefined}
-          />
-        )}
-      />
-      <Controller
-        control={control}
-        name="descripcion"
-        render={({ field }) => (
-          <TextField
-            accessibilityLabel="Descripción de antecedente"
-            error={errors.descripcion?.message}
-            label="Descripción *"
-            multiline
-            onBlur={field.onBlur}
-            onChangeText={field.onChange}
-            placeholder="Descripción clínica del antecedente"
-            value={field.value}
-          />
-        )}
-      />
-      <Controller
-        control={control}
-        name="fecha"
-        render={({ field }) => (
-          <TextField
-            accessibilityLabel="Fecha de antecedente"
-            error={errors.fecha?.message}
-            label="Fecha"
-            onBlur={field.onBlur}
-            onChangeText={field.onChange}
-            placeholder="AAAA-MM-DD"
-            value={field.value}
-          />
-        )}
-      />
+      <Controller control={control} name="fecha" render={({ field }) => (
+          <DateField error={errors.fecha?.message} label="Fecha" mode="date" onChange={field.onChange} value={field.value} />
+        )} />
       {isEditing ? (
         <Controller
           control={control}

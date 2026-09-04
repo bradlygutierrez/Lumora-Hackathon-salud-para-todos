@@ -10,6 +10,7 @@ import { Button } from '@/src/shared/components/Button';
 import { ErrorState, LoadingState } from '@/src/shared/components/RemoteState';
 import { Screen } from '@/src/shared/components/Screen';
 import { TextField } from '@/src/shared/components/TextField';
+import { DateField } from '@/src/shared/components/DateField';
 import { theme } from '@/src/shared/constants/theme';
 import { ChoiceField } from '../components/ChoiceField';
 import { usePatientCatalogs, useRegisterEmergencyPatient } from '../hooks/use-patients';
@@ -126,51 +127,14 @@ export function EmergencyPatientRegistrationScreen() {
         </View>
 
         <FormSection icon="person-circle-outline" title="Paciente">
-          <Controller
-            control={control}
-            name="nombres"
-            render={({ field }) => (
-              <TextField
-                accessibilityLabel="Nombres"
-                error={errors.nombres?.message}
-                label="Nombres *"
-                onBlur={field.onBlur}
-                onChangeText={field.onChange}
-                placeholder="Nombre (o provisional, si se desconoce)"
-                value={field.value}
-              />
-            )}
+          <Controller control={control} name="fecha_nacimiento" render={({ field }) => (
+          <DateField
+            error={errors.fecha_nacimiento?.message}
+            label="Fecha de nacimiento"
+            onChange={field.onChange}
+            value={field.value}
           />
-          <Controller
-            control={control}
-            name="apellidos"
-            render={({ field }) => (
-              <TextField
-                accessibilityLabel="Apellidos"
-                error={errors.apellidos?.message}
-                label="Apellidos *"
-                onBlur={field.onBlur}
-                onChangeText={field.onChange}
-                placeholder="Apellidos (o provisional, si se desconoce)"
-                value={field.value}
-              />
-            )}
-          />
-          <Controller
-            control={control}
-            name="fecha_nacimiento"
-            render={({ field }) => (
-              <TextField
-                accessibilityLabel="Fecha de nacimiento"
-                error={errors.fecha_nacimiento?.message}
-                label="Fecha de nacimiento"
-                onBlur={field.onBlur}
-                onChangeText={field.onChange}
-                placeholder="AAAA-MM-DD (opcional)"
-                value={field.value ?? ''}
-              />
-            )}
-          />
+        )} />
           <Controller
             control={control}
             name="telefono"

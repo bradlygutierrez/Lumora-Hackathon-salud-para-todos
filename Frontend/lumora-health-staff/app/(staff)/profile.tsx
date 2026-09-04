@@ -24,7 +24,7 @@ export default function StaffProfileScreen() {
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView contentContainerStyle={styles.container} style={styles.scroll}>
         <AppTopBar showBack />
 
         <View style={styles.profileCard}>
@@ -105,6 +105,9 @@ function MenuRow({
 }
 
 const styles = StyleSheet.create({
+  scroll: {
+    flex: 1,
+  },
   container: {
     gap: theme.spacing.lg,
     paddingBottom: theme.spacing.xl,

@@ -14,6 +14,7 @@ import {
 } from '@/features/auth/schemas/auth.schemas';
 import { useRegistrationStore } from '@/features/auth/store/registration-store';
 import { AppButton } from '@/shared/components/AppButton';
+import { DateField } from '@/shared/components/DateField';
 import { FormTextField } from '@/shared/components/FormTextField';
 import { Screen } from '@/shared/components/Screen';
 
@@ -96,13 +97,7 @@ export default function RegisterPersonalRoute() {
           name="lastNames"
           label="Apellidos"
         />
-        <FormTextField
-          control={form.control}
-          name="birthDate"
-          label="Fecha de nacimiento"
-          placeholder="AAAA-MM-DD"
-          autoCapitalize="none"
-        />
+        <Controller control={form.control} name="birthDate" render={({ field }) => <DateField label="Fecha de nacimiento" onChange={field.onChange} value={field.value} />} />
 
         <Controller
           control={form.control}

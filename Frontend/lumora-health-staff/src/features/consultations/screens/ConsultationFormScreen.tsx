@@ -12,6 +12,7 @@ import { Button } from '@/src/shared/components/Button';
 import { ErrorState, LoadingState } from '@/src/shared/components/RemoteState';
 import { Screen } from '@/src/shared/components/Screen';
 import { TextField } from '@/src/shared/components/TextField';
+import { DateField } from '@/src/shared/components/DateField';
 import { theme } from '@/src/shared/constants/theme';
 import { useConsultation, useConsultationReasons, useCreateConsultation, useUpdateConsultation } from '../hooks/use-consultations';
 import { consultationFormSchema, type ConsultationForm, type ConsultationFormInput } from '../schemas/consultation.schema';
@@ -132,21 +133,8 @@ export function ConsultationFormScreen({ patientId, recordId, consultationId }: 
         </View>
       </View>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-        <Controller control={control} name="motivo_consulta_id" render={({ field }) => (
-          <ChoiceField
-            clearLabel="Sin catálogo"
-            items={reasons.data?.items ?? []}
-            label="Motivo catalogado"
-            onChange={field.onChange}
-            optional={!isEditing || detail.data?.motivo_consulta_id === null}
-            value={field.value}
-          />
-        )} />
-        <Controller control={control} name="motivo" render={({ field }) => (
-          <TextField accessibilityLabel="Motivo de consulta" error={errors.motivo?.message} label="Motivo de consulta *" multiline onBlur={field.onBlur} onChangeText={field.onChange} placeholder="Describí el motivo principal" value={field.value} />
-        )} />
         <Controller control={control} name="fecha_consulta" render={({ field }) => (
-          <TextField accessibilityLabel="Fecha de consulta" error={errors.fecha_consulta?.message} label="Fecha y hora" onBlur={field.onBlur} onChangeText={field.onChange} placeholder="Opcional; se usa la fecha y hora actuales si se deja vacío" value={field.value} />
+          <DateField error={errors.fecha_consulta?.message} label="Fecha y hora" mode="datetime" onChange={field.onChange} value={field.value} />
         )} />
         {(['sintomas', 'evaluacion', 'indicaciones', 'observaciones'] as const).map((name) => (
           <Controller control={control} key={name} name={name} render={({ field }) => (
