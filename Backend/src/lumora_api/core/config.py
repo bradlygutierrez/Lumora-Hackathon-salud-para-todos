@@ -11,6 +11,23 @@ class Settings(BaseSettings):
     app_name: str = "Lumora API"
     environment: Literal["development", "test", "production"] = "development"
     database_url: str = Field(description="URL async de PostgreSQL/Neon")
+    # I06 -- pool de conexiones SQLAlchemy/asyncpg hacia PostgreSQL/Neon.
+    # Valores conservadores por defecto, pensados para el plan Free de Neon
+    # (piso real ~104 conexiones simultaneas con autoscaling 0.25-2 CU,
+    # ver docs/I06_DB_CONNECTION_POOL_NOTES.md) y para el plan Hobby de
+    # FastAPI Cloud (hoy 1 replica activa). Formula de capacidad:
+    #
+    #   conexiones_totales = replicas * (db_pool_size + db_max_overflow)
+    #                        + margen_reservado (dev/migraciones/Neon)
+    #
+    # Con los defaults (5 + 5 = 10 por replica) y 1 replica hoy, se usan 10
+    # de las ~104 disponibles -- deja margen enorme para dev/migraciones y
+    # para escalar a mas replicas si I01 pasa a plan Pro. Ajustable por
+    # variable de entorno sin tocar codigo.
+    db_pool_size: int = 5
+    db_max_overflow: int = 5
+    db_pool_timeout_seconds: int = 10
+    db_pool_recycle_seconds: int = 300
     api_v1_prefix: str = "/api/v1"
     jwt_secret: str = ""
     jwt_algorithm: str = "HS256"
