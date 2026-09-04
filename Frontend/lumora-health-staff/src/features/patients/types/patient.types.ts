@@ -99,6 +99,28 @@ export type StaffPatientRegistrationPayload = {
   };
 };
 
+export type EmergencyPatientRegistrationPayload = {
+  persona: {
+    nombres: string;
+    apellidos: string;
+    fecha_nacimiento?: string;
+    telefono?: string;
+    sexo_id?: number;
+  };
+  contacto_emergencia?: {
+    nombre: string;
+    parentesco: string;
+    telefono: string;
+  };
+  motivo_consulta: string;
+};
+
+export type EmergencyPatientRegistrationResult = {
+  paciente: PatientDetail;
+  expediente_id: number;
+  consulta_id: number;
+};
+
 export type PatientClinicalSummary = {
   paciente_id: number;
   expediente: {

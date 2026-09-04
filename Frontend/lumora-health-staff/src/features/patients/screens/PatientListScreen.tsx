@@ -99,6 +99,16 @@ export function PatientListScreen() {
           </Text>
         </View>
 
+        <Pressable
+          accessibilityLabel="Registro de emergencia"
+          accessibilityRole="button"
+          onPress={() => router.push('/(staff)/patients/emergency' as Href)}
+          style={styles.emergencyButton}
+        >
+          <Ionicons color={theme.color.danger} name="alert-circle-outline" size={20} />
+          <Text style={styles.emergencyButtonText}>Registro de emergencia</Text>
+        </Pressable>
+
         <View style={styles.modeRow}>
           <Pressable
             accessibilityRole="tab"
@@ -378,6 +388,23 @@ const styles = StyleSheet.create({
     color: theme.color.mutedText,
     fontSize: 14,
     lineHeight: 21,
+  },
+  emergencyButton: {
+    alignItems: 'center',
+    backgroundColor: theme.color.dangerSoft,
+    borderColor: theme.color.dangerSoft,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
+    justifyContent: 'center',
+    minHeight: 48,
+    paddingHorizontal: theme.spacing.lg,
+  },
+  emergencyButtonText: {
+    color: theme.color.dangerText,
+    fontSize: 14,
+    fontWeight: '800',
   },
   modeRow: {
     flexDirection: 'row',

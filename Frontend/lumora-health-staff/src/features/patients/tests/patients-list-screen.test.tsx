@@ -118,6 +118,12 @@ describe('PatientListScreen J15', () => {
     expect(mockPush).toHaveBeenCalledWith('/(staff)/patients/7');
   });
 
+  it('offers a fast path to emergency intake regardless of the active tab', async () => {
+    const screen = await render(<PatientListScreen />);
+    await fireEvent.press(screen.getByLabelText('Registro de emergencia'));
+    expect(mockPush).toHaveBeenCalledWith('/(staff)/patients/emergency');
+  });
+
   it('preserves authorized search, filters and pagination', async () => {
     const screen = await render(<PatientListScreen />);
     await fireEvent.press(screen.getByText('Buscar pacientes'));

@@ -7,6 +7,8 @@ from lumora_api.repositories.patient_access_repository import PatientAccessRepos
 from lumora_api.repositories.patient_repository import PatientRepository
 from lumora_api.schemas import Page, PatientCreate, PatientRead, PatientUpdate
 from lumora_api.schemas.identity import (
+    EmergencyPatientRegistrationCreate,
+    EmergencyPatientRegistrationRead,
     PatientDetailRead,
     PatientFamilyRead,
     StaffPatientRegistrationCreate,
@@ -66,6 +68,20 @@ async def list_patients(
 )
 async def register_clinical_patient(data: StaffPatientRegistrationCreate, session: SessionDep):
     return await staff_service(session).register(data)
+
+
+@router.post(
+    "/registro-emergencia",
+    response_model=EmergencyPatientRegistrationRead,
+    status_code=status.HTTP_201_CREATED,
+    responses=ERRORS,
+    dependencies=[Depends(require_clinical_access)],
+    summary="Alta de emergencia: paciente + contacto opcional + primera consulta, en un solo paso",
+)
+async def register_emergency_patient(
+    data: EmergencyPatientRegistrationCreate, current_user: CurrentUser, session: SessionDep
+):
+    return await staff_service(session).register_emergency(data, current_user)
 
 
 @router.post(

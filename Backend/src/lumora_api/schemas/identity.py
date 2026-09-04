@@ -163,6 +163,24 @@ class PatientDetailRead(PatientRead):
     contactos_emergencia: list[EmergencyContactRead] = Field(default_factory=list)
 
 
+class EmergencyPatientRegistrationCreate(BaseModel):
+    """Registro de emergencia: solo nombre y apellido son obligatorios --
+    fecha de nacimiento, teléfono y sexo pueden no conocerse todavía, y no
+    se pide dirección. El contacto de emergencia es opcional (puede que
+    quien acompañe al paciente decida no dar sus datos, o que llegue solo).
+    """
+
+    persona: PersonCreate
+    contacto_emergencia: EmergencyContactCreate | None = None
+    motivo_consulta: Annotated[str, Field(min_length=1, max_length=600)]
+
+
+class EmergencyPatientRegistrationRead(BaseModel):
+    paciente: PatientDetailRead
+    expediente_id: int
+    consulta_id: int
+
+
 class PatientFamilyRead(BaseModel):
     id: int
     usuario_relacionado_id: int
