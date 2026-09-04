@@ -53,7 +53,7 @@ class PatientAccessService:
             relationships = await ReminderRepository(self.repository.session).get_active_relationships_for_caregiver(user.id)
             if any(item.paciente_id == patient_id and (action == "read" or item.nivel_acceso == "write") for item in relationships):
                 return
-        if "profesional" in roles or "administrador" in roles:
+        if "profesional" in roles or "profesional de salud" in roles or "administrador" in roles:
             permissions = {permission.nombre for role in user.roles for permission in role.permisos}
             if "clinica:manage" in permissions:
                 return
