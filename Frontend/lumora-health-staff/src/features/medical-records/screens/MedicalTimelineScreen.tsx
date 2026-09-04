@@ -415,10 +415,6 @@ const styles = StyleSheet.create({
     gap: theme.spacing.sm,
     marginBottom: theme.spacing.md,
     padding: theme.spacing.lg,
-    shadowColor: '#003C90',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 7,
   },
   eventTopRow: {
     alignItems: 'center',

@@ -291,10 +291,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     gap: theme.spacing.md,
     padding: theme.spacing.lg,
-    shadowColor: '#003C90',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
   },
   cardActive: {
     borderLeftColor: theme.color.primary,

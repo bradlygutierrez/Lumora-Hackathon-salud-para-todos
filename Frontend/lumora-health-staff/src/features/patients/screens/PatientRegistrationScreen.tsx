@@ -400,7 +400,7 @@ const styles = StyleSheet.create({
   },
   sectionHeader: {
     alignItems: 'center',
-    backgroundColor: '#F1F4FA',
+    backgroundColor: theme.color.surfaceMuted,
     borderBottomColor: theme.color.softBorder,
     borderBottomWidth: 1,
     flexDirection: 'row',
