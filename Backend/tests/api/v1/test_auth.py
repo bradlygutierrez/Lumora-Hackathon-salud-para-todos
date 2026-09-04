@@ -367,6 +367,39 @@ async def test_session_login_refresh_rotation_and_logout(client, session_factory
 
 
 @pytest.mark.asyncio
+async def test_authenticated_request_refreshes_last_used_at(client, session_factory):
+    """I02 -- cualquier request autenticado valido (no solo un refresh)
+    cuenta como actividad y adelanta last_used_at, para que el idle
+    timeout se base en el uso real de la app."""
+    await register(client, session_factory, "activity-user")
+    logged = (
+        await client.post(
+            "/api/v1/auth/login", json={"login": "activity-user", "password": "safe-password"}
+        )
+    ).json()
+    headers = {"Authorization": f"Bearer {logged['access_token']}"}
+
+    async with session_factory() as session:
+        stored = await session.scalar(select(SesionUsuario))
+        stored.last_used_at = datetime.now(timezone.utc) - timedelta(minutes=5)
+        await session.commit()
+        backdated = stored.last_used_at
+
+    assert (await client.get("/api/v1/auth/sessions", headers=headers)).status_code == 200
+
+    async with session_factory() as session:
+        stored = await session.scalar(select(SesionUsuario))
+        # SQLite puede devolver el datetime sin tzinfo tras el round-trip,
+        # aunque se haya guardado como aware -- se normaliza antes de
+        # comparar, igual que en _expired/_idle_expired de auth_service.
+        stored_last_used_at = stored.last_used_at
+        if stored_last_used_at.tzinfo is None:
+            stored_last_used_at = stored_last_used_at.replace(tzinfo=timezone.utc)
+        assert stored_last_used_at > backdated
+        assert (datetime.now(timezone.utc) - stored_last_used_at).total_seconds() < 5
+
+
+@pytest.mark.asyncio
 async def test_change_password_verifies_current_and_revokes_other_sessions(client, session_factory):
     await register(client, session_factory, "password-user", "StrongOld123!")
     first = (await client.post("/api/v1/auth/login", json={"login": "password-user", "password": "StrongOld123!"})).json()

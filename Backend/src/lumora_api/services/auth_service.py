@@ -48,6 +48,18 @@ def _expired(expires_at: datetime) -> bool:
     return expires_at <= datetime.now(timezone.utc)
 
 
+def _idle_expired(last_used_at: datetime, idle_minutes: int) -> bool:
+    """I02 -- True si last_used_at + idle_minutes ya paso.
+
+    Distinto del limite absoluto (_expired contra expires_at): este es
+    un limite mas corto por INACTIVIDAD, configurable via
+    settings.session_idle_minutes. Se revisa en AuthService.refresh().
+    """
+    if last_used_at.tzinfo is None:
+        last_used_at = last_used_at.replace(tzinfo=timezone.utc)
+    return last_used_at + timedelta(minutes=idle_minutes) <= datetime.now(timezone.utc)
+
+
 class AuthService:
     def __init__(self, repository: AuthRepository, email_service: EmailService | None = None) -> None:
         self.repository = repository
@@ -248,8 +260,13 @@ class AuthService:
 
     async def refresh(self, raw_token: str, ip: str | None, user_agent: str | None) -> dict:
         session = await self.repository.session_by_hash(hash_token(raw_token))
-        if session is None or session.revoked_at is not None or _expired(session.expires_at):
-            raise InvalidTokenError("Refresh token inválido, expirado o revocado")
+        if (
+            session is None
+            or session.revoked_at is not None
+            or _expired(session.expires_at)
+            or _idle_expired(session.last_used_at, get_settings().session_idle_minutes)
+        ):
+            raise InvalidTokenError("Refresh token inválido, expirado, revocado o inactivo")
         replacement = generate_token()
         session.refresh_token_hash = hash_token(replacement)
         session.last_used_at = datetime.now(timezone.utc)

@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 import pytest
 
 from lumora_api.core.exceptions import InvalidTokenError
+from lumora_api.core.config import get_settings
 from lumora_api.core.security import hash_password, hash_token, verify_password
 from sqlalchemy import func, select
 
@@ -111,6 +112,107 @@ async def test_reset_password_revokes_all_sessions(session_factory):
         )
         assert len(stored) == 2
         assert all(item.revoked_at is not None for item in stored)
+
+
+@pytest.mark.asyncio
+async def test_refresh_rejects_when_idle_timeout_exceeded(session_factory):
+    """I02 -- una sesion que no se uso en mas de session_idle_minutes no
+    puede refrescarse, aunque su limite absoluto (expires_at) todavia no
+    se haya cumplido."""
+    async with session_factory() as session:
+        user = await make_user(session)
+        service = AuthService(AuthRepository(session))
+        created = await service.create_session(user.id, None, None)
+
+        stored = await AuthRepository(session).session_by_hash(hash_token(created["refresh_token"]))
+        idle_minutes = get_settings().session_idle_minutes
+        stored.last_used_at = datetime.now(timezone.utc) - timedelta(minutes=idle_minutes + 1)
+        await session.commit()
+
+        with pytest.raises(InvalidTokenError):
+            await service.refresh(created["refresh_token"], None, None)
+
+
+@pytest.mark.asyncio
+async def test_refresh_succeeds_when_activity_is_within_idle_window(session_factory):
+    async with session_factory() as session:
+        user = await make_user(session)
+        service = AuthService(AuthRepository(session))
+        created = await service.create_session(user.id, None, None)
+
+        stored = await AuthRepository(session).session_by_hash(hash_token(created["refresh_token"]))
+        idle_minutes = get_settings().session_idle_minutes
+        stored.last_used_at = datetime.now(timezone.utc) - timedelta(minutes=idle_minutes - 1)
+        await session.commit()
+
+        result = await service.refresh(created["refresh_token"], None, None)
+        assert "access_token" in result
+        assert result["refresh_token"] != created["refresh_token"]
+
+
+@pytest.mark.asyncio
+async def test_refresh_rejects_when_absolute_expiration_exceeded(session_factory):
+    """El limite absoluto de sesion sigue aplicando sin importar que haya
+    actividad reciente -- idle timeout y expiracion absoluta son limites
+    independientes."""
+    async with session_factory() as session:
+        user = await make_user(session)
+        service = AuthService(AuthRepository(session))
+        created = await service.create_session(user.id, None, None)
+
+        stored = await AuthRepository(session).session_by_hash(hash_token(created["refresh_token"]))
+        stored.last_used_at = datetime.now(timezone.utc)
+        stored.expires_at = datetime.now(timezone.utc) - timedelta(seconds=1)
+        await session.commit()
+
+        with pytest.raises(InvalidTokenError):
+            await service.refresh(created["refresh_token"], None, None)
+
+
+@pytest.mark.asyncio
+async def test_refresh_succeeds_with_valid_session_and_returns_new_tokens(session_factory):
+    async with session_factory() as session:
+        user = await make_user(session)
+        service = AuthService(AuthRepository(session))
+        created = await service.create_session(user.id, None, None)
+
+        result = await service.refresh(created["refresh_token"], "127.0.0.1", "pytest-agent")
+        # access_token puede coincidir si iat/exp caen en el mismo
+        # segundo (granularidad de JWT) -- lo que importa para
+        # confirmar una sesion valida es que haya devuelto tokens y que
+        # el refresh_token (unico, no reutilizable) haya rotado.
+        assert result["access_token"]
+        assert result["refresh_token"] != created["refresh_token"]
+
+
+@pytest.mark.asyncio
+async def test_refresh_rotates_the_refresh_token_and_invalidates_the_old_one(session_factory):
+    async with session_factory() as session:
+        user = await make_user(session)
+        service = AuthService(AuthRepository(session))
+        created = await service.create_session(user.id, None, None)
+
+        rotated = await service.refresh(created["refresh_token"], None, None)
+
+        stored = await AuthRepository(session).session_by_hash(hash_token(rotated["refresh_token"]))
+        assert stored is not None
+        with pytest.raises(InvalidTokenError):
+            await service.refresh(created["refresh_token"], None, None)
+
+
+@pytest.mark.asyncio
+async def test_refresh_rejects_when_session_is_revoked(session_factory):
+    async with session_factory() as session:
+        user = await make_user(session)
+        service = AuthService(AuthRepository(session))
+        created = await service.create_session(user.id, None, None)
+
+        stored = await AuthRepository(session).session_by_hash(hash_token(created["refresh_token"]))
+        stored.revoked_at = datetime.now(timezone.utc)
+        await session.commit()
+
+        with pytest.raises(InvalidTokenError):
+            await service.refresh(created["refresh_token"], None, None)
 
 
 @pytest.mark.asyncio
