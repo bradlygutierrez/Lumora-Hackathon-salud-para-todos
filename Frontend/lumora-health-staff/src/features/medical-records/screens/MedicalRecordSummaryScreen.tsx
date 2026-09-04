@@ -276,7 +276,7 @@ export function MedicalRecordSummaryScreen({
           <View style={styles.recordHeading}>
             <Text style={styles.recordTitle}>Expediente Médico</Text>
             <Text style={styles.recordSubtitle}>
-              Información clínica consolidada por FastAPI.
+              Información clínica consolidada del expediente.
             </Text>
           </View>
           <View style={styles.recordActions}>

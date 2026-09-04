@@ -55,7 +55,7 @@ export function ConditionHistoryScreen({
     return (
       <ErrorState
         title="Historial no disponible"
-        message="La condición no existe o fue eliminada. J04 requiere que la condición siga disponible para consultar su historial."
+        message="La condición no existe o fue eliminada; debe seguir disponible para poder consultar su historial."
       />
     );
   }
@@ -84,7 +84,7 @@ export function ConditionHistoryScreen({
         </Button>
 
         <View style={styles.header}>
-          <Text style={styles.eyebrow}>TRAZABILIDAD J04</Text>
+          <Text style={styles.eyebrow}>TRAZABILIDAD</Text>
           <Text style={styles.title}>{condition.data.nombre}</Text>
           <Text style={styles.subtitle}>
             Estado actual: {catalogName(statuses.data?.items, condition.data.estado_condicion_id)}

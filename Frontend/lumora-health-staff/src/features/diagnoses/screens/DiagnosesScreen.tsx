@@ -49,7 +49,7 @@ function diagnosisError(error: unknown) {
     return apiError.message;
   }
   if (apiError.code === 'validation_error') {
-    return 'FastAPI rechazó los datos del diagnóstico. Revisá el formulario.';
+    return 'El servidor rechazó los datos del diagnóstico. Revisá el formulario.';
   }
   return apiError.message;
 }
@@ -133,7 +133,7 @@ export function DiagnosesScreen({
     return (
       <ErrorState
         title="Tipos de diagnóstico no disponibles"
-        message="No se pudo cargar el catálogo real de FastAPI."
+        message="No se pudo cargar el catálogo de diagnósticos."
       />
     );
   }

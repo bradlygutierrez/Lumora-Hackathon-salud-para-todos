@@ -54,7 +54,7 @@ export function ConditionsScreen({ patientId, recordId }: { patientId: number; r
     const condition = conditions.data?.items.find((item) => item.id === conditionId);
     Alert.alert(
       'Confirmar borrado lógico',
-      `Se eliminará ${condition?.nombre ?? 'esta condición'} de las vistas clínicas activas. Esta acción usa el DELETE con borrado lógico de J04.`,
+      `Se eliminará ${condition?.nombre ?? 'esta condición'} de las vistas clínicas activas. La condición no se borra de forma permanente, solo se oculta.`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {

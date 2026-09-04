@@ -120,7 +120,7 @@ export function ConditionFormScreen({
     return (
       <ErrorState
         title="Estados no disponibles"
-        message="No se pudo cargar el catálogo de estados de condición desde FastAPI."
+        message="No se pudo cargar el catálogo de estados de condición."
       />
     );
   }
@@ -128,7 +128,7 @@ export function ConditionFormScreen({
     return (
       <ErrorState
         title="Condición no disponible"
-        message="J04 no expone un GET de detalle; la condición no pudo resolverse desde el listado del expediente."
+        message="No se pudo obtener el detalle de la condición desde el listado del expediente."
       />
     );
   }
@@ -275,7 +275,7 @@ export function ConditionFormScreen({
             multiline
             onBlur={field.onBlur}
             onChangeText={field.onChange}
-            placeholder="Opcional; se guarda en el historial de J04"
+            placeholder="Opcional; queda registrado en el historial de la condición"
             value={field.value}
           />
         )}
@@ -302,7 +302,7 @@ export function ConditionFormScreen({
         <View style={styles.notice}>
           <Text style={styles.noticeText}>
             La nueva condición quedará vinculada al diagnóstico #
-            {diagnosisId}. FastAPI validará que el diagnóstico pertenezca
+            {diagnosisId}. Se validará que el diagnóstico pertenezca
             a este expediente.
           </Text>
         </View>
@@ -311,7 +311,7 @@ export function ConditionFormScreen({
         <View style={styles.notice}>
           <Text style={styles.noticeText}>
             Esta condición está vinculada al diagnóstico #
-            {detail.data.diagnostico_id}. J12 no modifica esa relación;
+            {detail.data.diagnostico_id}. Editar la condición no modifica esa relación;
             los diagnósticos se gestionan en su módulo clínico.
           </Text>
         </View>
@@ -319,8 +319,8 @@ export function ConditionFormScreen({
       {isEditing ? (
         <View style={styles.notice}>
           <Text style={styles.noticeText}>
-            J04 descarta valores null al actualizar condiciones. Si una
-            fecha existente se deja vacía, el frontend la omite y
+            Al actualizar una condición, los valores vacíos se descartan.
+            Si una fecha existente se deja vacía, se omite y se
             conserva el valor actual.
           </Text>
         </View>

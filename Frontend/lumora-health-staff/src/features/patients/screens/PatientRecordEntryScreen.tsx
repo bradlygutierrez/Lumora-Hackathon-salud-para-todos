@@ -36,7 +36,7 @@ export function PatientRecordEntryScreen({ patientId }: Props) {
           <Ionicons color={theme.color.primary} name="folder-open-outline" size={28} />
           <View style={styles.headingText}>
             <Text style={styles.title}>Expediente Médico</Text>
-            <Text style={styles.subtitle}>Entrada segura al expediente respaldada por el resumen clínico de FastAPI.</Text>
+            <Text style={styles.subtitle}>Entrada segura al expediente, respaldada por el resumen clínico del paciente.</Text>
           </View>
         </View>
 

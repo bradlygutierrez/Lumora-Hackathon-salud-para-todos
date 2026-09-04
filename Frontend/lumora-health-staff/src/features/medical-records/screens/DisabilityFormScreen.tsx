@@ -113,7 +113,7 @@ export function DisabilityFormScreen({
     return (
       <ErrorState
         title="Estados no disponibles"
-        message="No se pudo cargar el catálogo de estados desde FastAPI."
+        message="No se pudo cargar el catálogo de estados."
       />
     );
   }
