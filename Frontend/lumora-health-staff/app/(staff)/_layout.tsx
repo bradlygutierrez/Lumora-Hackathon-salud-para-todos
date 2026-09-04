@@ -118,6 +118,13 @@ export default function StaffLayout() {
           href: null,
         }}
       />
+      <Tabs.Screen
+        name="edit-profile"
+        options={{
+          href: null,
+          title: 'Editar Perfil',
+        }}
+      />
     </Tabs>
   );
 }

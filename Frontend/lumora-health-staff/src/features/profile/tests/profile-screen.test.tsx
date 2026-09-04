@@ -5,6 +5,7 @@ import StaffProfileScreen from '@/app/(staff)/profile';
 const mockReloadUser = jest.fn();
 const mockSignOut = jest.fn();
 const mockUseCurrentProfessional = jest.fn();
+const mockUseAccountProfile = jest.fn();
 const mockUseMfaMethods = jest.fn();
 
 jest.mock('@/src/features/auth/hooks/use-auth-session', () => ({
@@ -37,6 +38,10 @@ jest.mock('@/src/features/auth/hooks/use-auth-session', () => ({
 
 jest.mock('@/src/features/profile/hooks/use-professionals', () => ({
   useCurrentProfessional: () => mockUseCurrentProfessional(),
+}));
+
+jest.mock('@/src/features/profile/hooks/use-account', () => ({
+  useAccountProfile: () => mockUseAccountProfile(),
 }));
 
 jest.mock('@/src/features/auth/hooks/use-security', () => ({
@@ -91,6 +96,28 @@ describe('StaffProfileScreen', () => {
       isLoading: false,
       isError: false,
     });
+    mockUseAccountProfile.mockReturnValue({
+      data: {
+        id: 7,
+        username: 'doctor',
+        email: 'doctor@example.com',
+        email_verified: true,
+        profile_image_url: null,
+        person: {
+          id: 9,
+          first_names: 'Ana',
+          last_names: 'Mora',
+          birth_date: null,
+          phone: '8888-4444',
+          email: 'doctor@example.com',
+          sex_id: null,
+          addresses: [],
+        },
+        roles: [],
+      },
+      isLoading: false,
+      isError: false,
+    });
   });
 
   it('renders profile and MFA status only from backend data', async () => {
@@ -102,7 +129,12 @@ describe('StaffProfileScreen', () => {
     expect(screen.getByText('MED-012')).toBeTruthy();
     expect(screen.getByText('MFA Inactivo')).toBeTruthy();
     expect(screen.queryByText('MFA Activo')).toBeNull();
-    expect(screen.queryByText('Editar Perfil')).toBeNull();
     expect(screen.queryByText('Ajustes de la App')).toBeNull();
+  });
+
+  it('links to the edit-profile screen', async () => {
+    const screen = await render(<StaffProfileScreen />);
+
+    expect(screen.getByText('Editar Perfil')).toBeTruthy();
   });
 });

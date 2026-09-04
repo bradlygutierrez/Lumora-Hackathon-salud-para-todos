@@ -4,6 +4,9 @@ export const queryKeys = {
     sessions: ['auth', 'sessions'] as const,
     mfaMethods: ['auth', 'mfa', 'methods'] as const,
   },
+  account: {
+    me: ['account', 'me'] as const,
+  },
   clinical: {
     all: ['clinical'] as const,
     patients: () => [...queryKeys.clinical.all, 'patients'] as const,
