@@ -59,6 +59,10 @@ class MedicalRecordService(ClinicalService):
         return record
 
     async def create(self, data: BaseModel) -> Expediente:
+        # Sin current_user a propósito: abrir el expediente es, junto con
+        # la primera cita, el mecanismo de arranque de la relación con un
+        # paciente nuevo -- exigir una relación previa acá sería circular
+        # (mismo criterio que appointments.py::create_appointment).
         await self._require(Paciente, data.paciente_id, "Paciente")
         await self._require_catalog(
             EstadoExpediente, data.estado_expediente_id, "Estado de expediente"
@@ -69,8 +73,12 @@ class MedicalRecordService(ClinicalService):
         await _commit(self.repository, "El número de expediente ya existe")
         return record
 
-    async def update(self, record_id: int, data: BaseModel) -> Expediente:
+    async def update(self, record_id: int, data: BaseModel, current_user: Usuario) -> Expediente:
         record = await self.get(record_id)
+        professional = await resolve_current_professional(self.repository.session, current_user)
+        await ensure_patient_is_assigned_to_professional(
+            self.repository.session, professional.id, record.paciente_id
+        )
         values = data.model_dump(exclude_unset=True)
         await self._require_catalog(
             EstadoExpediente, values.get("estado_expediente_id"), "Estado de expediente"
@@ -83,8 +91,13 @@ class MedicalRecordService(ClinicalService):
         await _commit(self.repository, "El número de expediente ya existe")
         return record
 
-    async def delete(self, record_id: int) -> None:
-        await self.repository.soft_delete(await self.get(record_id))
+    async def delete(self, record_id: int, current_user: Usuario) -> None:
+        record = await self.get(record_id)
+        professional = await resolve_current_professional(self.repository.session, current_user)
+        await ensure_patient_is_assigned_to_professional(
+            self.repository.session, professional.id, record.paciente_id
+        )
+        await self.repository.soft_delete(record)
         await self.repository.session.commit()
 
 

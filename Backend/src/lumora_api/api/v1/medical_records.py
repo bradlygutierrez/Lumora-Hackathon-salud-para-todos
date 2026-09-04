@@ -59,13 +59,17 @@ async def get_record(record_id: int, session: SessionDep):
 
 
 @router.patch("/{record_id}", response_model=MedicalRecordRead, responses=ERRORS)
-async def update_record(record_id: int, data: MedicalRecordUpdate, session: SessionDep):
-    return await record_service(session).update(record_id, data)
+async def update_record(
+    record_id: int, data: MedicalRecordUpdate, current_user: CurrentUser, session: SessionDep
+):
+    return await record_service(session).update(record_id, data, current_user)
 
 
 @router.delete("/{record_id}", status_code=status.HTTP_204_NO_CONTENT, responses={404: ERRORS[404]})
-async def delete_record(record_id: int, session: SessionDep) -> Response:
-    await record_service(session).delete(record_id)
+async def delete_record(
+    record_id: int, current_user: CurrentUser, session: SessionDep
+) -> Response:
+    await record_service(session).delete(record_id, current_user)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
