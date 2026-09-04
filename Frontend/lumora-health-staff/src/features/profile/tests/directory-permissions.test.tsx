@@ -20,6 +20,10 @@ jest.mock('@expo/vector-icons', () => ({
   Ionicons: () => null,
 }));
 
+jest.mock('@/src/shared/components/AppTopBar', () => ({
+  AppTopBar: () => null,
+}));
+
 jest.mock('@/src/shared/components/Screen', () => {
   const React = jest.requireActual('react');
   return {
