@@ -106,7 +106,7 @@ La API principal se publica bajo /api/v1. El backend está diseñado para ser st
 
 Escalado del backend y pool de conexiones
 
-<p align="center"><img src="./Backend/docs/arquitectura-pool-neon.png" alt="Arquitectura Lumora" width="900"></p>
+<p align="center"><img src= src="https://github.com/user-attachments/assets/fc1b4488-7b68-40b6-a388-f70f8c214d20" alt="Arquitectura Lumora" width="900"></p>
 
 <p align="center"><em>Arquitectura de Lumora con clientes, balanceador, réplicas en FastAPI Cloud, PostgreSQL Neon y almacenamiento de imágenes en B2/R2.</em></p>
 
