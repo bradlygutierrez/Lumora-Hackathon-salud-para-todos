@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
-from lumora_api.core.exceptions import ResourceNotFoundError
+from lumora_api.core.exceptions import PermissionDeniedError, ResourceNotFoundError
 from lumora_api.models import (
     ConsultaMedica,
     Expediente,
@@ -11,8 +11,13 @@ from lumora_api.models import (
     Paciente,
     ProfesionalSalud,
     SignoVital,
+    Usuario,
 )
 from lumora_api.repositories.consultation_repository import ConsultationRepository
+from lumora_api.services.authorization import (
+    ensure_patient_is_assigned_to_professional,
+    resolve_current_professional,
+)
 
 
 class ConsultationService:
@@ -80,9 +85,19 @@ class ConsultationService:
             raise ResourceNotFoundError(f"Consulta médica con id {consultation_id} no existe")
         return item
 
-    async def create(self, data: BaseModel) -> ConsultaMedica:
+    async def create(self, data: BaseModel, current_user: Usuario) -> ConsultaMedica:
         values = data.model_dump(exclude_none=True)
         await self._validate_consultation_values(values)
+        professional = await resolve_current_professional(
+            self.repository.session, current_user
+        )
+        if values["profesional_id"] != professional.id:
+            raise PermissionDeniedError(
+                "No puede registrar una consulta a nombre de otro profesional"
+            )
+        await ensure_patient_is_assigned_to_professional(
+            self.repository.session, professional.id, values["paciente_id"]
+        )
         item = await self.repository.create_consultation(values)
         await self.repository.session.commit()
         return item

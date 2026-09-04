@@ -9,8 +9,13 @@ from lumora_api.models import (
     Expediente,
     ProfesionalSalud,
     TipoDiagnostico,
+    Usuario,
 )
 from lumora_api.repositories.diagnosis_repository import DiagnosisRepository
+from lumora_api.services.authorization import (
+    ensure_patient_is_assigned_to_professional,
+    resolve_current_professional,
+)
 
 
 VALID_CONDITION_TRANSITIONS = {
@@ -52,8 +57,16 @@ class DiagnosisService:
             raise ResourceNotFoundError(f"Diagnóstico con id {diagnosis_id} no existe")
         return item
 
-    async def create_diagnosis(self, consultation_id: int, data: BaseModel) -> Diagnostico:
+    async def create_diagnosis(
+        self, consultation_id: int, data: BaseModel, current_user: Usuario
+    ) -> Diagnostico:
         consultation = await self._consultation(consultation_id)
+        professional = await resolve_current_professional(
+            self.repository.session, current_user
+        )
+        await ensure_patient_is_assigned_to_professional(
+            self.repository.session, professional.id, consultation.paciente_id
+        )
         await self._require_catalog(
             TipoDiagnostico, data.tipo_diagnostico_id, "Tipo de diagnóstico"
         )
