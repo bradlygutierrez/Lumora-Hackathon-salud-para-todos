@@ -170,7 +170,7 @@ export default function SecurityCenterScreen() {
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false} style={styles.scroll}>
         <AppTopBar showBack />
         <View style={styles.header}>
           <Text style={styles.title}>Centro de Seguridad</Text>
@@ -399,6 +399,7 @@ function StatusPill({ active }: { active: boolean }) {
 }
 
 const styles = StyleSheet.create({
+  scroll: { flex: 1 },
   container: { gap: theme.spacing.lg, paddingBottom: theme.spacing.xxl },
   header: { gap: theme.spacing.sm, marginTop: theme.spacing.xl },
   title: { color: theme.color.primaryPressed, fontSize: 28, fontWeight: '900' },

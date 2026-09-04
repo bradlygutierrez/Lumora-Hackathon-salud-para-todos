@@ -67,6 +67,9 @@ class FastApiClient {
     if (token) {
       config.headers.Authorization = `bearer ${token}`;
     }
+    if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+    }
     return config;
   };
 }

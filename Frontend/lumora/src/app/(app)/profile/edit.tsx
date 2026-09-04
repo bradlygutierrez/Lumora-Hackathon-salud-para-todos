@@ -21,6 +21,7 @@ import {
 import { useShellContext } from '@/features/shell/hooks/useShellContext';
 import { ApiError } from '@/shared/api/api-error';
 import { AppButton } from '@/shared/components/AppButton';
+import { DateField } from '@/shared/components/DateField';
 import { FormTextField } from '@/shared/components/FormTextField';
 import { FullScreenState } from '@/shared/components/FullScreenState';
 import { Screen } from '@/shared/components/Screen';
@@ -158,7 +159,7 @@ export default function EditProfileRoute() {
         <FormTextField control={form.control} name="username" label="Usuario" autoCapitalize="none" />
         <FormTextField control={form.control} name="email" label="Correo" keyboardType="email-address" autoCapitalize="none" />
         <FormTextField control={form.control} name="phone" label="Teléfono" keyboardType="phone-pad" />
-        <FormTextField control={form.control} name="birthDate" label="Fecha de nacimiento" placeholder="AAAA-MM-DD" />
+        <Controller control={form.control} name="birthDate" render={({ field }) => <DateField label="Fecha de nacimiento" onChange={field.onChange} value={field.value} />} />
         <Controller
           control={form.control}
           name="sexId"
