@@ -23,6 +23,10 @@ export default function StaffLayout() {
     return <Redirect href="/(auth)/login" />;
   }
 
+  if (status !== 'authenticated') {
+    return <LoadingState title="Cargando permisos cl?nicos" />;
+  }
+
   if (!permissions.has('clinica:manage')) {
     return <Redirect href={'/unauthorized' as Href} />;
   }

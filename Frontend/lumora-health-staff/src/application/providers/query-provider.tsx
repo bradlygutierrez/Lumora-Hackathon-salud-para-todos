@@ -1,9 +1,11 @@
 import NetInfo from '@react-native-community/netinfo';
 import {
+  focusManager,
   onlineManager,
   QueryClient,
   QueryClientProvider,
 } from '@tanstack/react-query';
+import { AppState, type AppStateStatus } from 'react-native';
 import { PropsWithChildren, useState } from 'react';
 
 onlineManager.setEventListener((setOnline) =>
@@ -11,6 +13,13 @@ onlineManager.setEventListener((setOnline) =>
     setOnline(Boolean(state.isConnected && state.isInternetReachable !== false));
   }),
 );
+
+focusManager.setEventListener((setFocused) => {
+  const subscription = AppState.addEventListener('change', (status: AppStateStatus) => {
+    setFocused(status === 'active');
+  });
+  return () => subscription.remove();
+});
 
 export function AppQueryProvider({ children }: PropsWithChildren) {
   const [queryClient] = useState(
@@ -20,6 +29,8 @@ export function AppQueryProvider({ children }: PropsWithChildren) {
           queries: {
             retry: 1,
             staleTime: 30000,
+            refetchOnMount: 'always',
+            refetchOnReconnect: true,
           },
           mutations: {
             retry: false,

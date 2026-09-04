@@ -171,7 +171,7 @@ export default function SecurityCenterScreen() {
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-        <AppTopBar />
+        <AppTopBar showBack />
         <View style={styles.header}>
           <Text style={styles.title}>Centro de Seguridad</Text>
           <Text style={styles.subtitle}>
