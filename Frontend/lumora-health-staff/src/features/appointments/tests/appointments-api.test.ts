@@ -31,7 +31,7 @@ describe('professional workspace appointment API', () => {
     client.patch.mockResolvedValueOnce({ data: { id: 1 } });
     client.delete.mockResolvedValueOnce({ data: undefined });
 
-    await listMyAgenda();
+    await listMyAgenda({ desde: '2026-08-31T00:00:00.000Z', hasta: '2026-09-07T00:00:00.000Z' });
     await listMySchedules();
     await getMyAvailability('2026-08-31');
     await createMySchedule({
@@ -42,7 +42,9 @@ describe('professional workspace appointment API', () => {
     await updateMySchedule(1, { activo: false });
     await deleteMySchedule(1);
 
-    expect(client.get).toHaveBeenNthCalledWith(1, '/profesional/me/agenda');
+    expect(client.get).toHaveBeenNthCalledWith(1, '/profesional/me/agenda', {
+      params: { desde: '2026-08-31T00:00:00.000Z', hasta: '2026-09-07T00:00:00.000Z' },
+    });
     expect(client.get).toHaveBeenNthCalledWith(2, '/profesional/me/horarios');
     expect(client.get).toHaveBeenNthCalledWith(
       3,

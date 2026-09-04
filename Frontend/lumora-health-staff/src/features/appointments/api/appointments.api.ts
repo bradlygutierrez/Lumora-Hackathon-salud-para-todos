@@ -6,8 +6,13 @@ import type {
   ProfessionalSchedulePayload,
 } from '../types/appointment.types';
 
-export async function listMyAgenda(): Promise<ProfessionalAgendaItem[]> {
-  const response = await apiClient.get<ProfessionalAgendaItem[]>('/profesional/me/agenda');
+export async function listMyAgenda(range?: {
+  desde?: string;
+  hasta?: string;
+}): Promise<ProfessionalAgendaItem[]> {
+  const response = await apiClient.get<ProfessionalAgendaItem[]>('/profesional/me/agenda', {
+    params: range,
+  });
   return response.data;
 }
 

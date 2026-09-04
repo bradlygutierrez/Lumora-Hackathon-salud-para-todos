@@ -13,11 +13,11 @@ import type { ProfessionalSchedulePayload } from '../types/appointment.types';
 
 const workspaceKey = ['clinical', 'professional-workspace'] as const;
 
-export function useProfessionalAgenda() {
+export function useProfessionalAgenda(range?: { desde: string; hasta: string }) {
   const { session } = useAuthSession();
   return useQuery({
-    queryKey: [...workspaceKey, 'agenda'],
-    queryFn: () => (session?.isPreview ? Promise.resolve([]) : listMyAgenda()),
+    queryKey: [...workspaceKey, 'agenda', range?.desde ?? null, range?.hasta ?? null],
+    queryFn: () => (session?.isPreview ? Promise.resolve([]) : listMyAgenda(range)),
   });
 }
 
