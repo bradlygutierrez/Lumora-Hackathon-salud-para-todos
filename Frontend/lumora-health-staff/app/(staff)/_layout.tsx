@@ -1,12 +1,19 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Redirect, Tabs, type Href } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAuthSession } from '@/src/features/auth/hooks/use-auth-session';
 import { LoadingState } from '@/src/shared/components/RemoteState';
 import { theme } from '@/src/shared/constants/theme';
 
+const TAB_BAR_CONTENT_HEIGHT = 72;
+
 export default function StaffLayout() {
   const { permissions, status } = useAuthSession();
+  const insets = useSafeAreaInsets();
+  // Un poco más de aire además del inset real, para que los íconos no
+  // queden pegados a la barra de navegación nativa del celular.
+  const tabBarBottomPadding = insets.bottom + theme.spacing.sm;
 
   if (status === 'restoring') {
     return <LoadingState title="Restaurando sesión clínica" />;
@@ -40,7 +47,8 @@ export default function StaffLayout() {
         tabBarStyle: {
           backgroundColor: theme.color.surfaceMuted,
           borderTopColor: theme.color.softBorder,
-          height: 72,
+          height: TAB_BAR_CONTENT_HEIGHT + tabBarBottomPadding,
+          paddingBottom: tabBarBottomPadding,
           paddingHorizontal: 8,
         },
       }}

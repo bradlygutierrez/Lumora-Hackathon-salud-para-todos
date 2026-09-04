@@ -50,7 +50,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginHorizontal: -theme.spacing.lg,
-    marginTop: -theme.spacing.lg,
+    // Cancela el padding de Screen pero deja un respiro extra debajo del
+    // safe-area inset (que ahora sí se aplica en Android) para que el logo
+    // no quede pegado al notch/cámara frontal.
+    marginTop: -(theme.spacing.lg - theme.spacing.xs),
     minHeight: 62,
     paddingHorizontal: theme.spacing.lg,
     paddingVertical: theme.spacing.sm,

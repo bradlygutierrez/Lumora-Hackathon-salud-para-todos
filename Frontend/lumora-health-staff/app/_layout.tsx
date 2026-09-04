@@ -2,6 +2,7 @@ import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AppQueryProvider } from '@/src/application/providers/query-provider';
 import { AuthSessionProvider } from '@/src/features/auth/hooks/use-auth-session';
@@ -36,12 +37,14 @@ function RootNavigator() {
 
 export default function RootLayout() {
   return (
-    <ThemeProvider value={navigationTheme}>
-      <AppQueryProvider>
-        <AuthSessionProvider>
-          <RootNavigator />
-        </AuthSessionProvider>
-      </AppQueryProvider>
-    </ThemeProvider>
+    <SafeAreaProvider>
+      <ThemeProvider value={navigationTheme}>
+        <AppQueryProvider>
+          <AuthSessionProvider>
+            <RootNavigator />
+          </AuthSessionProvider>
+        </AppQueryProvider>
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 }

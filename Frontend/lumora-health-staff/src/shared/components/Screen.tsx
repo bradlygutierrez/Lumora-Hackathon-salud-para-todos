@@ -1,5 +1,6 @@
 import { PropsWithChildren } from 'react';
-import { KeyboardAvoidingView, Platform, SafeAreaView, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { theme } from '../constants/theme';
 
