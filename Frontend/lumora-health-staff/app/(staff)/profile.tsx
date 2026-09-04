@@ -25,7 +25,7 @@ export default function StaffProfileScreen() {
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.container}>
-        <AppTopBar />
+        <AppTopBar showBack />
 
         <View style={styles.profileCard}>
           <View style={styles.avatarWrap}>

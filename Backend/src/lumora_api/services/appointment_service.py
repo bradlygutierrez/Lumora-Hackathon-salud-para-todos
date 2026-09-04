@@ -1,9 +1,14 @@
 from datetime import date, datetime, timedelta, timezone
+from uuid import uuid4
+
+from sqlalchemy import func, select
 
 from lumora_api.core.exceptions import ResourceConflictError, ResourceNotFoundError
 from lumora_api.models import (
     Cita,
     EstadoCita,
+    EstadoExpediente,
+    Expediente,
     EventoAuditoria,
     Paciente,
     ProfesionalSalud,
@@ -100,6 +105,33 @@ class AppointmentService:
                 raise ResourceNotFoundError("Estado de cita Pendiente no existe")
             values["estado_cita_id"] = pending.id
         await self._validate(values)
+
+        # La primera cita abre el expediente activo si el paciente a?n no tiene uno.
+        active_record = await self.repository.session.scalar(
+            select(Expediente).where(
+                Expediente.paciente_id == values["paciente_id"],
+                Expediente.activo.is_(True),
+                Expediente.deleted_at.is_(None),
+            )
+        )
+        if active_record is None:
+            record_status = await self.repository.session.scalar(
+                select(EstadoExpediente).where(
+                    func.lower(EstadoExpediente.nombre) == "activo"
+                )
+            )
+            if record_status is None:
+                raise ResourceNotFoundError(
+                    "No existe el estado de expediente 'Activo'; falta correr el seed"
+                )
+            self.repository.session.add(
+                Expediente(
+                    paciente_id=values["paciente_id"],
+                    estado_expediente_id=record_status.id,
+                    numero_expediente=f"EXP-{uuid4().hex[:10].upper()}",
+                )
+            )
+
         item = Cita(**values)
         self.repository.session.add(item)
         await self.repository.session.flush()

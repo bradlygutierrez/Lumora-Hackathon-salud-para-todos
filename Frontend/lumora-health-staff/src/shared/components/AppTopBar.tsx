@@ -1,20 +1,32 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Link } from 'expo-router';
+import { Link, router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useNotifications } from '@/src/features/notifications/hooks/use-notifications';
 import { theme } from '../constants/theme';
 import { LumoraBrand } from './LumoraBrand';
 
-export function AppTopBar() {
+type AppTopBarProps = {
+  showBack?: boolean;
+};
+
+export function AppTopBar({ showBack = false }: AppTopBarProps) {
   const { unreadCount } = useNotifications();
 
   return (
     <View style={styles.container}>
       <View style={styles.side}>
-        <View style={styles.avatar}>
-          <Ionicons color={theme.color.primaryPressed} name="person-outline" size={19} />
-        </View>
+        {showBack ? (
+          <Pressable accessibilityLabel="Volver" accessibilityRole="button" onPress={() => router?.back()}>
+            <View style={styles.avatar}>
+              <Ionicons color={theme.color.primaryPressed} name="arrow-back" size={21} />
+            </View>
+          </Pressable>
+        ) : (
+          <View style={styles.avatar}>
+            <Ionicons color={theme.color.primaryPressed} name="person-outline" size={19} />
+          </View>
+        )}
       </View>
 
       <LumoraBrand compact />

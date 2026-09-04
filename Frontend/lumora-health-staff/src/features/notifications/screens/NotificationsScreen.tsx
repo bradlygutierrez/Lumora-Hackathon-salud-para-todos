@@ -12,7 +12,7 @@ export function NotificationsScreen() {
 
   return (
     <Screen>
-      <AppTopBar />
+      <AppTopBar showBack />
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.titleBlock}>
           <Text style={styles.title}>Notificaciones</Text>
