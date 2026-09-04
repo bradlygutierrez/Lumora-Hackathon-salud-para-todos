@@ -303,3 +303,69 @@ async def test_staff_cannot_manage_allergies_disabilities_or_history_of_an_unrel
     )
     assert history.status_code == 403
     assert history.json()["error"]["code"] == "forbidden"
+
+
+@pytest.mark.asyncio
+async def test_staff_cannot_edit_or_delete_the_medical_record_of_an_unrelated_patient(
+    client, session_factory
+):
+    # Crear el expediente (POST /expedientes) sigue sin restricción --
+    # es, junto con la primera cita, el arranque legítimo de la relación
+    # con un paciente nuevo. Editar/borrar un expediente YA existente sí
+    # debe exigir una relación real con ese paciente.
+    owner_token, owner_professional_id = await _register(
+        client, session_factory, "clinician-record-owner", clinical=True
+    )
+    owner_headers = {"Authorization": f"Bearer {owner_token}"}
+    setup = await _clinical_setup(session_factory)
+
+    async with session_factory() as session:
+        now = datetime.now(timezone.utc)
+        session.add(
+            Cita(
+                paciente_id=setup["patient_id"],
+                profesional_id=owner_professional_id,
+                inicio=now,
+                fin=now + timedelta(minutes=30),
+            )
+        )
+        await session.commit()
+
+    record = await client.post(
+        "/api/v1/expedientes",
+        json={
+            "paciente_id": setup["patient_id"],
+            "estado_expediente_id": setup["state_id"],
+            "numero_expediente": "EXP-OWNER",
+        },
+        headers=owner_headers,
+    )
+    assert record.status_code == 201
+    record_id = record.json()["id"]
+
+    outsider_token, _ = await _register(
+        client, session_factory, "clinician-record-outsider", clinical=True
+    )
+    outsider_headers = {"Authorization": f"Bearer {outsider_token}"}
+
+    update = await client.patch(
+        f"/api/v1/expedientes/{record_id}",
+        json={"notas": "Intento no autorizado"},
+        headers=outsider_headers,
+    )
+    assert update.status_code == 403
+    assert update.json()["error"]["code"] == "forbidden"
+
+    delete = await client.delete(
+        f"/api/v1/expedientes/{record_id}", headers=outsider_headers
+    )
+    assert delete.status_code == 403
+    assert delete.json()["error"]["code"] == "forbidden"
+
+    # El profesional con la relación real sigue pudiendo editarlo.
+    owner_update = await client.patch(
+        f"/api/v1/expedientes/{record_id}",
+        json={"notas": "Actualización legítima"},
+        headers=owner_headers,
+    )
+    assert owner_update.status_code == 200
