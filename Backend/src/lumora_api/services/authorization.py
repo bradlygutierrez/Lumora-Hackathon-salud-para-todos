@@ -10,6 +10,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from lumora_api.core.exceptions import PermissionDeniedError
 from lumora_api.models.identity import Paciente, Usuario
 from lumora_api.repositories.identity_repository import IdentityRepository
+from lumora_api.repositories.professional_workspace_repository import (
+    ProfessionalWorkspaceRepository,
+)
 from lumora_api.repositories.reminders import ReminderRepository
 from lumora_api.services.medical_authorization import ensure_active_medical_affiliation
 
@@ -74,4 +77,28 @@ async def ensure_can_access_patient_data(
     if my_patient_id != paciente_id:
         raise PermissionDeniedError(
             "No tiene permiso para acceder a los datos de este paciente"
+        )
+
+
+async def ensure_patient_is_assigned_to_professional(
+    session: AsyncSession, professional_id: int, paciente_id: int
+) -> None:
+    """Exige que el paciente tenga al menos una cita o consulta real con
+    este profesional (misma noción que ya usa el workspace del
+    profesional para "mis pacientes"). `clinica:manage` por sí solo
+    autoriza leer/navegar el directorio de pacientes, pero no alcanza
+    para emitir recetas a un paciente con el que el profesional nunca
+    tuvo contacto -- ver `ProfessionalWorkspaceRepository.related_patient_ids`.
+
+    No se aplica a la creación de citas (`appointments.py`): ahí el
+    profesional recién está estableciendo la relación con un paciente
+    nuevo, así que exigir una relación previa sería circular.
+    """
+    related_ids = await ProfessionalWorkspaceRepository(session).related_patient_ids(
+        professional_id
+    )
+    if paciente_id not in related_ids:
+        raise PermissionDeniedError(
+            "El paciente no está asignado a este profesional; "
+            "agende una cita o consulta antes de emitir una receta"
         )

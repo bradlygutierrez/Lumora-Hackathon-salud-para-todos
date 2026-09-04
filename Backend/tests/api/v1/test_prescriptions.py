@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta, timezone
+
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
@@ -5,6 +7,7 @@ from sqlalchemy import select
 from helpers.medical import create_active_medical_professional
 from lumora_api.core.security import hash_password
 from lumora_api.models import (
+    Cita,
     ConsultaMedica,
     EstadoExpediente,
     Expediente,
@@ -131,6 +134,28 @@ async def _create_consultation(
         return consultation_id
 
 
+async def _create_appointment(
+    session_factory, *, patient_id: int, professional_id: int
+) -> int:
+    """Vínculo profesional-paciente más liviano que _create_consultation
+    (sin expediente, que es único por paciente): alcanza para que
+    ProfessionalWorkspaceRepository.related_patient_ids reconozca la
+    relación cuando un test ya tiene un expediente para ese paciente."""
+    async with session_factory() as session:
+        now = datetime.now(timezone.utc)
+        appointment = Cita(
+            paciente_id=patient_id,
+            profesional_id=professional_id,
+            inicio=now,
+            fin=now + timedelta(minutes=30),
+        )
+        session.add(appointment)
+        await session.flush()
+        appointment_id = appointment.id
+        await session.commit()
+        return appointment_id
+
+
 @pytest.mark.asyncio
 async def test_create_prescription_validation_error(client: AsyncClient, session_factory):
     # Pydantic debe rechazar duración/cantidad inválidas antes de persistir.
@@ -205,6 +230,12 @@ async def test_staff_can_create_receta_only_with_own_professional_profile(
         especialidad="Cardiología",
         numero_licencia="L-100",
     )
+    await _create_consultation(
+        session_factory,
+        patient_id=patient_id,
+        professional_id=professional_id,
+        suffix="OWN-PROFILE",
+    )
     headers = {"Authorization": f"Bearer {token}"}
 
     medication = await client.post(
@@ -240,6 +271,36 @@ async def test_staff_can_create_receta_only_with_own_professional_profile(
 
 
 @pytest.mark.asyncio
+async def test_staff_cannot_prescribe_to_a_patient_with_no_relationship(
+    client: AsyncClient, session_factory
+):
+    # Regresión: un profesional con clinica:manage podía emitir recetas a
+    # cualquier paciente del sistema, aunque nunca hubiera tenido una cita
+    # o consulta con él/ella.
+    patient_id = await _create_patient(session_factory, "SinRelacion")
+    token, professional_id = await _staff_login_with_professional(
+        client,
+        session_factory,
+        username="doc-sin-relacion",
+        email="doc-sin-relacion@example.com",
+        numero_licencia="L-SIN-RELACION",
+    )
+
+    response = await client.post(
+        "/api/v1/prescriptions",
+        json={
+            "paciente_id": patient_id,
+            "profesional_id": professional_id,
+            "detalles": [],
+        },
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 403
+    assert response.json()["error"]["code"] == "forbidden"
+
+
+@pytest.mark.asyncio
 async def test_staff_cannot_issue_recipe_as_another_professional(
     client: AsyncClient, session_factory
 ):
@@ -250,6 +311,12 @@ async def test_staff_cannot_issue_recipe_as_another_professional(
         username="doc-owner",
         email="doc-owner@example.com",
         numero_licencia="L-OWNER",
+    )
+    await _create_consultation(
+        session_factory,
+        patient_id=patient_id,
+        professional_id=own_professional_id,
+        suffix="IMPERSONATION",
     )
     async with session_factory() as session:
         other = ProfesionalSalud(
@@ -293,7 +360,13 @@ async def test_recipe_rejects_consultation_from_another_patient(
         session_factory,
         patient_id=patient_a,
         professional_id=professional_id,
-        suffix="PATIENT-MISMATCH",
+        suffix="PATIENT-MISMATCH-A",
+    )
+    # patient_b also has a real relationship with the professional, so the
+    # 409 being tested (wrong patient for that specific consultation) isn't
+    # masked by the newer "patient not assigned to this professional" 403.
+    await _create_appointment(
+        session_factory, patient_id=patient_b, professional_id=professional_id
     )
 
     response = await client.post(
@@ -335,6 +408,12 @@ async def test_recipe_rejects_consultation_from_another_professional(
         professional_id=other_professional_id,
         suffix="PROFESSIONAL-MISMATCH",
     )
+    # The acting professional also has a real (separate) relationship with
+    # the patient, so the 403 being tested (consultation owned by someone
+    # else) isn't masked by the newer "patient not assigned" 403.
+    await _create_appointment(
+        session_factory, patient_id=patient_id, professional_id=professional_id
+    )
 
     response = await client.post(
         "/api/v1/prescriptions",
@@ -368,6 +447,12 @@ async def test_other_professional_cannot_edit_recipe_or_its_details(
         username="doc-rx-other",
         email="doc-rx-other@example.com",
         numero_licencia="L-RX-OTHER",
+    )
+    await _create_consultation(
+        session_factory,
+        patient_id=patient_id,
+        professional_id=owner_professional_id,
+        suffix="OWNERSHIP",
     )
     owner_headers = {"Authorization": f"Bearer {owner_token}"}
     other_headers = {"Authorization": f"Bearer {other_token}"}

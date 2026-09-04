@@ -20,7 +20,10 @@ from lumora_api.schemas.prescriptions import (
     RecetaCreate,
     RecetaUpdate,
 )
-from lumora_api.services.authorization import ensure_can_access_patient_data
+from lumora_api.services.authorization import (
+    ensure_can_access_patient_data,
+    ensure_patient_is_assigned_to_professional,
+)
 
 
 class PrescriptionService:
@@ -116,6 +119,9 @@ class PrescriptionService:
             current_user,
             patient.id,
             action="write",
+        )
+        await ensure_patient_is_assigned_to_professional(
+            self.repository.session, professional.id, patient.id
         )
         if schema.profesional_id != professional.id:
             raise PermissionDeniedError(
