@@ -237,18 +237,26 @@ async def test_dosis_tomada_con_fecha_un_dia_desfasada_por_zona_horaria_tambien_
         s.add(detalle)
         await s.flush()
 
-        hora_vencida = (datetime.utcnow() - timedelta(hours=1)).time()
+        now = datetime.utcnow()
+        hora_vencida = (now - timedelta(hours=1)).time()
         horario = HorarioMedicamento(
             detalle_receta_id=detalle.id, hora=hora_vencida, activo=True
         )
         s.add(horario)
         await s.flush()
 
-        # El "dia" que calcula el servicio para esta ocurrencia es
-        # utcnow().date(). Simulamos el desfase de zona horaria fechando
-        # el registro un dia despues de ese "dia" -- exactamente lo que
-        # pasaria con un dispositivo detras de UTC.
-        dia_calculado = datetime.utcnow().date()
+        # El servicio elige "hoy" para esta ocurrencia solo si esa hora ya
+        # paso hoy; si no, usa "ayer" (ver _dosis_omitidas). Cuando el test
+        # corre entre las 00:00 y las 00:59 UTC, hora_vencida (now - 1h)
+        # cae tarde en el dia calendario ANTERIOR, así que el servicio
+        # elige "ayer" -- hay que espejar esa misma lógica acá, en vez de
+        # asumir siempre utcnow().date(), o el desfase simulado de un día
+        # queda mal calculado y el test se rompe justo en esa franja
+        # horaria.
+        ocurrencia_hoy = datetime.combine(now.date(), hora_vencida)
+        dia_calculado = (
+            now.date() if ocurrencia_hoy <= now else now.date() - timedelta(days=1)
+        )
         dosis = DosisAdministrada(
             horario_id=horario.id,
             estado_dosis_id=estado_tomada.id,
