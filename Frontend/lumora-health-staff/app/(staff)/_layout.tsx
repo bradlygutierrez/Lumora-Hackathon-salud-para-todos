@@ -125,6 +125,13 @@ export default function StaffLayout() {
           title: 'Editar Perfil',
         }}
       />
+      <Tabs.Screen
+        name="notifications"
+        options={{
+          href: null,
+          title: 'Notificaciones',
+        }}
+      />
     </Tabs>
   );
 }

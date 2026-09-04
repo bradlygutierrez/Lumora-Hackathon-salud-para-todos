@@ -1,10 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet, View } from 'react-native';
+import { Link } from 'expo-router';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { useNotifications } from '@/src/features/notifications/hooks/use-notifications';
 import { theme } from '../constants/theme';
 import { LumoraBrand } from './LumoraBrand';
 
 export function AppTopBar() {
+  const { unreadCount } = useNotifications();
+
   return (
     <View style={styles.container}>
       <View style={styles.side}>
@@ -16,11 +20,22 @@ export function AppTopBar() {
       <LumoraBrand compact />
 
       <View style={[styles.side, styles.sideRight]}>
-        <Ionicons
-          color={theme.color.primaryPressed}
-          name="notifications-outline"
-          size={23}
-        />
+        <Link asChild href="/(staff)/notifications">
+          <Pressable accessibilityLabel="Abrir notificaciones" accessibilityRole="button">
+            <View>
+              <Ionicons
+                color={theme.color.primaryPressed}
+                name="notifications-outline"
+                size={23}
+              />
+              {unreadCount > 0 ? (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                </View>
+              ) : null}
+            </View>
+          </Pressable>
+        </Link>
       </View>
     </View>
   );
@@ -54,5 +69,21 @@ const styles = StyleSheet.create({
     height: 36,
     justifyContent: 'center',
     width: 36,
+  },
+  badge: {
+    alignItems: 'center',
+    backgroundColor: theme.color.danger,
+    borderRadius: 8,
+    justifyContent: 'center',
+    minWidth: 16,
+    paddingHorizontal: 3,
+    position: 'absolute',
+    right: -6,
+    top: -6,
+  },
+  badgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '900',
   },
 });
