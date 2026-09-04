@@ -505,10 +505,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: theme.spacing.md,
     padding: theme.spacing.lg,
-    shadowColor: '#003C90',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
   },
   avatar: {
     alignItems: 'center',

@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
   avatar: {
     alignItems: 'center',
     backgroundColor: theme.color.primarySoft,
-    borderRadius: 18,
+    borderRadius: 36 / 2,
     height: 36,
     justifyContent: 'center',
     width: 36,
@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
   badge: {
     alignItems: 'center',
     backgroundColor: theme.color.danger,
-    borderRadius: 8,
+    borderRadius: theme.radius.sm,
     justifyContent: 'center',
     minWidth: 16,
     paddingHorizontal: 3,

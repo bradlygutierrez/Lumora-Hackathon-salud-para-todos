@@ -198,10 +198,6 @@ const styles = StyleSheet.create({
     borderLeftColor: '#10B981',
     borderLeftWidth: 4,
     padding: 24,
-    shadowColor: '#003C90',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
   },
   cardHeader: {
     alignItems: 'flex-start',

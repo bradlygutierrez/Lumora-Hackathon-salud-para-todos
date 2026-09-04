@@ -102,7 +102,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: theme.color.surfaceMuted,
     borderColor: theme.color.border,
-    borderRadius: 10,
+    borderRadius: theme.radius.md,
     borderWidth: 1,
     flexDirection: 'row',
     gap: theme.spacing.sm,

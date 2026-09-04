@@ -43,7 +43,7 @@ export function Button({
       style={({ pressed }) => [
         styles.button,
         styles[variant],
-        pressed && !isDisabled ? styles.pressed : null,
+        pressed && !isDisabled ? pressedStyles[variant] : null,
         isDisabled ? styles.disabled : null,
         // react-native-web adds a required `hovered` field to this callback's
         // parameter type that plain react-native doesn't declare, so the cast
@@ -84,15 +84,12 @@ const styles = StyleSheet.create({
     borderColor: theme.color.border,
   },
   danger: {
-    backgroundColor: '#FFD7D2',
-    borderColor: '#FFD7D2',
+    backgroundColor: theme.color.dangerSoft,
+    borderColor: theme.color.dangerSoft,
   },
   ghost: {
     backgroundColor: 'transparent',
     borderColor: 'transparent',
-  },
-  pressed: {
-    backgroundColor: theme.color.primaryPressed,
   },
   disabled: {
     opacity: 0.65,
@@ -106,4 +103,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: theme.spacing.sm,
   },
+});
+
+// Each variant darkens/dims its own resting color when pressed, instead of
+// every variant flashing the primary-blue pressed color regardless of fill.
+const pressedStyles = StyleSheet.create({
+  primary: {
+    backgroundColor: theme.color.primaryPressed,
+    borderColor: theme.color.primaryPressed,
+  },
+  secondary: { opacity: 0.7 },
+  danger: { opacity: 0.7 },
+  ghost: { opacity: 0.6 },
 });
