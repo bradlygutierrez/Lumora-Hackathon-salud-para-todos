@@ -120,8 +120,9 @@ export class PortalApp {
       await this.loadDetail(Number(detailMatch[1]))
       return
     }
-    if (window.location.hash === '#/cuentas') {
-      await this.loadUsers()
+    if (['#/cuentas', '#/pacientes', '#/medicos'].includes(window.location.hash)) {
+      const section: SupportSection = window.location.hash === '#/pacientes' ? 'patients' : window.location.hash === '#/medicos' ? 'professionals' : 'admins'
+      await this.loadUsers(section)
       return
     }
     await this.loadDashboard()
