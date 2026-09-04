@@ -107,7 +107,7 @@ describe('ConsultationDetailScreen', () => {
   it.each([
     [new ApiError('forbidden', 'forbidden', 403), 'No tenés permiso para modificar información clínica.'],
     [new ApiError('not found', 'not_found', 404), 'La consulta ya no está disponible.'],
-    [new ApiError('validation', 'validation_error', 422), 'FastAPI rechazó los datos. Revisá los valores ingresados.'],
+    [new ApiError('validation', 'validation_error', 422), 'El servidor rechazó los datos. Revisá los valores ingresados.'],
   ])('translates vital mutation errors', async (error, message) => {
     mockUseCreateVitalSigns.mockReturnValue(mutation(error));
     const screen = await render(<ConsultationDetailScreen consultationId={41} patientId={3} />);

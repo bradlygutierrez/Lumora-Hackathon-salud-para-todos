@@ -112,7 +112,7 @@ describe('ConsultationFormScreen', () => {
   it.each([
     [new ApiError('forbidden', 'forbidden', 403), 'No tenés permiso para guardar consultas clínicas.'],
     [new ApiError('not found', 'not_found', 404), 'El expediente, paciente, profesional o motivo seleccionado ya no está disponible.'],
-    [new ApiError('validation', 'validation_error', 422), 'FastAPI rechazó uno o más datos. Revisá el formulario.'],
+    [new ApiError('validation', 'validation_error', 422), 'El servidor rechazó uno o más datos. Revisá el formulario.'],
   ])('translates J03 errors', async (error, expected) => {
     mockUseCreateConsultation.mockReturnValue(mutation(error));
     const screen = await render(<ConsultationFormScreen patientId={3} recordId={7} />);

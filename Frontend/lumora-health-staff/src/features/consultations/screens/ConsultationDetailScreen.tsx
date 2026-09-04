@@ -35,7 +35,7 @@ function mutationError(error: unknown, action: 'signs' | 'note') {
   const apiError = toApiError(error);
   if (apiError.code === 'forbidden') return 'No tenés permiso para modificar información clínica.';
   if (apiError.code === 'not_found') return action === 'signs' ? 'La consulta ya no está disponible.' : 'La consulta o nota ya no está disponible.';
-  if (apiError.code === 'validation_error') return 'FastAPI rechazó los datos. Revisá los valores ingresados.';
+  if (apiError.code === 'validation_error') return 'El servidor rechazó los datos. Revisá los valores ingresados.';
   return apiError.message;
 }
 

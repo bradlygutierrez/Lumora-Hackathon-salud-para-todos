@@ -22,7 +22,7 @@ export default function ConditionHistoryRoute() {
     return (
       <ErrorState
         title="Historial no disponible"
-        message="La trazabilidad de cambios de J04 aplica a condiciones médicas."
+        message="La trazabilidad de cambios solo está disponible para condiciones médicas."
       />
     );
   }

@@ -51,7 +51,7 @@ function prescriptionError(error: unknown) {
   if (!error) return null;
   const apiError = toApiError(error);
   if (apiError.code === 'forbidden') {
-    return 'FastAPI rechazó la identidad profesional o no tenés permiso para emitir esta receta.';
+    return 'El servidor rechazó la identidad profesional o no tenés permiso para emitir esta receta.';
   }
   if (apiError.code === 'not_found') {
     return 'El paciente, la consulta o un recurso clínico seleccionado ya no está disponible.';
@@ -60,7 +60,7 @@ function prescriptionError(error: unknown) {
     return apiError.message;
   }
   if (apiError.code === 'validation_error') {
-    return 'FastAPI rechazó la receta. Revisá los datos y cantidades.';
+    return 'El servidor rechazó la receta. Revisá los datos y cantidades.';
   }
   return apiError.message;
 }
@@ -123,7 +123,7 @@ export function PrescriptionCreateScreen({
     return (
       <ErrorState
         title="Perfil profesional no disponible"
-        message="Tu usuario clínico no está vinculado a un ProfesionalSalud. FastAPI no permite emitir recetas sin esa identidad."
+        message="Tu usuario clínico no está vinculado a un perfil de profesional de salud. No podés emitir recetas sin esa identidad."
       />
     );
   }
@@ -133,7 +133,7 @@ export function PrescriptionCreateScreen({
     return (
       <ErrorState
         title="Catálogos clínicos no disponibles"
-        message="No se pudieron cargar medicamentos, estados, vías o unidades desde FastAPI."
+        message="No se pudieron cargar medicamentos, estados, vías o unidades."
       />
     );
   }

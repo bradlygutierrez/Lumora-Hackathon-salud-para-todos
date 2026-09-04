@@ -70,7 +70,7 @@ export function PrescriptionsScreen({
     return (
       <ErrorState
         title="Estados de receta no disponibles"
-        message="No se pudo resolver el estado Activa desde el catálogo de FastAPI."
+        message="No se pudo resolver el estado Activa desde el catálogo."
       />
     );
   }

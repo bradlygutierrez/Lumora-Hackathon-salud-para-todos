@@ -22,7 +22,7 @@ function serverMessage(error: unknown) {
   const apiError = toApiError(error);
   if (apiError.code === 'forbidden') return 'No tenés permiso para guardar consultas clínicas.';
   if (apiError.code === 'not_found') return 'El expediente, paciente, profesional o motivo seleccionado ya no está disponible.';
-  if (apiError.code === 'validation_error') return 'FastAPI rechazó uno o más datos. Revisá el formulario.';
+  if (apiError.code === 'validation_error') return 'El servidor rechazó uno o más datos. Revisá el formulario.';
   return apiError.message;
 }
 
@@ -146,7 +146,7 @@ export function ConsultationFormScreen({ patientId, recordId, consultationId }: 
           <TextField accessibilityLabel="Motivo de consulta" error={errors.motivo?.message} label="Motivo de consulta *" multiline onBlur={field.onBlur} onChangeText={field.onChange} placeholder="Describí el motivo principal" value={field.value} />
         )} />
         <Controller control={control} name="fecha_consulta" render={({ field }) => (
-          <TextField accessibilityLabel="Fecha de consulta" error={errors.fecha_consulta?.message} label="Fecha y hora" onBlur={field.onBlur} onChangeText={field.onChange} placeholder="Opcional; FastAPI asigna la fecha si se deja vacío" value={field.value} />
+          <TextField accessibilityLabel="Fecha de consulta" error={errors.fecha_consulta?.message} label="Fecha y hora" onBlur={field.onBlur} onChangeText={field.onChange} placeholder="Opcional; se usa la fecha y hora actuales si se deja vacío" value={field.value} />
         )} />
         {(['sintomas', 'evaluacion', 'indicaciones', 'observaciones'] as const).map((name) => (
           <Controller control={control} key={name} name={name} render={({ field }) => (
@@ -157,7 +157,15 @@ export function ConsultationFormScreen({ patientId, recordId, consultationId }: 
               multiline
               onBlur={field.onBlur}
               onChangeText={field.onChange}
-              placeholder="Opcional según contrato J03"
+              placeholder={
+                name === 'sintomas'
+                  ? 'Opcional. Ej.: dolor de cabeza, fiebre, tos'
+                  : name === 'evaluacion'
+                    ? 'Opcional. Hallazgos y valoración clínica'
+                    : name === 'indicaciones'
+                      ? 'Opcional. Tratamiento o recomendaciones para el paciente'
+                      : 'Opcional. Notas adicionales sobre la consulta'
+              }
               value={field.value ?? ''}
             />
           )} />
@@ -186,6 +194,6 @@ const styles = StyleSheet.create({
   title: { color: theme.color.text, fontSize: 24, fontWeight: '900' },
   subtitle: { color: theme.color.mutedText, fontSize: 12 },
   content: { gap: theme.spacing.lg, paddingBottom: theme.spacing.xxl, paddingTop: theme.spacing.lg },
-  errorBox: { backgroundColor: '#FFD7D2', borderRadius: theme.radius.md, padding: theme.spacing.md },
+  errorBox: { backgroundColor: theme.color.dangerSoft, borderRadius: theme.radius.md, padding: theme.spacing.md },
   errorText: { color: theme.color.danger, fontSize: 13, fontWeight: '700' },
 });

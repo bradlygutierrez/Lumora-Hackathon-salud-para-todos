@@ -43,7 +43,7 @@ export function PatientFamilyScreen({ patientId }: Props) {
         <View style={styles.heading}>
           <Text style={styles.title}>Familiares y Acceso</Text>
           <Text style={styles.subtitle}>
-            Vista clínica de las relaciones autorizadas por el paciente. El personal no modifica estos permisos desde J09.
+            Vista clínica de las relaciones autorizadas por el paciente. El personal no modifica estos permisos desde aquí.
           </Text>
         </View>
 

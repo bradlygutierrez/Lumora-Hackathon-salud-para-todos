@@ -122,7 +122,7 @@ export function AllergyFormScreen({
     return (
       <ErrorState
         title="Catálogos no disponibles"
-        message="No se pudieron cargar severidades y estados desde FastAPI."
+        message="No se pudieron cargar severidades y estados."
       />
     );
   }
