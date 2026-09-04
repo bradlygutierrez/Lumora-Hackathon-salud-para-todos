@@ -94,7 +94,9 @@ export class PortalApp {
         this.root.innerHTML = ForbiddenView(`${this.user.persona.nombres} ${this.user.persona.apellidos}`.trim() || this.user.username)
         return
       }
-      if (!window.location.hash.startsWith('#/afiliaciones')) {
+      const hash = window.location.hash
+      const supportRoute = ['#/cuentas', '#/pacientes', '#/medicos'].includes(hash)
+      if (!hash.startsWith('#/afiliaciones') && !supportRoute) {
         window.location.hash = '#/afiliaciones'
         return
       }
