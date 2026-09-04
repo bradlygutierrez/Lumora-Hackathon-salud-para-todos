@@ -14,6 +14,16 @@ import {
   useScheduleMutations,
 } from '../hooks/use-appointments';
 import type { ProfessionalSchedule } from '../types/appointment.types';
+import {
+  addDaysUtc,
+  buildWeekDays,
+  formatSectionHeader,
+  formatWeekRange,
+  groupByDate,
+  startOfWeekUtc,
+  toDateKey,
+  weekdayShortLabel,
+} from '../utils/agenda-week';
 import { buildSchedulePayload, shortTime } from '../utils/schedule-form';
 import { formatWorkspaceDateTime, formatWorkspaceTime } from '../utils/workspace-date-time';
 
@@ -32,10 +42,31 @@ function todayIso() {
 }
 
 
+const TODAY_KEY = toDateKey(new Date());
+
 export function AgendaScreen() {
   const { permissions, session } = useAuthSession();
   const [section, setSection] = useState<'agenda' | 'availability'>('agenda');
-  const agenda = useProfessionalAgenda();
+  const [weekStart, setWeekStart] = useState(() => startOfWeekUtc(new Date()));
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
+  const weekDays = useMemo(() => buildWeekDays(weekStart), [weekStart]);
+  const weekEnd = useMemo(() => addDaysUtc(weekStart, 7), [weekStart]);
+  const agenda = useProfessionalAgenda({
+    desde: weekStart.toISOString(),
+    hasta: weekEnd.toISOString(),
+  });
+  const weekSections = useMemo(() => groupByDate(agenda.data ?? []), [agenda.data]);
+  const visibleSections = useMemo(
+    () =>
+      selectedDay
+        ? weekSections.filter((daySection) => daySection.dateKey === selectedDay)
+        : weekSections,
+    [weekSections, selectedDay],
+  );
+  const daysWithAppointments = useMemo(
+    () => new Set(weekSections.map((daySection) => daySection.dateKey)),
+    [weekSections],
+  );
   const schedules = useProfessionalSchedules();
   const mutations = useScheduleMutations();
   const [date, setDate] = useState(todayIso());
@@ -126,33 +157,111 @@ export function AgendaScreen() {
 
         {section === 'agenda' ? (
           <>
-            {agenda.isLoading ? <LoadingState title="Cargando próximas citas" /> : null}
+            <View style={styles.weekNav}>
+              <Pressable
+                accessibilityLabel="Semana anterior"
+                accessibilityRole="button"
+                onPress={() => {
+                  setWeekStart((current) => addDaysUtc(current, -7));
+                  setSelectedDay(null);
+                }}
+                style={styles.weekNavButton}
+              >
+                <Text style={styles.weekNavButtonText}>‹</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => {
+                  setWeekStart(startOfWeekUtc(new Date()));
+                  setSelectedDay(null);
+                }}
+              >
+                <Text style={styles.weekRange}>{formatWeekRange(weekStart, addDaysUtc(weekStart, 6))}</Text>
+              </Pressable>
+              <Pressable
+                accessibilityLabel="Semana siguiente"
+                accessibilityRole="button"
+                onPress={() => {
+                  setWeekStart((current) => addDaysUtc(current, 7));
+                  setSelectedDay(null);
+                }}
+                style={styles.weekNavButton}
+              >
+                <Text style={styles.weekNavButtonText}>›</Text>
+              </Pressable>
+            </View>
+
+            <View style={styles.dayStrip}>
+              {weekDays.map((day) => {
+                const key = toDateKey(day);
+                const isSelected = selectedDay === key;
+                const isToday = key === TODAY_KEY;
+                return (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: isSelected }}
+                    key={key}
+                    onPress={() => setSelectedDay(isSelected ? null : key)}
+                    style={[
+                      styles.dayChip,
+                      isSelected ? styles.dayChipSelected : null,
+                      isToday && !isSelected ? styles.dayChipToday : null,
+                    ]}
+                  >
+                    <Text
+                      style={[styles.dayChipWeekday, isSelected ? styles.dayChipTextSelected : null]}
+                    >
+                      {weekdayShortLabel(day)}
+                    </Text>
+                    <Text
+                      style={[styles.dayChipNumber, isSelected ? styles.dayChipTextSelected : null]}
+                    >
+                      {day.getUTCDate()}
+                    </Text>
+                    {daysWithAppointments.has(key) ? (
+                      <View style={[styles.dayChipDot, isSelected ? styles.dayChipDotSelected : null]} />
+                    ) : null}
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            {agenda.isLoading ? <LoadingState title="Cargando la agenda de la semana" /> : null}
             {agenda.isError ? (
               <ErrorState
                 title="No se pudo cargar la agenda"
                 message="Verificá la conexión e intentá nuevamente."
               />
             ) : null}
-            {!agenda.isLoading && !agenda.isError && (agenda.data?.length ?? 0) === 0 ? (
+            {!agenda.isLoading && !agenda.isError && visibleSections.length === 0 ? (
               <EmptyState
-                title="Sin próximas citas"
-                message="No hay citas activas en tu agenda de los próximos 90 días."
+                title={selectedDay ? 'Sin citas este día' : 'Sin citas esta semana'}
+                message={
+                  selectedDay
+                    ? 'No hay citas activas para el día seleccionado.'
+                    : 'No hay citas activas en la semana seleccionada.'
+                }
               />
             ) : null}
             <View style={styles.list}>
-              {agenda.data?.map((item) => (
-                <View key={item.id} style={styles.card}>
-                  <Text style={styles.cardTitle}>{item.paciente_nombre}</Text>
-                  <Text style={styles.cardMeta}>{formatWorkspaceDateTime(item.inicio)}</Text>
-                  <Text style={styles.cardMeta}>
-                    {item.tipo_cita?.nombre ?? 'Tipo no indicado'} · {item.estado?.nombre ?? 'Estado no indicado'}
-                  </Text>
-                  {item.ubicacion ? (
-                    <Text style={styles.cardMeta}>
-                      {item.ubicacion.nombre}
-                      {item.ubicacion.consultorio ? ` · ${item.ubicacion.consultorio}` : ''}
-                    </Text>
-                  ) : null}
+              {visibleSections.map((daySection) => (
+                <View key={daySection.dateKey} style={styles.daySection}>
+                  <Text style={styles.dayHeader}>{formatSectionHeader(daySection.dateKey)}</Text>
+                  {daySection.items.map((item) => (
+                    <View key={item.id} style={styles.card}>
+                      <Text style={styles.cardTitle}>{item.paciente_nombre}</Text>
+                      <Text style={styles.cardMeta}>{formatWorkspaceDateTime(item.inicio)}</Text>
+                      <Text style={styles.cardMeta}>
+                        {item.tipo_cita?.nombre ?? 'Tipo no indicado'} · {item.estado?.nombre ?? 'Estado no indicado'}
+                      </Text>
+                      {item.ubicacion ? (
+                        <Text style={styles.cardMeta}>
+                          {item.ubicacion.nombre}
+                          {item.ubicacion.consultorio ? ` · ${item.ubicacion.consultorio}` : ''}
+                        </Text>
+                      ) : null}
+                    </View>
+                  ))}
                 </View>
               ))}
             </View>
@@ -338,7 +447,47 @@ const styles = StyleSheet.create({
     gap: theme.spacing.md,
     padding: theme.spacing.lg,
   },
-  list: { gap: theme.spacing.md },
+  list: { gap: theme.spacing.lg },
+  weekNav: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
+  weekNavButton: {
+    alignItems: 'center',
+    borderColor: theme.color.border,
+    borderRadius: theme.radius.pill,
+    borderWidth: 1,
+    height: 36,
+    justifyContent: 'center',
+    width: 36,
+  },
+  weekNavButtonText: { color: theme.color.text, fontSize: 18, fontWeight: '700' },
+  weekRange: { color: theme.color.text, fontSize: theme.typography.body, fontWeight: '800' },
+  dayStrip: { flexDirection: 'row', gap: theme.spacing.xs, justifyContent: 'space-between' },
+  dayChip: {
+    alignItems: 'center',
+    borderColor: theme.color.softBorder,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    flex: 1,
+    gap: 2,
+    paddingVertical: theme.spacing.sm,
+  },
+  dayChipSelected: { backgroundColor: theme.color.primary, borderColor: theme.color.primary },
+  dayChipToday: { borderColor: theme.color.primary },
+  dayChipWeekday: {
+    color: theme.color.mutedText,
+    fontSize: theme.typography.caption,
+    fontWeight: '700',
+  },
+  dayChipNumber: { color: theme.color.text, fontSize: theme.typography.body, fontWeight: '800' },
+  dayChipTextSelected: { color: '#FFFFFF' },
+  dayChipDot: {
+    backgroundColor: theme.color.primary,
+    borderRadius: theme.radius.pill,
+    height: 5,
+    width: 5,
+  },
+  dayChipDotSelected: { backgroundColor: '#FFFFFF' },
+  daySection: { gap: theme.spacing.sm },
+  dayHeader: { color: theme.color.text, fontSize: theme.typography.body, fontWeight: '800' },
   cardTitle: { color: theme.color.text, fontSize: 17, fontWeight: '800' },
   cardMeta: { color: theme.color.mutedText, fontSize: theme.typography.caption },
   sectionTitle: { color: theme.color.text, fontSize: 18, fontWeight: '900' },
