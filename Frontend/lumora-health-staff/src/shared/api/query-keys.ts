@@ -7,6 +7,9 @@ export const queryKeys = {
   account: {
     me: ['account', 'me'] as const,
   },
+  notifications: {
+    mine: (userId: number) => ['notifications', userId] as const,
+  },
   clinical: {
     all: ['clinical'] as const,
     patients: () => [...queryKeys.clinical.all, 'patients'] as const,
