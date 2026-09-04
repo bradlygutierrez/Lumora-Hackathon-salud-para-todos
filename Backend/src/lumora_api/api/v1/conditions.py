@@ -48,7 +48,7 @@ async def create_condition(
     current_user: CurrentUser,
     session: SessionDep,
 ):
-    return await service(session).create_condition(record_id, data, current_user.id)
+    return await service(session).create_condition(record_id, data, current_user)
 
 
 @router.patch("/condiciones/{condition_id}", response_model=ConditionRead, responses=ERRORS)
@@ -58,7 +58,7 @@ async def update_condition(
     current_user: CurrentUser,
     session: SessionDep,
 ):
-    return await service(session).update_condition(condition_id, data, current_user.id)
+    return await service(session).update_condition(condition_id, data, current_user)
 
 
 @router.delete(
@@ -69,7 +69,7 @@ async def update_condition(
 async def delete_condition(
     condition_id: int, current_user: CurrentUser, session: SessionDep
 ) -> Response:
-    await service(session).delete_condition(condition_id, current_user.id)
+    await service(session).delete_condition(condition_id, current_user)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 

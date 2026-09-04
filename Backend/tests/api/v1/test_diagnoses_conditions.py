@@ -245,3 +245,73 @@ async def test_staff_cannot_diagnose_a_patient_with_no_relationship(client, sess
     )
     assert response.status_code == 403
     assert response.json()["error"]["code"] == "forbidden"
+
+
+@pytest.mark.asyncio
+async def test_staff_cannot_create_condition_for_a_patient_with_no_relationship(
+    client, session_factory
+):
+    async with session_factory() as session:
+        other_person = Persona(nombres="Otro", apellidos="Condicion")
+        session.add(other_person)
+        await session.flush()
+        other_professional = ProfesionalSalud(
+            persona_id=other_person.id,
+            especialidad="Neurología",
+            numero_licencia="MED-OTHER-COND",
+        )
+        session.add(other_professional)
+        await session.commit()
+        other_professional_id = other_professional.id
+
+    # Expediente de un paciente que nunca tuvo contacto con el usuario actual.
+    other_setup = await _setup(session_factory, other_professional_id)
+
+    access_token, _ = await _token(
+        client, session_factory, "j04-cond-no-relation", clinical=True
+    )
+    headers = {"Authorization": f"Bearer {access_token}"}
+
+    response = await client.post(
+        f"/api/v1/expedientes/{other_setup['record_id']}/condiciones",
+        json={"estado_condicion_id": other_setup["active_id"], "nombre": "Hipertensión"},
+        headers=headers,
+    )
+    assert response.status_code == 403
+    assert response.json()["error"]["code"] == "forbidden"
+
+
+@pytest.mark.asyncio
+async def test_staff_cannot_modify_condition_of_a_patient_with_no_relationship(
+    client, session_factory
+):
+    owner_token, owner_professional_id = await _token(
+        client, session_factory, "j04-cond-owner", clinical=True
+    )
+    owner_setup = await _setup(session_factory, owner_professional_id)
+    condition = await client.post(
+        f"/api/v1/expedientes/{owner_setup['record_id']}/condiciones",
+        json={"estado_condicion_id": owner_setup["active_id"], "nombre": "Diabetes"},
+        headers={"Authorization": f"Bearer {owner_token}"},
+    )
+    assert condition.status_code == 201
+    condition_id = condition.json()["id"]
+
+    outsider_token, _ = await _token(
+        client, session_factory, "j04-cond-outsider", clinical=True
+    )
+    outsider_headers = {"Authorization": f"Bearer {outsider_token}"}
+
+    update = await client.patch(
+        f"/api/v1/condiciones/{condition_id}",
+        json={"estado_condicion_id": owner_setup["resolved_id"]},
+        headers=outsider_headers,
+    )
+    assert update.status_code == 403
+    assert update.json()["error"]["code"] == "forbidden"
+
+    delete = await client.delete(
+        f"/api/v1/condiciones/{condition_id}", headers=outsider_headers
+    )
+    assert delete.status_code == 403
+    assert delete.json()["error"]["code"] == "forbidden"
