@@ -64,6 +64,19 @@ export type PrescriptionUpdate = {
   observaciones?: string | null;
 };
 
+export type MedicationSchedule = {
+  id: string;
+  detalle_receta_id: string;
+  hora: string;
+  activo: boolean;
+  created_at: string;
+};
+
+export type MedicationScheduleCreate = {
+  hora: string;
+  activo?: boolean;
+};
+
 export type Prescription = {
   id: string;
   paciente_id: number;

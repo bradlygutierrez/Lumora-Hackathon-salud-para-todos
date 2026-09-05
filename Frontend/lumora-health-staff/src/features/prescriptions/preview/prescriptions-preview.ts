@@ -5,6 +5,8 @@ import {
 import { previewProfessionalsPage } from '@/src/shared/preview/health-staff-preview';
 import type {
   Medication,
+  MedicationSchedule,
+  MedicationScheduleCreate,
   Prescription,
   PrescriptionCatalogItem,
   PrescriptionCreate,
@@ -71,8 +73,10 @@ export const previewMedications: Medication[] = [
 ];
 
 const prescriptionsByPatient = new Map<number, Prescription[]>();
+const schedulesByDetail = new Map<string, MedicationSchedule[]>();
 let prescriptionSequence = 200;
 let detailSequence = 500;
+let scheduleSequence = 900;
 
 function professionalFor(id: number) {
   const professional = previewProfessionalsPage.items.find((item) => item.id === id);
@@ -280,6 +284,33 @@ export function updatePreviewPrescriptionDetail(
     items.map((item) => (item.id === prescriptionId ? updated : item)),
   );
   return { ...updatedDetail };
+}
+
+export function listPreviewMedicationSchedules(detailId: string): MedicationSchedule[] {
+  return (schedulesByDetail.get(detailId) ?? []).map((item) => ({ ...item }));
+}
+
+export function createPreviewMedicationSchedule(
+  detailId: string,
+  data: MedicationScheduleCreate,
+): MedicationSchedule {
+  const schedule: MedicationSchedule = {
+    id: `schedule-preview-j13-${++scheduleSequence}`,
+    detalle_receta_id: detailId,
+    hora: data.hora,
+    activo: data.activo ?? true,
+    created_at: new Date().toISOString(),
+  };
+  schedulesByDetail.set(detailId, [...(schedulesByDetail.get(detailId) ?? []), schedule]);
+  return { ...schedule };
+}
+
+export function deletePreviewMedicationSchedule(detailId: string, scheduleId: string) {
+  const current = schedulesByDetail.get(detailId) ?? [];
+  schedulesByDetail.set(
+    detailId,
+    current.filter((item) => item.id !== scheduleId),
+  );
 }
 
 export function deletePreviewPrescriptionDetail(
