@@ -575,7 +575,7 @@ describe(
      * aparecer dentro del Plan de Hoy.
      */
     it(
-      'excludes prescriptions that are not active',
+      'keeps non-active prescriptions visible outside today plan',
       async () => {
         (
           prescriptionsApi
@@ -670,6 +670,14 @@ describe(
           result.current
             .plan.totalCount,
         ).toBe(0);
+
+        expect(
+          result.current
+            .prescriptions[0],
+        ).toMatchObject({
+          id: 'receta-vencida',
+          titulo: 'Tratamiento viejo',
+        });
       },
     );
 
@@ -713,7 +721,7 @@ describe(
 
         expect(
           result.current
-            .activePrescriptions[0],
+            .prescriptions[0],
         ).toMatchObject({
           id: 'receta-1',
           titulo: 'Tratamiento',
