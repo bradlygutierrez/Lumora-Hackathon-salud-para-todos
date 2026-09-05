@@ -7,9 +7,13 @@ const mockAgenda = jest.fn();
 const mockSchedules = jest.fn();
 const mockAvailability = jest.fn();
 const mockMutations = jest.fn();
+const mockPush = jest.fn();
 
 jest.mock('@/src/features/auth/hooks/use-auth-session', () => ({
   useAuthSession: () => mockUseAuthSession(),
+}));
+jest.mock('expo-router', () => ({
+  useRouter: () => ({ push: mockPush }),
 }));
 jest.mock('../hooks/use-appointments', () => ({
   useProfessionalAgenda: () => mockAgenda(),
@@ -118,6 +122,12 @@ describe('AgendaScreen', () => {
     await fireEvent.press(screen.getByText('3'));
     expect(screen.getByText('Ana Mora')).toBeTruthy();
     expect(screen.getByText('Luis Paz')).toBeTruthy();
+  });
+
+  it('opens the appointment detail when a card is pressed', async () => {
+    const screen = await render(<AgendaScreen />);
+    await fireEvent.press(screen.getByLabelText('Ver cita de Ana Mora'));
+    expect(mockPush).toHaveBeenCalledWith('/(staff)/appointments/1');
   });
 
   it('shows an empty state scoped to the week when there are no appointments', async () => {

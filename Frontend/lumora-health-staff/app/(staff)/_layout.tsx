@@ -131,6 +131,12 @@ export default function StaffLayout() {
         }}
       />
       <Tabs.Screen
+        name="appointments/[id]"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
         name="edit-profile"
         options={{
           href: null,
