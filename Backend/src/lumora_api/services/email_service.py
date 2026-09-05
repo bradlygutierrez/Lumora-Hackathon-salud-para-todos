@@ -18,12 +18,17 @@ class EmailService:
     def send_password_reset(self, recipient: str, token: str) -> None:
         link = f"{self.settings.password_reset_web_url}?{urlencode(dict(token=token))}"
         plain = ("Solicitaste restablecer tu contraseña de Lumora.\n\n"
+                 f"Tu código de recuperación es: {token}\n\n"
                  "Abre este enlace desde el dispositivo donde tienes Lumora instalado:\n\n"
-                 f"<{link}>\n\nEste enlace expira en 30 minutos.\n\n"
+                 f"<{link}>\n\n"
+                 "Si el enlace no abre la pantalla correctamente, copia el código anterior en el campo Código de recuperación y escribe tu nueva contraseña.\n\n"
+                 "El código y el enlace expiran en 30 minutos.\n\n"
                  "Si no solicitaste este cambio, puedes ignorar este correo.\n")
         html = ("<html><body><h1>Restablecer contraseña</h1><p>Solicitaste restablecer tu contraseña de Lumora.</p>"
+                f"<p><strong>Código de recuperación:</strong> <code>{token}</code></p>"
                 f"<p><a href=\"{link}\">Restablecer contraseña</a></p><p><a href=\"{link}\">{link}</a></p>"
-                "<p>Este enlace expira en 30 minutos.</p><p>Si no solicitaste este cambio, puedes ignorar este correo.</p></body></html>")
+                "<p>Si el enlace no abre la pantalla correctamente, copia el código en el campo Código de recuperación y escribe tu nueva contraseña.</p>"
+                "<p>El código y el enlace expiran en 30 minutos.</p><p>Si no solicitaste este cambio, puedes ignorar este correo.</p></body></html>")
         self._send(recipient, "Recuperación de contraseña de Lumora", plain, html)
 
     def _send(self, recipient: str, subject: str, body: str, html: str | None = None) -> None:
