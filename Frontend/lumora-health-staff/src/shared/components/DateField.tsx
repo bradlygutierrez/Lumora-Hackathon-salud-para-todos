@@ -7,11 +7,24 @@ type Props = {
   value?: string | null;
   onChange: (value: string) => void;
   error?: string;
-  mode?: 'date' | 'datetime';
+  mode?: 'date' | 'datetime' | 'time';
 };
 
+function timeStringToDate(value: string): Date {
+  const [hours, minutes, seconds] = value.split(':').map(Number);
+  const date = new Date();
+  date.setHours(hours || 0, minutes || 0, seconds || 0, 0);
+  return date;
+}
+
 function display(value: string | null | undefined, mode: Props['mode']) {
-  if (!value) return 'Seleccionar fecha';
+  if (!value) return mode === 'time' ? 'Seleccionar hora' : 'Seleccionar fecha';
+  if (mode === 'time') {
+    return timeStringToDate(value).toLocaleTimeString('es-NI', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }
   const date = new Date(value);
   return mode === 'datetime'
     ? date.toLocaleString('es-NI')
@@ -19,6 +32,11 @@ function display(value: string | null | undefined, mode: Props['mode']) {
 }
 
 function toValue(mode: Props['mode'], selected: Date): string {
+  if (mode === 'time') {
+    return [selected.getHours(), selected.getMinutes(), selected.getSeconds()]
+      .map((part) => String(part).padStart(2, '0'))
+      .join(':');
+  }
   return mode === 'date'
     ? [
         selected.getFullYear(),
@@ -47,6 +65,18 @@ function combineDateAndTime(date: Date, time: Date): Date {
  * el diálogo de fecha y el de hora, y se combinan los dos resultados.
  */
 function openAndroidPicker(current: Date, mode: Props['mode'], onPicked: (value: Date) => void) {
+  if (mode === 'time') {
+    DateTimePickerAndroid.open({
+      value: current,
+      mode: 'time',
+      display: 'default',
+      onChange: (_event, pickedTime) => {
+        if (!pickedTime) return;
+        onPicked(pickedTime);
+      },
+    });
+    return;
+  }
   DateTimePickerAndroid.open({
     value: current,
     mode: 'date',
@@ -72,7 +102,9 @@ function openAndroidPicker(current: Date, mode: Props['mode'], onPicked: (value:
 
 export function DateField({ label, value, onChange, error, mode = 'date' }: Props) {
   const [open, setOpen] = useState(false);
-  const current = value ? new Date(value) : new Date();
+  const current = mode === 'time'
+    ? (value ? timeStringToDate(value) : new Date())
+    : (value ? new Date(value) : new Date());
 
   const openPicker = () => {
     if (Platform.OS === 'android') {
