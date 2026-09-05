@@ -87,7 +87,7 @@ export default function ForgotPasswordScreen() {
               <TextField
                 autoCapitalize="none"
                 error={resetForm.formState.errors.token?.message}
-                label="Token"
+                label="Código de recuperación"
                 onBlur={onBlur}
                 onChangeText={onChange}
                 value={value}
