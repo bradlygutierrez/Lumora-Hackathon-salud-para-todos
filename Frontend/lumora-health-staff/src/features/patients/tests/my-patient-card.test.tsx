@@ -36,8 +36,20 @@ const item: MyPatient = {
 };
 
 describe('MyPatientCard scheduling dates', () => {
-  it('preserves the published clock for the next appointment', async () => {
+  const originalTZ = process.env.TZ;
+
+  beforeEach(() => {
+    // 08:00 UTC es 02:00 a.m. en Nicaragua (UTC-6) -- fijar la zona hace
+    // la prueba determinística sin importar en qué máquina corra.
+    process.env.TZ = 'America/Managua';
+  });
+
+  afterEach(() => {
+    process.env.TZ = originalTZ;
+  });
+
+  it('shows the next appointment converted to the device local time', async () => {
     const screen = await render(<MyPatientCard item={item} onPress={jest.fn()} />);
-    expect(screen.getByText(/0?8:00/)).toBeTruthy();
+    expect(screen.getByText(/2:00/)).toBeTruthy();
   });
 });
