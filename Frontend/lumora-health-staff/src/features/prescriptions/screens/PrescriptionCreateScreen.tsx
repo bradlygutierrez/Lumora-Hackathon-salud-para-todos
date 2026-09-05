@@ -10,6 +10,7 @@ import { useCurrentProfessional } from '@/src/features/profile/hooks/use-profess
 import { toApiError } from '@/src/shared/api/api-error';
 import { Button } from '@/src/shared/components/Button';
 import { EmptyState, ErrorState, LoadingState } from '@/src/shared/components/RemoteState';
+import { DateField } from '@/src/shared/components/DateField';
 import { Screen } from '@/src/shared/components/Screen';
 import { TextField } from '@/src/shared/components/TextField';
 import { theme } from '@/src/shared/constants/theme';
@@ -265,13 +266,10 @@ export function PrescriptionCreateScreen({
             control={control}
             name="vigencia_hasta"
             render={({ field }) => (
-              <TextField
-                accessibilityLabel="Vigencia de receta"
+              <DateField
                 error={errors.vigencia_hasta?.message}
                 label="Vigencia hasta"
-                onBlur={field.onBlur}
-                onChangeText={field.onChange}
-                placeholder="AAAA-MM-DD"
+                onChange={field.onChange}
                 value={field.value}
               />
             )}
