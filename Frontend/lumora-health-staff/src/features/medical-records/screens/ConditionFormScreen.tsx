@@ -7,6 +7,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useAuthSession } from '@/src/features/auth/hooks/use-auth-session';
 import { ChoiceField } from '@/src/features/patients/components/ChoiceField';
 import { Button } from '@/src/shared/components/Button';
+import { DateField } from '@/src/shared/components/DateField';
 import {
   ErrorState,
   LoadingState,
@@ -236,13 +237,10 @@ export function ConditionFormScreen({
         control={control}
         name="fecha_inicio"
         render={({ field }) => (
-          <TextField
-            accessibilityLabel="Fecha de inicio de condición"
+          <DateField
             error={errors.fecha_inicio?.message}
             label="Fecha de inicio"
-            onBlur={field.onBlur}
-            onChangeText={field.onChange}
-            placeholder="AAAA-MM-DD"
+            onChange={field.onChange}
             value={field.value}
           />
         )}
@@ -252,13 +250,10 @@ export function ConditionFormScreen({
           control={control}
           name="fecha_fin"
           render={({ field }) => (
-            <TextField
-              accessibilityLabel="Fecha de fin de condición"
+            <DateField
               error={errors.fecha_fin?.message}
               label="Fecha de fin"
-              onBlur={field.onBlur}
-              onChangeText={field.onChange}
-              placeholder="AAAA-MM-DD"
+              onChange={field.onChange}
               value={field.value}
             />
           )}

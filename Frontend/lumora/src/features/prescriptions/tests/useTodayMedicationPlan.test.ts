@@ -672,5 +672,53 @@ describe(
         ).toBe(0);
       },
     );
+
+    it(
+      'keeps an active prescription visible when it has no schedules yet',
+      async () => {
+        (
+          schedulesApi
+            .getHorarios as jest.Mock
+        ).mockResolvedValue([]);
+
+        const client =
+          createTestQueryClient();
+
+        const {
+          result,
+        } =
+          await renderHook(
+            () =>
+              useTodayMedicationPlan(),
+            {
+              wrapper:
+                createQueryWrapper(
+                  client,
+                ),
+            },
+          );
+
+        await waitFor(
+          () =>
+            expect(
+              result.current
+                .isLoading,
+            ).toBe(false),
+        );
+
+        expect(
+          result.current
+            .plan.totalCount,
+        ).toBe(0);
+
+        expect(
+          result.current
+            .activePrescriptions[0],
+        ).toMatchObject({
+          id: 'receta-1',
+          titulo: 'Tratamiento',
+        });
+      },
+    );
   },
 );

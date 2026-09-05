@@ -1,5 +1,5 @@
 import { fireEvent, render } from '@testing-library/react-native';
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
 
 import { ConditionsScreen } from '../screens/ConditionsScreen';
 
@@ -45,6 +45,10 @@ const condition = {
 };
 
 describe('ConditionsScreen J12', () => {
+  afterEach(() => {
+    Platform.OS = 'ios';
+  });
+
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseAuthSession.mockReturnValue({ permissions: new Set(['clinica:manage']) });
@@ -137,5 +141,27 @@ describe('ConditionsScreen J12', () => {
     destructive?.onPress?.();
     expect(mockDelete).toHaveBeenCalledWith(21);
     alert.mockRestore();
+  });
+
+  it('confirms and deletes a condition on web', async () => {
+    Platform.OS = 'web';
+    const originalConfirm = globalThis.confirm;
+    const confirm = jest.fn(() => true);
+    Object.defineProperty(globalThis, 'confirm', {
+      configurable: true,
+      value: confirm,
+    });
+    const screen = await render(<ConditionsScreen patientId={3} recordId={7} />);
+
+    await fireEvent.press(screen.getByLabelText('Eliminar Hipertensión'));
+
+    expect(confirm).toHaveBeenCalledWith(
+      expect.stringContaining('no se borra de forma permanente'),
+    );
+    expect(mockDelete).toHaveBeenCalledWith(21);
+    Object.defineProperty(globalThis, 'confirm', {
+      configurable: true,
+      value: originalConfirm,
+    });
   });
 });

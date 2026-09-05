@@ -225,6 +225,7 @@ export function useTodayMedicationPlan() {
 
   return {
     plan,
+    activePrescriptions,
     isLoading,
     isError,
     refetch,

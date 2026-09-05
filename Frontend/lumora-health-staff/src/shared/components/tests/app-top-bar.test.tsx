@@ -57,7 +57,7 @@ describe('AppTopBar', () => {
 
     const screen = await render(<AppTopBar showBack />);
 
-    expect(screen.getByLabelText('Volver')).toBeTruthy();
+    expect(screen.getByLabelText('Volver').props.testHref).toBe('/(staff)');
     expect(screen.queryByLabelText('Abrir mi perfil')).toBeNull();
   });
 });
