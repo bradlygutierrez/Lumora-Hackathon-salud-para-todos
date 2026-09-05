@@ -56,6 +56,13 @@ export default function StaffDashboardScreen() {
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            onRefresh={() => void onRefresh()}
+            refreshing={refreshing}
+            testID="dashboard-refresh-control"
+          />
+        }
       >
         <View style={styles.hero}>
           <Text style={styles.title}>Hola, {firstName}</Text>

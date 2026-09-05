@@ -1,6 +1,20 @@
 import { fireEvent, render } from '@testing-library/react-native';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import { AgendaScreen } from '../screens/AgendaScreen';
+
+// AgendaScreen usa useQueryClient() para su pull-to-refresh -- necesita un
+// QueryClientProvider aunque estos tests no ejerciten esa acción.
+function renderScreen() {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <AgendaScreen />
+    </QueryClientProvider>,
+  );
+}
 
 const mockUseAuthSession = jest.fn();
 const mockAgenda = jest.fn();
@@ -98,7 +112,7 @@ describe('AgendaScreen', () => {
   });
 
   it('shows own upcoming agenda and recurring availability', async () => {
-    const screen = await render(<AgendaScreen />);
+    const screen = await renderScreen();
     expect(screen.getByText('Ana Mora')).toBeTruthy();
 
     await fireEvent.press(screen.getByText('Mi disponibilidad'));
@@ -107,7 +121,7 @@ describe('AgendaScreen', () => {
   });
 
   it('groups the week into dated sections and filters when a day is selected', async () => {
-    const screen = await render(<AgendaScreen />);
+    const screen = await renderScreen();
 
     expect(screen.getByText(/31 ago.*6 sept/)).toBeTruthy();
     expect(screen.getByText('Martes, 1 de septiembre')).toBeTruthy();
@@ -125,14 +139,14 @@ describe('AgendaScreen', () => {
   });
 
   it('opens the appointment detail when a card is pressed', async () => {
-    const screen = await render(<AgendaScreen />);
+    const screen = await renderScreen();
     await fireEvent.press(screen.getByLabelText('Ver cita de Ana Mora'));
     expect(mockPush).toHaveBeenCalledWith('/(staff)/appointments/1');
   });
 
   it('shows an empty state scoped to the week when there are no appointments', async () => {
     mockAgenda.mockReturnValue({ data: [], isLoading: false, isError: false });
-    const screen = await render(<AgendaScreen />);
+    const screen = await renderScreen();
     expect(screen.getByText('Sin citas esta semana')).toBeTruthy();
   });
 
@@ -141,7 +155,7 @@ describe('AgendaScreen', () => {
       permissions: new Set(),
       session: { isPreview: false },
     });
-    const screen = await render(<AgendaScreen />);
+    const screen = await renderScreen();
     expect(screen.getByText('Acceso restringido')).toBeTruthy();
   });
 });

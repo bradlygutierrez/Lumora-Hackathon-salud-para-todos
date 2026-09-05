@@ -1,5 +1,7 @@
 import { act, fireEvent, render } from '@testing-library/react-native';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Text } from 'react-native';
+import type { ReactElement } from 'react';
 
 jest.mock('@expo/vector-icons', () => ({ Ionicons: () => null }));
 jest.mock('react-native', () => ({
@@ -8,8 +10,15 @@ jest.mock('react-native', () => ({
     select: (specifics: Record<string, unknown>) => specifics.ios ?? specifics.native ?? specifics.default,
   },
   ActivityIndicator: 'ActivityIndicator',
+  KeyboardAvoidingView: 'KeyboardAvoidingView',
   Pressable: 'Pressable',
-  StyleSheet: { create: (styles: unknown) => styles, flatten: (style: unknown) => style ?? {} },
+  RefreshControl: 'RefreshControl',
+  ScrollView: 'ScrollView',
+  StyleSheet: {
+    create: (styles: unknown) => styles,
+    flatten: (style: unknown) => style ?? {},
+    absoluteFill: {},
+  },
   Text: 'Text',
   TextInput: 'TextInput',
   View: 'View',
@@ -24,6 +33,17 @@ import { FullScreenApiError, FullScreenState } from '@/shared/components/FullScr
 import { ApiError } from '@/shared/api/api-error';
 import { GlobalErrorBoundary } from '@/shared/components/GlobalErrorBoundary';
 import { RemoteState } from '@/shared/components/RemoteState';
+
+// Screen (usado por FullScreenState/FullScreenApiError/GlobalErrorBoundary
+// en su camino de error) llama useQueryClient() para el pull-to-refresh --
+// necesita un QueryClientProvider aunque estos tests no usen React Query
+// directamente.
+function renderWithClient(ui: ReactElement) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+}
 
 describe('B13 shared accessible UI', () => {
   it('represents loading, empty, error and offline states', async () => {
@@ -41,7 +61,7 @@ describe('B13 shared accessible UI', () => {
     await rerender(<RemoteState kind="error" title="Error" message="Intentá nuevamente." />);
     expect(getByText('Error')).toBeTruthy();
 
-    const offline = await render(
+    const offline = await renderWithClient(
       <FullScreenState kind="offline" title="Sin conexión" message="Revisá Internet." />,
     );
     expect(offline.getByText('Sin conexión')).toBeTruthy();
@@ -54,7 +74,7 @@ describe('B13 shared accessible UI', () => {
     ['NOT_FOUND', 404, false],
     ['VALIDATION', 422, false],
   ] as const)('offers retry only for safe error %s', async (code, status, showsRetry) => {
-    const view = await render(
+    const view = await renderWithClient(
       <FullScreenApiError
         error={new ApiError(code, status || null, 'internal')}
         onRetry={jest.fn()}
@@ -113,7 +133,7 @@ describe('B13 shared accessible UI', () => {
       return <Text>Contenido recuperado</Text>;
     }
 
-    const { getByLabelText, getByText } = await render(
+    const { getByLabelText, getByText } = await renderWithClient(
       <GlobalErrorBoundary><FlakyChild /></GlobalErrorBoundary>,
     );
     expect(getByText('Algo salió mal')).toBeTruthy();
