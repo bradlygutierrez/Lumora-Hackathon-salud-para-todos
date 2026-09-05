@@ -400,12 +400,56 @@ async def test_authenticated_request_refreshes_last_used_at(client, session_fact
 
 
 @pytest.mark.asyncio
+async def test_login_revokes_other_active_sessions_for_the_same_account(client, session_factory):
+    """Solo una sesión activa por cuenta: iniciar sesión en un dispositivo
+    nuevo cierra automáticamente la sesión de cualquier otro dispositivo."""
+    await register(client, session_factory, "single-session-user")
+    first = (
+        await client.post(
+            "/api/v1/auth/login",
+            json={"login": "single-session-user", "password": "safe-password"},
+        )
+    ).json()
+    first_headers = {"Authorization": f"Bearer {first['access_token']}"}
+    assert (await client.get("/api/v1/auth/sessions", headers=first_headers)).status_code == 200
+
+    second = (
+        await client.post(
+            "/api/v1/auth/login",
+            json={"login": "single-session-user", "password": "safe-password"},
+        )
+    ).json()
+    second_headers = {"Authorization": f"Bearer {second['access_token']}"}
+
+    assert (await client.get("/api/v1/auth/sessions", headers=first_headers)).status_code == 401
+    assert (
+        await client.post(
+            "/api/v1/auth/refresh", json={"refresh_token": first["refresh_token"]}
+        )
+    ).status_code == 400
+    assert (await client.get("/api/v1/auth/sessions", headers=second_headers)).status_code == 200
+
+
+@pytest.mark.asyncio
 async def test_change_password_verifies_current_and_revokes_other_sessions(client, session_factory):
     await register(client, session_factory, "password-user", "StrongOld123!")
     first = (await client.post("/api/v1/auth/login", json={"login": "password-user", "password": "StrongOld123!"})).json()
-    second = (await client.post("/api/v1/auth/login", json={"login": "password-user", "password": "StrongOld123!"})).json()
     first_headers = {"Authorization": f"Bearer {first['access_token']}"}
-    second_headers = {"Authorization": f"Bearer {second['access_token']}"}
+
+    # Simula una sesión de otro dispositivo insertándola directamente --
+    # el login ya no permite tener dos sesiones simultáneas de una cuenta,
+    # pero change-password debe seguir revocando cualquier sesión ajena
+    # a la actual, sin importar cómo se haya creado.
+    async with session_factory() as session:
+        current = await session.scalar(select(SesionUsuario))
+        other = SesionUsuario(
+            usuario_id=current.usuario_id,
+            refresh_token_hash="other-session-hash-change-password",
+            expires_at=datetime.now(timezone.utc) + timedelta(days=1),
+        )
+        session.add(other)
+        await session.commit()
+        other_id = other.id
 
     wrong = await client.post("/api/v1/auth/change-password", json={"current_password": "wrong", "new_password": "Stronger123!"}, headers=first_headers)
     weak = await client.post("/api/v1/auth/change-password", json={"current_password": "StrongOld123!", "new_password": "weak"}, headers=first_headers)
@@ -416,7 +460,11 @@ async def test_change_password_verifies_current_and_revokes_other_sessions(clien
     assert same.status_code == 409
     assert changed.status_code == 200
     assert (await client.get("/api/v1/auth/sessions", headers=first_headers)).status_code == 200
-    assert (await client.get("/api/v1/auth/sessions", headers=second_headers)).status_code == 401
+
+    async with session_factory() as session:
+        other_after = await session.get(SesionUsuario, other_id)
+        assert other_after.revoked_at is not None
+
     assert (await client.post("/api/v1/auth/login", json={"login": "password-user", "password": "StrongOld123!"})).status_code == 401
     assert (await client.post("/api/v1/auth/login", json={"login": "password-user", "password": "Stronger123!"})).status_code == 200
 
@@ -426,30 +474,56 @@ async def test_session_center_lists_current_revokes_one_and_logs_out_others(clie
     await register(client, session_factory, "session-owner")
     await register(client, session_factory, "other-owner")
     first = (await client.post("/api/v1/auth/login", json={"login": "session-owner", "password": "safe-password"})).json()
-    second = (await client.post("/api/v1/auth/login", json={"login": "session-owner", "password": "safe-password"})).json()
     foreign = (await client.post("/api/v1/auth/login", json={"login": "other-owner", "password": "safe-password"})).json()
     first_headers = {"Authorization": f"Bearer {first['access_token']}"}
-    second_headers = {"Authorization": f"Bearer {second['access_token']}"}
     foreign_headers = {"Authorization": f"Bearer {foreign['access_token']}"}
+
+    # El login ya no permite dos sesiones simultáneas de la misma cuenta
+    # (sesión única por cuenta), así que la "sesión remota" que este test
+    # ejercita se inserta directamente -- sigue siendo una fila real de
+    # sesiones_usuario, igual que crearía cualquier otro dispositivo antes
+    # de que el usuario vuelva a iniciar sesión.
+    async with session_factory() as session:
+        owner = await session.scalar(select(Usuario).where(Usuario.username == "session-owner"))
+        remote = SesionUsuario(
+            usuario_id=owner.id,
+            refresh_token_hash="remote-session-hash",
+            expires_at=datetime.now(timezone.utc) + timedelta(days=1),
+        )
+        session.add(remote)
+        await session.commit()
+        remote_id = remote.id
 
     listed = await client.get("/api/v1/auth/sessions", headers=first_headers)
     assert listed.status_code == 200
     assert len(listed.json()) == 2
     assert sum(item["is_current"] for item in listed.json()) == 1
     assert all("refresh_token_hash" not in item for item in listed.json())
-    remote_id = next(item["id"] for item in listed.json() if not item["is_current"])
+    assert remote_id in [item["id"] for item in listed.json() if not item["is_current"]]
     foreign_id = (await client.get("/api/v1/auth/sessions", headers=foreign_headers)).json()[0]["id"]
 
     assert (await client.delete(f"/api/v1/auth/sessions/{foreign_id}", headers=first_headers)).status_code == 404
     assert (await client.delete(f"/api/v1/auth/sessions/{remote_id}", headers=first_headers)).status_code == 204
     assert (await client.delete(f"/api/v1/auth/sessions/{remote_id}", headers=first_headers)).status_code == 204
-    assert (await client.get("/api/v1/auth/sessions", headers=second_headers)).status_code == 401
 
+    # Un login nuevo revoca automáticamente la sesión actual (sesión única
+    # por cuenta) -- confirma que ese es el único mecanismo que ahora
+    # produce "me cerraron la sesión en otro dispositivo".
     third = (await client.post("/api/v1/auth/login", json={"login": "session-owner", "password": "safe-password"})).json()
     third_headers = {"Authorization": f"Bearer {third['access_token']}"}
-    assert (await client.post("/api/v1/auth/logout-others", headers=first_headers)).status_code == 200
-    assert (await client.get("/api/v1/auth/sessions", headers=third_headers)).status_code == 401
-    assert (await client.post("/api/v1/auth/refresh", json={"refresh_token": third["refresh_token"]})).status_code == 400
-    assert (await client.get("/api/v1/auth/sessions", headers=first_headers)).status_code == 200
-    assert (await client.post("/api/v1/auth/logout-all", headers=first_headers)).status_code == 200
     assert (await client.get("/api/v1/auth/sessions", headers=first_headers)).status_code == 401
+    assert (await client.get("/api/v1/auth/sessions", headers=third_headers)).status_code == 200
+
+    async with session_factory() as session:
+        extra = SesionUsuario(
+            usuario_id=owner.id,
+            refresh_token_hash="extra-session-hash",
+            expires_at=datetime.now(timezone.utc) + timedelta(days=1),
+        )
+        session.add(extra)
+        await session.commit()
+
+    assert (await client.post("/api/v1/auth/logout-others", headers=third_headers)).status_code == 200
+    assert len((await client.get("/api/v1/auth/sessions", headers=third_headers)).json()) == 1
+    assert (await client.post("/api/v1/auth/logout-all", headers=third_headers)).status_code == 200
+    assert (await client.get("/api/v1/auth/sessions", headers=third_headers)).status_code == 401
