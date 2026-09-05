@@ -214,7 +214,8 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
       return;
     }
     const user = await getCurrentStaffUser(session.accessToken);
-    const nextSession = { ...session, userId: user.id, user };
+    const nextUser = user.roles?.length ? user : { ...user, roles: session.user?.roles ?? [] };
+    const nextSession = { ...session, userId: nextUser.id, user: nextUser };
     await secureSessionManager.saveSession(nextSession);
     setSession(nextSession);
   }, [session]);

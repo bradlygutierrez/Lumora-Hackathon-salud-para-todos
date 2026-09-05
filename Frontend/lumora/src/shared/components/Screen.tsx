@@ -1,8 +1,9 @@
-import type { PropsWithChildren } from 'react';
+import { useState, type PropsWithChildren } from 'react';
 
 import {
   KeyboardAvoidingView,
   Platform,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   View,
@@ -13,6 +14,7 @@ import {
 } from 'react-native-safe-area-context';
 
 import { theme } from '@/shared/theme/tokens';
+import { useQueryClient } from '@tanstack/react-query';
 
 type ScreenProps = PropsWithChildren<{
   /**
@@ -36,6 +38,9 @@ type ScreenProps = PropsWithChildren<{
    * que el teclado cubra inputs.
    */
   keyboardAvoiding?: boolean;
+
+  /** Permite actualizar las consultas activas deslizando hacia abajo. */
+  refreshable?: boolean;
 }>;
 
 /**
@@ -62,7 +67,19 @@ export function Screen({
   scrollable = false,
   keyboardAvoiding = false,
   contentClassName = '',
+  refreshable = scrollable,
 }: ScreenProps) {
+  const queryClient = useQueryClient();
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await queryClient.refetchQueries({ type: 'active' });
+    } finally {
+      setRefreshing(false);
+    }
+  };
   /**
    * Contenido reutilizable.
    */
@@ -79,6 +96,14 @@ export function Screen({
           : 'on-drag'
       }
       showsVerticalScrollIndicator={false}
+      refreshControl={
+        refreshable ? (
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => void onRefresh()}
+          />
+        ) : undefined
+      }
     >
       <View
         className={`flex-1 px-4 py-4 ${contentClassName}`}

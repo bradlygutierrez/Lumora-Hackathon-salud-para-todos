@@ -1,6 +1,8 @@
+import { useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { AppTopBar } from '@/src/shared/components/AppTopBar';
 import { useAuthSession } from '@/src/features/auth/hooks/use-auth-session';
@@ -17,6 +19,16 @@ export default function StaffProfileScreen() {
   const currentProfessional = useCurrentProfessional();
   const account = useAccountProfile();
   const mfaMethods = useMfaMethods();
+  const queryClient = useQueryClient();
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await queryClient.refetchQueries({ type: 'active' });
+    } finally {
+      setRefreshing(false);
+    }
+  };
   const user = session?.user;
   const professional = currentProfessional.data;
   const fullName = user ? `${user.persona.nombres} ${user.persona.apellidos}` : 'Perfil no resuelto';
@@ -24,7 +36,7 @@ export default function StaffProfileScreen() {
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={styles.container} style={styles.scroll}>
+      <ScrollView contentContainerStyle={styles.container} style={styles.scroll} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void onRefresh()} />}>
         <AppTopBar showBack />
 
         <View style={styles.profileCard}>
