@@ -295,7 +295,7 @@ function professionalRow(item: AffiliationProfessional): string {
         <span class="table-secondary">${item.email_verificado ? 'Correo verificado' : 'Correo pendiente'}</span>
       </td>
       <td class="table-action table-action--stack">
-        <button class="table-link" type="button" data-verify-license="${item.professional_id}" data-verified="${item.licencia_verificada}">${item.licencia_verificada ? 'Revocar verificación' : 'Verificar licencia'}</button>
+        <button class="table-link" type="button" data-verify-license="${item.professional_id}" data-verified="${item.licencia_verificada}">${item.licencia_verificada ? 'Revocar verificación' : 'Verificar licencia'}</button><button class="table-link" type="button" data-resend-password="${item.user_id}">Reenviar correo</button>
         <button class="table-link ${item.membership_activo ? 'table-link--danger' : ''}" type="button" data-toggle-membership="${item.professional_id}" data-membership-active="${item.membership_activo}">${item.membership_activo ? 'Suspender profesional' : 'Reactivar profesional'}</button>
       </td>
     </tr>
