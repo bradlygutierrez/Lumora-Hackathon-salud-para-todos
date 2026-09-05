@@ -80,6 +80,15 @@ class AppointmentLocationRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class AppointmentLocationUpsert(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    nombre: str = Field(..., min_length=1, max_length=150)
+    direccion: str = Field(..., min_length=1, max_length=500)
+    consultorio: str | None = Field(default=None, max_length=100)
+    latitud: float | None = Field(default=None, ge=-90, le=90)
+    longitud: float | None = Field(default=None, ge=-180, le=180)
+
+
 class AvailabilitySlotRead(BaseModel):
     inicio: datetime
     fin: datetime

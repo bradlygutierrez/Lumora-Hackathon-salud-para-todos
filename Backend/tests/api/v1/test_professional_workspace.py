@@ -282,6 +282,66 @@ async def test_agenda_and_my_patients_derive_current_professional_context(
 
 
 @pytest.mark.asyncio
+async def test_location_crud_is_self_scoped_and_defaults_to_none(client, session_factory):
+    ctx = await seed(session_factory)
+    auth = headers(ctx["own_user"])
+    other_auth = headers(ctx["other_user"])
+
+    empty = await client.get("/api/v1/profesional/me/ubicacion", headers=auth)
+    assert empty.status_code == 200
+    assert empty.json() is None
+
+    missing_field = await client.put(
+        "/api/v1/profesional/me/ubicacion",
+        json={"nombre": "Consultorio propio"},
+        headers=auth,
+    )
+    assert missing_field.status_code == 422
+
+    created = await client.put(
+        "/api/v1/profesional/me/ubicacion",
+        json={
+            "nombre": "Consultorio Dra. Elena",
+            "direccion": "Km 7 Carretera Masaya, Managua",
+            "consultorio": "Torre Médica, piso 3",
+            "latitud": 12.114993,
+            "longitud": -86.235267,
+        },
+        headers=auth,
+    )
+    assert created.status_code == 200
+    assert created.json()["nombre"] == "Consultorio Dra. Elena"
+    location_id = created.json()["id"]
+
+    fetched = await client.get("/api/v1/profesional/me/ubicacion", headers=auth)
+    assert fetched.json()["id"] == location_id
+
+    # Otro profesional nunca ve ni afecta la ubicación ajena.
+    assert (await client.get("/api/v1/profesional/me/ubicacion", headers=other_auth)).json() is None
+
+    updated = await client.put(
+        "/api/v1/profesional/me/ubicacion",
+        json={
+            "nombre": "Consultorio Dra. Elena (reubicado)",
+            "direccion": "Nueva dirección",
+        },
+        headers=auth,
+    )
+    assert updated.status_code == 200
+    assert updated.json()["id"] == location_id
+    assert updated.json()["nombre"] == "Consultorio Dra. Elena (reubicado)"
+    assert updated.json()["consultorio"] is None
+
+    available = await client.get("/api/v1/citas/ubicaciones-disponibles", headers=auth)
+    assert location_id in [item["id"] for item in available.json()]
+
+    deleted = await client.delete("/api/v1/profesional/me/ubicacion", headers=auth)
+    assert deleted.status_code == 204
+    assert (await client.delete("/api/v1/profesional/me/ubicacion", headers=auth)).status_code == 404
+    assert (await client.get("/api/v1/profesional/me/ubicacion", headers=auth)).json() is None
+
+
+@pytest.mark.asyncio
 async def test_workspace_requires_permission_and_professional_profile(
     client, session_factory
 ):
@@ -298,3 +358,14 @@ async def test_workspace_requires_permission_and_professional_profile(
 
     assert forbidden.status_code == 403
     assert no_profile.status_code == 403
+
+    location_forbidden = await client.get(
+        "/api/v1/profesional/me/ubicacion",
+        headers=headers(ctx["patient_user"]),
+    )
+    location_no_profile = await client.get(
+        "/api/v1/profesional/me/ubicacion",
+        headers=headers(ctx["no_profile"]),
+    )
+    assert location_forbidden.status_code == 403
+    assert location_no_profile.status_code == 403
