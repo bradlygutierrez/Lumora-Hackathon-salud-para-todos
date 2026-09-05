@@ -1,6 +1,7 @@
 import { render } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Text } from 'react-native';
+import { createRef } from 'react';
+import { ScrollView, Text } from 'react-native';
 import type { ReactElement } from 'react';
 
 import { Screen } from '../Screen';
@@ -33,5 +34,21 @@ describe('Screen tint', () => {
       </Screen>,
     );
     expect(screen.getByTestId('screen-root').props.className).toContain(expectedClass);
+  });
+});
+
+describe('Screen scrollRef', () => {
+  it('forwards scrollRef to the internal ScrollView when scrollable', async () => {
+    // Regresión: el tour guiado necesita esta ref para desplazar la
+    // pantalla hasta un paso que está más abajo del viewport inicial --
+    // sin reenviarla, el tooltip queda desfasado de la sección real.
+    const scrollRef = createRef<ScrollView>();
+    await renderWithClient(
+      <Screen scrollable scrollRef={scrollRef}>
+        <Text>Contenido</Text>
+      </Screen>,
+    );
+
+    expect(scrollRef.current).not.toBeNull();
   });
 });

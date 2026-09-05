@@ -1,4 +1,4 @@
-import { useState, type PropsWithChildren } from 'react';
+import { useState, type PropsWithChildren, type RefObject } from 'react';
 
 import {
   KeyboardAvoidingView,
@@ -60,6 +60,14 @@ type ScreenProps = PropsWithChildren<{
 
   /** Ver ScreenTint -- por defecto "neutral" (el fondo de siempre). */
   tint?: ScreenTint;
+
+  /**
+   * Ref reenviado al ScrollView interno cuando scrollable=true -- por
+   * ejemplo para que el tour guiado (@wrack/react-native-tour-guide)
+   * pueda desplazar la pantalla hasta un paso que está más abajo del
+   * viewport inicial.
+   */
+  scrollRef?: RefObject<ScrollView | null>;
 }>;
 
 /**
@@ -88,6 +96,7 @@ export function Screen({
   contentClassName = '',
   refreshable = scrollable,
   tint = 'neutral',
+  scrollRef,
 }: ScreenProps) {
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
@@ -105,6 +114,7 @@ export function Screen({
    */
   const content = scrollable ? (
     <ScrollView
+      ref={scrollRef}
       className="flex-1"
       contentContainerStyle={{
         flexGrow: 1,
