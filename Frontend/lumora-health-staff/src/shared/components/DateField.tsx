@@ -17,6 +17,20 @@ function timeStringToDate(value: string): Date {
   return date;
 }
 
+/**
+ * `new Date('2005-10-20')` (una fecha SIN hora) se interpreta como
+ * medianoche UTC, no medianoche local -- en cualquier huso horario
+ * detrás de UTC (Nicaragua es UTC-6) eso cae en el día ANTERIOR al
+ * mostrarlo con getters locales, restando un día siempre. Por eso hay
+ * que parsear año/mes/día a mano y construir la fecha con el
+ * constructor local (`new Date(year, monthIndex, day)`), que sí
+ * interpreta sus argumentos en la zona horaria del dispositivo.
+ */
+function parseDateOnly(value: string): Date {
+  const [year, month, day] = value.split('-').map(Number);
+  return new Date(year, (month || 1) - 1, day || 1);
+}
+
 function display(value: string | null | undefined, mode: Props['mode']) {
   if (!value) return mode === 'time' ? 'Seleccionar hora' : 'Seleccionar fecha';
   if (mode === 'time') {
@@ -25,7 +39,7 @@ function display(value: string | null | undefined, mode: Props['mode']) {
       minute: '2-digit',
     });
   }
-  const date = new Date(value);
+  const date = mode === 'date' ? parseDateOnly(value) : new Date(value);
   return mode === 'datetime'
     ? date.toLocaleString('es-NI')
     : date.toLocaleDateString('es-NI');
@@ -104,7 +118,9 @@ export function DateField({ label, value, onChange, error, mode = 'date' }: Prop
   const [open, setOpen] = useState(false);
   const current = mode === 'time'
     ? (value ? timeStringToDate(value) : new Date())
-    : (value ? new Date(value) : new Date());
+    : mode === 'date'
+      ? (value ? parseDateOnly(value) : new Date())
+      : (value ? new Date(value) : new Date());
 
   const openPicker = () => {
     if (Platform.OS === 'android') {
