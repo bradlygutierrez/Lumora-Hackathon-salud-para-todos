@@ -9,6 +9,7 @@ import { ChoiceField } from '@/src/features/patients/components/ChoiceField';
 import { useCurrentProfessional } from '@/src/features/profile/hooks/use-professionals';
 import { toApiError } from '@/src/shared/api/api-error';
 import { Button } from '@/src/shared/components/Button';
+import { DateField } from '@/src/shared/components/DateField';
 import { EmptyState, ErrorState, LoadingState } from '@/src/shared/components/RemoteState';
 import { Screen } from '@/src/shared/components/Screen';
 import { TextField } from '@/src/shared/components/TextField';
@@ -346,13 +347,10 @@ export function PrescriptionDetailScreen({
                 control={headerForm.control}
                 name="vigencia_hasta"
                 render={({ field }) => (
-                  <TextField
-                    accessibilityLabel="Vigencia de receta"
+                  <DateField
                     error={headerForm.formState.errors.vigencia_hasta?.message}
                     label="Vigencia hasta"
-                    onBlur={field.onBlur}
-                    onChangeText={field.onChange}
-                    placeholder="AAAA-MM-DD"
+                    onChange={field.onChange}
                     value={field.value}
                   />
                 )}
