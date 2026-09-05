@@ -79,7 +79,12 @@ export function useTodayMedicationPlan() {
 
   const activeEstadoId = statusCatalog.idByName('Activa');
 
-  const activePrescriptions = (prescriptionsQuery.data ?? []).filter(
+  const prescriptions = [...(prescriptionsQuery.data ?? [])].sort(
+    (a, b) =>
+      new Date(b.fecha_emision).getTime() - new Date(a.fecha_emision).getTime(),
+  );
+
+  const activePrescriptions = prescriptions.filter(
     (receta) => activeEstadoId !== undefined && receta.estado_id === activeEstadoId,
   );
 
@@ -225,7 +230,7 @@ export function useTodayMedicationPlan() {
 
   return {
     plan,
-    activePrescriptions,
+    prescriptions,
     isLoading,
     isError,
     refetch,

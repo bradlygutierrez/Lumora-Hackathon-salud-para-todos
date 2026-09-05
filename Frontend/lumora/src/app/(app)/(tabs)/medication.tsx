@@ -19,7 +19,7 @@ import { Screen } from '@/shared/components/Screen';
 
 /** "Medicación" / Plan de Hoy — A07. */
 export default function MedicationRoute() {
-  const { activePrescriptions, plan, planDate, isLoading, isError, refetch } =
+  const { prescriptions, plan, planDate, isLoading, isError, refetch } =
     useTodayMedicationPlan();
   const { activePatient, role } = useShellContext();
   const canManage =
@@ -106,10 +106,10 @@ export default function MedicationRoute() {
           ))
         )}
 
-        {activePrescriptions.length > 0 ? (
+        {prescriptions.length > 0 ? (
           <View className="gap-3">
-            <Text className="text-lg font-semibold text-coal-900">Recetas activas</Text>
-            {activePrescriptions.map((receta) => (
+            <Text className="text-lg font-semibold text-coal-900">Recetas médicas</Text>
+            {prescriptions.map((receta) => (
               <Link
                 key={receta.id}
                 href={{
