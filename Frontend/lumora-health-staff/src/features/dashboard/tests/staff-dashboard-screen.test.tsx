@@ -21,6 +21,15 @@ jest.mock('expo-router', () => ({
   useRouter: () => ({ push: mockPush }),
 }));
 jest.mock('@expo/vector-icons', () => ({ Ionicons: () => null }));
+const mockStartTour = jest.fn();
+jest.mock('@wrack/react-native-tour-guide', () => {
+  const React = jest.requireActual('react');
+  return {
+    TourTarget: ({ children }: { id: string; children: React.ReactNode }) =>
+      React.createElement(React.Fragment, null, children),
+    useTourPersistence: () => ({ startTour: mockStartTour }),
+  };
+});
 jest.mock('@/src/shared/components/AppTopBar', () => ({ AppTopBar: () => null }));
 jest.mock('@/src/shared/components/Screen', () => {
   const React = jest.requireActual('react');
@@ -85,5 +94,18 @@ describe('StaffDashboardScreen', () => {
     const screen = await renderScreen();
     expect(screen.getByText('Luis Paz')).toBeTruthy();
     expect(screen.getByLabelText('Abrir Pacientes')).toBeTruthy();
+  });
+
+  it('starts the dashboard tour with the expected steps', async () => {
+    await renderScreen();
+
+    expect(mockStartTour).toHaveBeenCalledTimes(1);
+    const [steps, config] = mockStartTour.mock.calls[0];
+    expect(config).toEqual({ tourId: 'staff-dashboard-tour' });
+    expect(steps.map((step: { targetId: string }) => step.targetId)).toEqual([
+      'tour-stats',
+      'tour-quick-access',
+      'tour-agenda',
+    ]);
   });
 });

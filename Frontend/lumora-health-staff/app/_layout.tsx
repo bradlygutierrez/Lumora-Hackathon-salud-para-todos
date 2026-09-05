@@ -1,4 +1,5 @@
 import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { TourGuideOverlay, TourGuideProvider } from '@wrack/react-native-tour-guide';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
@@ -41,7 +42,10 @@ export default function RootLayout() {
       <ThemeProvider value={navigationTheme}>
         <AppQueryProvider>
           <AuthSessionProvider>
-            <RootNavigator />
+            <TourGuideProvider>
+              <RootNavigator />
+              <TourGuideOverlay />
+            </TourGuideProvider>
           </AuthSessionProvider>
         </AppQueryProvider>
       </ThemeProvider>

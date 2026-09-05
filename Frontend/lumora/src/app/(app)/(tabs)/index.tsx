@@ -1,4 +1,8 @@
 import {
+  useEffect,
+} from 'react';
+
+import {
   Pressable,
   Text,
   View,
@@ -11,6 +15,11 @@ import {
 import {
   router,
 } from 'expo-router';
+
+import {
+  TourTarget,
+  useTourPersistence,
+} from '@wrack/react-native-tour-guide';
 
 import {
   ClinicalAlertCard,
@@ -66,6 +75,33 @@ import {
 import {
   SurfaceCard,
 } from '@/shared/components/SurfaceCard';
+
+const HOME_TOUR_STEPS = [
+  {
+    id: 'next-dose',
+    targetId: 'tour-next-dose',
+    title: 'Tu próxima dosis',
+    description: 'Acá vas a ver tu próxima toma de medicamento y podés registrarla cuando la tomes.',
+  },
+  {
+    id: 'next-appointment',
+    targetId: 'tour-next-appointment',
+    title: 'Tu próxima cita',
+    description: 'Consultá la fecha y el profesional de tu próxima cita médica.',
+  },
+  {
+    id: 'health-summary',
+    targetId: 'tour-health-summary',
+    title: 'Mi salud',
+    description: 'Revisá tus últimas mediciones y accedé al detalle completo de tu salud.',
+  },
+  {
+    id: 'quick-actions',
+    targetId: 'tour-quick-actions',
+    title: 'Acciones rápidas',
+    description: 'Desde acá podés registrar una medición, ver tu medicación o tu próxima cita en un toque.',
+  },
+];
 
 /**
  * B10 — Inicio.
@@ -214,6 +250,12 @@ function PatientHome({
   metrics: HealthMetric[];
   nextAppointment: AppointmentResponse | null;
 }) {
+  const { startTour } = useTourPersistence();
+
+  useEffect(() => {
+    startTour(HOME_TOUR_STEPS, { tourId: 'home-tour' });
+  }, [startTour]);
+
   return (
     <View className="gap-5 px-4 py-5">
       <View className="flex-row items-center gap-3">
@@ -253,36 +295,41 @@ function PatientHome({
         </View>
       </SurfaceCard>
 
-      {data.nextDose ? (
-        <NextDoseCard
-          dose={data.nextDose}
-          actionLabel="Registrar dosis"
-          onPress={() => router.push('/(app)/(tabs)/medication')}
-        />
-      ) : (
-        <SurfaceCard>
-          <Text className="text-sm font-semibold text-coal-900">Próxima dosis</Text>
-          <Text className="mt-2 text-sm text-coal-500">
-            No tienes una toma activa programada por ahora.
-          </Text>
-        </SurfaceCard>
-      )}
+      <TourTarget id="tour-next-dose" style={{ borderRadius: 16 }}>
+        {data.nextDose ? (
+          <NextDoseCard
+            dose={data.nextDose}
+            actionLabel="Registrar dosis"
+            onPress={() => router.push('/(app)/(tabs)/medication')}
+          />
+        ) : (
+          <SurfaceCard>
+            <Text className="text-sm font-semibold text-coal-900">Próxima dosis</Text>
+            <Text className="mt-2 text-sm text-coal-500">
+              No tienes una toma activa programada por ahora.
+            </Text>
+          </SurfaceCard>
+        )}
+      </TourTarget>
 
-      {nextAppointment ? (
-        <NextAppointmentCard
-          appointment={nextAppointment}
-          appointmentTypes={data.appointmentTypes}
-          onPress={() => router.push('/(app)/(tabs)/appointments')}
-        />
-      ) : (
-        <SurfaceCard>
-          <Text className="text-sm font-semibold text-coal-900">Próxima cita</Text>
-          <Text className="mt-2 text-sm text-coal-500">
-            No tienes citas próximas registradas.
-          </Text>
-        </SurfaceCard>
-      )}
+      <TourTarget id="tour-next-appointment" style={{ borderRadius: 16 }}>
+        {nextAppointment ? (
+          <NextAppointmentCard
+            appointment={nextAppointment}
+            appointmentTypes={data.appointmentTypes}
+            onPress={() => router.push('/(app)/(tabs)/appointments')}
+          />
+        ) : (
+          <SurfaceCard>
+            <Text className="text-sm font-semibold text-coal-900">Próxima cita</Text>
+            <Text className="mt-2 text-sm text-coal-500">
+              No tienes citas próximas registradas.
+            </Text>
+          </SurfaceCard>
+        )}
+      </TourTarget>
 
+      <TourTarget id="tour-health-summary">
       <View className="gap-3">
         <View className="flex-row items-center justify-between">
           <Text className="text-base font-bold text-coal-900">Mi salud</Text>
@@ -319,7 +366,9 @@ function PatientHome({
           </SurfaceCard>
         )}
       </View>
+      </TourTarget>
 
+      <TourTarget id="tour-quick-actions">
       <View className="gap-3">
         <Text className="text-base font-bold text-coal-900">Acciones rápidas</Text>
         <QuickAction
@@ -338,6 +387,7 @@ function PatientHome({
           onPress={() => router.push('/(app)/(tabs)/appointments')}
         />
       </View>
+      </TourTarget>
     </View>
   );
 }
