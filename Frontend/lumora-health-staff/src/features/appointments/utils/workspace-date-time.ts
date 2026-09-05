@@ -9,17 +9,26 @@
  * ambas apps usen la zona horaria real del dispositivo, igual que
  * `formatAppointmentTime` en Lumora.
  */
-export function formatWorkspaceDateTime(value: string | null | undefined) {
+/**
+ * `timeZone` solo existe para que las pruebas puedan fijar una zona
+ * determinística sin depender de reasignar `process.env.TZ` en tiempo de
+ * ejecución -- eso resultó no ser confiable entre plataformas (funcionaba
+ * en Windows pero no en el runner de CI). Los llamadores reales nunca lo
+ * pasan, así que siguen usando la zona horaria real del dispositivo.
+ */
+export function formatWorkspaceDateTime(value: string | null | undefined, timeZone?: string) {
   if (!value) return 'No disponible';
   return new Intl.DateTimeFormat('es-NI', {
     dateStyle: 'medium',
     timeStyle: 'short',
+    ...(timeZone ? { timeZone } : {}),
   }).format(new Date(value));
 }
 
-export function formatWorkspaceTime(value: string) {
+export function formatWorkspaceTime(value: string, timeZone?: string) {
   return new Intl.DateTimeFormat('es-NI', {
     hour: '2-digit',
     minute: '2-digit',
+    ...(timeZone ? { timeZone } : {}),
   }).format(new Date(value));
 }
