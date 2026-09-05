@@ -8,6 +8,13 @@ export type StaffUser = {
   roles: Array<{ nombre: string }>
 }
 
+export type ProfessionalLicense = {
+  professional_id: number
+  user_id: number
+  numero_licencia: string
+  licencia_verificada: boolean
+}
+
 export type StaffUserCreatePayload = {
   email: string
   username: string

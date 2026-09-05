@@ -8,6 +8,7 @@ import { AffiliationsApi } from './features/affiliations/api'
 import { DashboardView, DetailView, ErrorView, LoadingView } from './features/affiliations/views'
 import { UsersApi } from './features/users/api'
 import { UsersView, type SupportSection } from './features/users/views'
+import type { ProfessionalLicense } from './features/users/types'
 import type {
   AffiliationCreatePayload,
   AffiliationStatus,
@@ -15,6 +16,7 @@ import type {
   AffiliationUpdatePayload,
   PaymentStatus,
   ProfessionalProvisionPayload,
+  AffiliationProfessional,
 } from './features/affiliations/types'
 
 const MANAGE_PERMISSION = 'afiliaciones:manage'
@@ -141,7 +143,13 @@ export class PortalApp {
     this.root.innerHTML = LoadingView(this.user, 'Cargando cuentas…')
     try {
       const page = await this.usersApi.listAll()
-      this.root.innerHTML = UsersView(this.user, page.items, section)
+      const licenses = new Map<number, ProfessionalLicense>()
+      if (section === 'professionals') {
+        const affiliations = await this.affiliationsApi.list()
+        const professionals = (await Promise.all(affiliations.map((item) => this.affiliationsApi.professionals(item.id)))).flat()
+        professionals.forEach((item: AffiliationProfessional) => licenses.set(item.user_id, { professional_id: item.professional_id, user_id: item.user_id, numero_licencia: item.numero_licencia, licencia_verificada: item.licencia_verificada }))
+      }
+      this.root.innerHTML = UsersView(this.user, page.items, section, licenses)
     } catch (error) {
       if (this.handleAuthorizationError(error)) return
       this.root.innerHTML = ErrorView(this.user, this.errorText(error))
