@@ -16,8 +16,13 @@ jest.mock('expo-router', () => {
   const React = jest.requireActual('react');
   const { Text } = jest.requireActual('react-native');
   const Tabs = Object.assign(
-    ({ children }: { children: React.ReactNode }) =>
-      React.createElement(React.Fragment, null, children),
+    ({ children, initialRouteName }: { children: React.ReactNode; initialRouteName?: string }) =>
+      React.createElement(
+        React.Fragment,
+        null,
+        React.createElement(Text, null, `InitialRouteName:${initialRouteName}`),
+        children,
+      ),
     {
       Screen: ({ name }: { name: string }) =>
         React.createElement(Text, null, `Tab:${name}`),
@@ -57,6 +62,17 @@ describe('staff navigation guard', () => {
     expect(screen.getByText('Tab:directory')).toBeTruthy();
     expect(screen.getByText('Tab:security')).toBeTruthy();
     expect(screen.getByText('Tab:profile')).toBeTruthy();
+  });
+
+  it('falls back to the dashboard tab, not administration, when there is no back-navigation history', async () => {
+    mockUseAuthSession.mockReturnValue({
+      status: 'authenticated',
+      permissions: new Set(['clinica:manage']),
+    });
+
+    const screen = await render(<StaffLayout />);
+
+    expect(screen.getByText('InitialRouteName:index')).toBeTruthy();
   });
 
   it('redirects authenticated users without clinical permission away from the staff app', async () => {

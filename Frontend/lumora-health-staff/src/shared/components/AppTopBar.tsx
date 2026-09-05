@@ -23,9 +23,13 @@ export function AppTopBar({ showBack = false }: AppTopBarProps) {
             </View>
           </Pressable>
         ) : (
-          <View style={styles.avatar}>
-            <Ionicons color={theme.color.primaryPressed} name="person-outline" size={19} />
-          </View>
+          <Link asChild href="/(staff)/profile">
+            <Pressable accessibilityLabel="Abrir mi perfil" accessibilityRole="button">
+              <View style={styles.avatar}>
+                <Ionicons color={theme.color.primaryPressed} name="person-outline" size={19} />
+              </View>
+            </Pressable>
+          </Link>
         )}
       </View>
 

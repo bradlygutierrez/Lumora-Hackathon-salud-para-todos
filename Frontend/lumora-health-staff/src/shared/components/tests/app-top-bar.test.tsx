@@ -13,8 +13,8 @@ jest.mock('@expo/vector-icons', () => ({ Ionicons: () => null }));
 jest.mock('expo-router', () => {
   const React = jest.requireActual('react');
   return {
-    Link: ({ children }: { children: React.ReactNode }) =>
-      React.createElement(React.Fragment, null, children),
+    Link: ({ children, href }: { children: React.ReactElement; href: string }) =>
+      React.cloneElement(children, { testHref: href }),
   };
 });
 
@@ -41,5 +41,23 @@ describe('AppTopBar', () => {
     const screen = await render(<AppTopBar />);
 
     expect(screen.getByText('9+')).toBeTruthy();
+  });
+
+  it('links the profile avatar to the settings screen', async () => {
+    mockUseNotifications.mockReturnValue({ unreadCount: 0 });
+
+    const screen = await render(<AppTopBar />);
+
+    const avatar = screen.getByLabelText('Abrir mi perfil');
+    expect(avatar.props.testHref).toBe('/(staff)/profile');
+  });
+
+  it('shows a back button instead of the profile link when showBack is set', async () => {
+    mockUseNotifications.mockReturnValue({ unreadCount: 0 });
+
+    const screen = await render(<AppTopBar showBack />);
+
+    expect(screen.getByLabelText('Volver')).toBeTruthy();
+    expect(screen.queryByLabelText('Abrir mi perfil')).toBeNull();
   });
 });
