@@ -26,5 +26,6 @@ jest.mock('@react-native-community/datetimepicker', () => {
     __esModule: true,
     default: (props: Record<string, unknown>) =>
       React.createElement(View, { testID: 'date-time-picker', ...props }),
+    DateTimePickerAndroid: { open: jest.fn() },
   };
 });
