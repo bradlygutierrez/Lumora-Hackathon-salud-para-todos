@@ -5,8 +5,9 @@ import {
   AuthSessionProvider,
   useAuthSession,
 } from '../hooks/use-auth-session';
-import { loginStaff } from '../api/auth.api';
+import { loginStaff, refreshStaffSession } from '../api/auth.api';
 import { getCurrentStaffUser } from '../api/users.api';
+import { fastApiClient } from '@/src/shared/api/client';
 import { secureSessionManager } from '../services/session-storage';
 
 jest.mock('../api/auth.api', () => ({
@@ -29,6 +30,13 @@ jest.mock('../services/session-storage', () => ({
   },
 }));
 
+jest.mock('@/src/shared/api/client', () => ({
+  fastApiClient: {
+    configureSession: jest.fn(),
+    clearSessionHandlers: jest.fn(),
+  },
+}));
+
 type AuthValue = ReturnType<typeof useAuthSession>;
 
 function SessionProbe({ onValue }: { onValue: (value: AuthValue) => void }) {
@@ -42,8 +50,10 @@ function SessionProbe({ onValue }: { onValue: (value: AuthValue) => void }) {
 }
 
 const mockedLoginStaff = jest.mocked(loginStaff);
+const mockedRefreshStaffSession = jest.mocked(refreshStaffSession);
 const mockedGetCurrentStaffUser = jest.mocked(getCurrentStaffUser);
 const mockedSessionManager = jest.mocked(secureSessionManager);
+const mockedConfigureSession = jest.mocked(fastApiClient.configureSession);
 
 describe('AuthSessionProvider', () => {
   beforeEach(() => {
@@ -137,4 +147,31 @@ describe('AuthSessionProvider', () => {
     expect(authValue?.permissions.has('clinica:manage')).toBe(true);
   });
 
+  it('resolves refreshSession to null instead of throwing when the refresh token is invalid', async () => {
+    // Regresión: un refresh token invalido/expirado/revocado hacia que
+    // refreshSession() propagara el error sin capturarlo, lo que el
+    // interceptor de client.ts nunca esperaba y terminaba en una promesa
+    // sin manejar (la app se caía en vez de mandar al usuario al login).
+    mockedSessionManager.getSession.mockResolvedValue({
+      accessToken: 'stale-access',
+      refreshToken: 'stale-refresh',
+      tokenType: 'bearer',
+      userId: 7,
+      isPreview: false,
+    });
+    mockedRefreshStaffSession.mockRejectedValue(
+      new Error('Refresh token inválido, expirado, revocado o inactivo'),
+    );
+
+    await render(
+      <AuthSessionProvider>
+        <SessionProbe onValue={() => {}} />
+      </AuthSessionProvider>,
+    );
+
+    await waitFor(() => expect(mockedConfigureSession).toHaveBeenCalled());
+    const handlers = mockedConfigureSession.mock.calls.at(-1)?.[0];
+
+    await expect(handlers?.refreshSession()).resolves.toBeNull();
+  });
 });
