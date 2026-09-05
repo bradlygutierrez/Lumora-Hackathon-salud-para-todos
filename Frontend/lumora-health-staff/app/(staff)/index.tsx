@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { TourTarget, useTourPersistence } from '@wrack/react-native-tour-guide';
 import { type Href, useRouter } from 'expo-router';
@@ -48,9 +48,15 @@ export default function StaffDashboardScreen() {
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
   const { startTour } = useTourPersistence();
+  const scrollRef = useRef<ScrollView>(null);
 
   useEffect(() => {
-    startTour(DASHBOARD_TOUR_STEPS, { tourId: 'staff-dashboard-tour' });
+    // scrollRef es necesario para que el tour desplace la pantalla cuando
+    // el paso a resaltar (ej. "Próximas citas") está más abajo del
+    // viewport inicial -- sin esto, el tooltip se posiciona igual pero la
+    // pantalla nunca se desplaza para mostrar la sección real, quedando
+    // desfasado.
+    startTour(DASHBOARD_TOUR_STEPS, { tourId: 'staff-dashboard-tour', scrollRef });
   }, [startTour]);
   const onRefresh = async () => {
     setRefreshing(true);
@@ -81,6 +87,7 @@ export default function StaffDashboardScreen() {
     <Screen>
       <AppTopBar />
       <ScrollView
+        ref={scrollRef}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         refreshControl={

@@ -1,9 +1,12 @@
 import {
   useEffect,
+  useRef,
+  type RefObject,
 } from 'react';
 
 import {
   Pressable,
+  ScrollView,
   Text,
   View,
 } from 'react-native';
@@ -119,6 +122,8 @@ export default function HomeRoute() {
     activePatient?.patientId ?? null,
   );
 
+  const scrollRef = useRef<ScrollView>(null);
+
   const patientName = activePatient?.displayName ?? 'Paciente';
 
   if (!activePatient) {
@@ -209,6 +214,7 @@ export default function HomeRoute() {
     <Screen
       scrollable
       contentClassName="px-0 py-0"
+      scrollRef={scrollRef}
     >
       {role !== 'caregiver' ? (
         <AppHeader
@@ -233,6 +239,7 @@ export default function HomeRoute() {
           data={data}
           metrics={metrics}
           nextAppointment={nextAppointment}
+          scrollRef={scrollRef}
         />
       )}
     </Screen>
@@ -244,17 +251,24 @@ function PatientHome({
   data,
   metrics,
   nextAppointment,
+  scrollRef,
 }: {
   patientName: string;
   data: HomeHealthDashboardData;
   metrics: HealthMetric[];
   nextAppointment: AppointmentResponse | null;
+  scrollRef: RefObject<ScrollView | null>;
 }) {
   const { startTour } = useTourPersistence();
 
   useEffect(() => {
-    startTour(HOME_TOUR_STEPS, { tourId: 'home-tour' });
-  }, [startTour]);
+    // scrollRef es necesario para que el tour desplace la pantalla cuando
+    // el paso a resaltar (ej. "Acciones rápidas") está más abajo del
+    // viewport inicial -- sin esto, el tooltip se posiciona igual pero la
+    // pantalla nunca se desplaza para mostrar la sección real, quedando
+    // desfasado.
+    startTour(HOME_TOUR_STEPS, { tourId: 'home-tour', scrollRef });
+  }, [startTour, scrollRef]);
 
   return (
     <View className="gap-5 px-4 py-5">

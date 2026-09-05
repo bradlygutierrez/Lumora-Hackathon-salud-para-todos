@@ -72,7 +72,11 @@ describe('Home dashboard tour', () => {
 
     expect(mockStartTour).toHaveBeenCalledTimes(1);
     const [steps, config] = mockStartTour.mock.calls[0];
-    expect(config).toEqual({ tourId: 'home-tour' });
+    expect(config.tourId).toBe('home-tour');
+    // Regresión: sin scrollRef, el tour no desplaza la pantalla hasta un
+    // paso que está más abajo del viewport inicial (ej. "Acciones
+    // rápidas"), dejando el tooltip desfasado de la sección real.
+    expect(config.scrollRef).toBeDefined();
     expect(steps.map((step: { targetId: string }) => step.targetId)).toEqual([
       'tour-next-dose',
       'tour-next-appointment',

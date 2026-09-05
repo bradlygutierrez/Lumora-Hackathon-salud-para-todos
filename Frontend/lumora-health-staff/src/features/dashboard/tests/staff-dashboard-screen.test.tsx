@@ -101,7 +101,11 @@ describe('StaffDashboardScreen', () => {
 
     expect(mockStartTour).toHaveBeenCalledTimes(1);
     const [steps, config] = mockStartTour.mock.calls[0];
-    expect(config).toEqual({ tourId: 'staff-dashboard-tour' });
+    expect(config.tourId).toBe('staff-dashboard-tour');
+    // Regresión: sin scrollRef, el tour no desplaza la pantalla hasta un
+    // paso que está más abajo del viewport inicial (ej. "Próximas
+    // citas"), dejando el tooltip desfasado de la sección real.
+    expect(config.scrollRef).toBeDefined();
     expect(steps.map((step: { targetId: string }) => step.targetId)).toEqual([
       'tour-stats',
       'tour-quick-access',
