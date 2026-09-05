@@ -245,27 +245,28 @@ describe('PrescriptionDetailScreen ownership J13', () => {
     ).toBeTruthy();
   });
 
-  it('rejects a malformed time before creating a schedule', async () => {
+  it('shows an error when trying to add a schedule without picking a time', async () => {
     mockOwnedWithSchedules(schedulesResult);
     const screen = await render(
       <PrescriptionDetailScreen patientId={101} prescriptionId="rx-1" recordId={7001} />,
     );
 
-    await fireEvent.changeText(screen.getByLabelText('Nueva hora de toma'), 'not-a-time');
     await fireEvent.press(screen.getByText('Agregar horario'));
 
-    expect(screen.getByText('Usá el formato HH:MM, ej. 08:00')).toBeTruthy();
+    expect(screen.getByText('Seleccioná una hora')).toBeTruthy();
     expect(mockCreateSchedule).not.toHaveBeenCalled();
   });
 
-  it('creates a schedule with seconds appended to the entered time', async () => {
+  it('creates a schedule with the time picked from the native time picker', async () => {
     mockOwnedWithSchedules(schedulesResult);
     mockCreateSchedule.mockResolvedValue({ id: 'schedule-1' });
     const screen = await render(
       <PrescriptionDetailScreen patientId={101} prescriptionId="rx-1" recordId={7001} />,
     );
 
-    await fireEvent.changeText(screen.getByLabelText('Nueva hora de toma'), '08:00');
+    await fireEvent.press(screen.getByLabelText('Agregar hora de toma'));
+    const picker = screen.getByTestId('date-time-picker');
+    await fireEvent(picker, 'onChange', {}, new Date(2026, 0, 1, 8, 0, 0));
     await fireEvent.press(screen.getByText('Agregar horario'));
 
     expect(mockCreateSchedule).toHaveBeenCalledWith({ hora: '08:00:00' });

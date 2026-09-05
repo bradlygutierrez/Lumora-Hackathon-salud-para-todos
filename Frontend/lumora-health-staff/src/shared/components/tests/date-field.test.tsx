@@ -51,6 +51,41 @@ describe('DateField', () => {
     expect(onChange).toHaveBeenCalledWith('1995-03-02');
   });
 
+  it('on Android opens the time picker directly (no date dialog first) for mode="time"', async () => {
+    Platform.OS = 'android';
+    const onChange = jest.fn();
+    const screen = await render(
+      <DateField label="Hora de toma" mode="time" onChange={onChange} value={undefined} />,
+    );
+
+    await fireEvent.press(screen.getByLabelText('Hora de toma'));
+
+    expect(mockOpen).toHaveBeenCalledTimes(1);
+    expect(mockOpen).toHaveBeenCalledWith(
+      expect.objectContaining({ mode: 'time', display: 'default' }),
+    );
+
+    const openArgs = mockOpen.mock.calls[0][0];
+    openArgs.onChange({}, new Date(2026, 0, 1, 8, 0, 0));
+    expect(onChange).toHaveBeenCalledWith('08:00:00');
+  });
+
+  it('on iOS renders the inline time picker and formats HH:MM from a bare time string', async () => {
+    Platform.OS = 'ios';
+    const onChange = jest.fn();
+    const screen = await render(
+      <DateField label="Hora de toma" mode="time" onChange={onChange} value="14:30:00" />,
+    );
+
+    expect(screen.getByText('02:30 p. m.')).toBeTruthy();
+
+    await fireEvent.press(screen.getByLabelText('Hora de toma'));
+    const picker = screen.getByTestId('date-time-picker');
+    await fireEvent(picker, 'onChange', {}, new Date(2026, 0, 1, 9, 15, 0));
+
+    expect(onChange).toHaveBeenCalledWith('09:15:00');
+  });
+
   it('shows the error message when provided', async () => {
     const screen = await render(
       <DateField error="Campo requerido" label="Fecha" onChange={jest.fn()} value={undefined} />,

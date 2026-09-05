@@ -16,7 +16,12 @@ class HorarioMedicamentoBase(BaseModel):
 
 
 class HorarioMedicamentoCreate(HorarioMedicamentoBase):
-    detalle_receta_id: str
+    # Opcional aca porque el endpoint (schedules.py::create_horario) siempre
+    # lo sobrescribe con el path param -- si se deja obligatorio, FastAPI
+    # rechaza con 422 cualquier request que (correctamente) no lo mande en
+    # el body, como hace el cliente de HealthStaff. Mismo patron que
+    # DosisAdministradaCreate.horario_id mas abajo.
+    detalle_receta_id: Optional[str] = None
 
 
 class HorarioMedicamentoUpdate(BaseModel):
