@@ -728,5 +728,45 @@ describe(
         });
       },
     );
+
+    it(
+      'does not reuse schedules from a different prescription',
+      async () => {
+        const client =
+          createTestQueryClient();
+
+        const {
+          result,
+        } =
+          await renderHook(
+            () =>
+              useTodayMedicationPlan('receta-2'),
+            {
+              wrapper:
+                createQueryWrapper(
+                  client,
+                ),
+            },
+          );
+
+        await waitFor(
+          () =>
+            expect(
+              result.current
+                .isLoading,
+            ).toBe(false),
+        );
+
+        expect(
+          result.current
+            .plan.totalCount,
+        ).toBe(0);
+
+        expect(
+          schedulesApi
+            .getHorarios,
+        ).not.toHaveBeenCalled();
+      },
+    );
   },
 );
