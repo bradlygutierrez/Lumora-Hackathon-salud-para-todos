@@ -312,6 +312,35 @@ export function DiagnosesScreen({
           <Text style={styles.sectionTitle}>
             {editing ? `Editar diagnóstico #${editing.id}` : 'Nuevo diagnóstico'}
           </Text>
+          <Controller
+            control={control}
+            name="tipo_diagnostico_id"
+            render={({ field }) => (
+              <ChoiceField
+                error={errors.tipo_diagnostico_id?.message}
+                items={types.data?.items ?? []}
+                label="Tipo de diagnóstico *"
+                onChange={(value) => field.onChange(value ?? 0)}
+                value={field.value || undefined}
+              />
+            )}
+          />
+          <Controller
+            control={control}
+            name="descripcion"
+            render={({ field }) => (
+              <TextField
+                accessibilityLabel="Descripción del diagnóstico"
+                error={errors.descripcion?.message}
+                label="Descripción *"
+                multiline
+                onBlur={field.onBlur}
+                onChangeText={field.onChange}
+                placeholder="Hallazgo o conclusión clínica"
+                value={field.value}
+              />
+            )}
+          />
           <Controller control={control} name="fecha_diagnostico" render={({ field }) => (
           <DateField error={errors.fecha_diagnostico?.message} label="Fecha" mode="date" onChange={field.onChange} value={field.value} />
         )} />

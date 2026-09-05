@@ -127,6 +127,36 @@ export function EmergencyPatientRegistrationScreen() {
         </View>
 
         <FormSection icon="person-circle-outline" title="Paciente">
+          <Controller
+            control={control}
+            name="nombres"
+            render={({ field }) => (
+              <TextField
+                accessibilityLabel="Nombres"
+                error={errors.nombres?.message}
+                label="Nombres *"
+                onBlur={field.onBlur}
+                onChangeText={field.onChange}
+                placeholder="Nombre (o provisional, si se desconoce)"
+                value={field.value}
+              />
+            )}
+          />
+          <Controller
+            control={control}
+            name="apellidos"
+            render={({ field }) => (
+              <TextField
+                accessibilityLabel="Apellidos"
+                error={errors.apellidos?.message}
+                label="Apellidos *"
+                onBlur={field.onBlur}
+                onChangeText={field.onChange}
+                placeholder="Apellidos (o provisional, si se desconoce)"
+                value={field.value}
+              />
+            )}
+          />
           <Controller control={control} name="fecha_nacimiento" render={({ field }) => (
           <DateField
             error={errors.fecha_nacimiento?.message}

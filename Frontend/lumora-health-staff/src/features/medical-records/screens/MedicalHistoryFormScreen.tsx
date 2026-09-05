@@ -170,6 +170,35 @@ export function MedicalHistoryFormScreen({
         isEditing ? 'Editar Historial Médico' : 'Añadir Historial Médico'
       }
     >
+      <Controller
+        control={control}
+        name="tipo_antecedente_id"
+        render={({ field }) => (
+          <ChoiceField
+            error={errors.tipo_antecedente_id?.message}
+            items={types.data?.items ?? []}
+            label="Tipo de antecedente *"
+            onChange={(value) => field.onChange(value ?? 0)}
+            value={field.value || undefined}
+          />
+        )}
+      />
+      <Controller
+        control={control}
+        name="descripcion"
+        render={({ field }) => (
+          <TextField
+            accessibilityLabel="Descripción de antecedente"
+            error={errors.descripcion?.message}
+            label="Descripción *"
+            multiline
+            onBlur={field.onBlur}
+            onChangeText={field.onChange}
+            placeholder="Descripción clínica del antecedente"
+            value={field.value}
+          />
+        )}
+      />
       <Controller control={control} name="fecha" render={({ field }) => (
           <DateField error={errors.fecha?.message} label="Fecha" mode="date" onChange={field.onChange} value={field.value} />
         )} />

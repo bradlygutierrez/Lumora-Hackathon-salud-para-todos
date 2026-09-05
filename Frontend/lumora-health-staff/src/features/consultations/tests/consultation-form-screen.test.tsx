@@ -93,7 +93,6 @@ describe('ConsultationFormScreen', () => {
     expect(screen.getByText(/Profesional #9/)).toBeTruthy();
     expect(screen.queryByText('Sin catálogo')).toBeNull();
 
-    await fireEvent.changeText(screen.getByLabelText('Fecha de consulta'), '');
     await fireEvent.changeText(screen.getByLabelText('Síntomas'), '');
     await fireEvent.changeText(screen.getByLabelText('Evaluación'), '');
     await fireEvent.changeText(screen.getByLabelText('Indicaciones'), '');
@@ -103,9 +102,10 @@ describe('ConsultationFormScreen', () => {
     await waitFor(() => expect(update.mutateAsync).toHaveBeenCalledTimes(1));
     const payload = update.mutateAsync.mock.calls[0][0];
     expect(payload).not.toHaveProperty('profesional_id');
-    expect(payload).not.toHaveProperty('fecha_consulta');
     expect(payload).toEqual(expect.objectContaining({
-      motivo_consulta_id: 5, sintomas: '', evaluacion: '', indicaciones: '', observaciones: '',
+      motivo_consulta_id: 5,
+      fecha_consulta: '2026-08-28T10:00:00.000Z',
+      sintomas: '', evaluacion: '', indicaciones: '', observaciones: '',
     }));
   });
 
