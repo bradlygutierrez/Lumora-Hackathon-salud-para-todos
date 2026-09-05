@@ -1,12 +1,15 @@
 import { apiClient } from '@/src/shared/api/client';
 import {
   createMySchedule,
+  deleteMyLocation,
   deleteMySchedule,
   getAppointment,
   getMyAvailability,
+  getMyLocation,
   listMyAgenda,
   listMySchedules,
   listPatientAppointments,
+  setMyLocation,
   updateMySchedule,
 } from '../api/appointments.api';
 
@@ -14,6 +17,7 @@ jest.mock('@/src/shared/api/client', () => ({
   apiClient: {
     get: jest.fn(),
     post: jest.fn(),
+    put: jest.fn(),
     patch: jest.fn(),
     delete: jest.fn(),
   },
@@ -76,5 +80,22 @@ describe('professional workspace appointment API', () => {
     expect(client.get).toHaveBeenNthCalledWith(2, '/citas', {
       params: { paciente_id: 9 },
     });
+  });
+
+  it('manages the professional own consultation address via self-scoped endpoints', async () => {
+    client.get.mockResolvedValueOnce({ data: null });
+    client.put.mockResolvedValueOnce({ data: { id: 3 } });
+    client.delete.mockResolvedValueOnce({ data: undefined });
+
+    await getMyLocation();
+    await setMyLocation({ nombre: 'Consultorio', direccion: 'Managua' });
+    await deleteMyLocation();
+
+    expect(client.get).toHaveBeenCalledWith('/profesional/me/ubicacion');
+    expect(client.put).toHaveBeenCalledWith('/profesional/me/ubicacion', {
+      nombre: 'Consultorio',
+      direccion: 'Managua',
+    });
+    expect(client.delete).toHaveBeenCalledWith('/profesional/me/ubicacion');
   });
 });
