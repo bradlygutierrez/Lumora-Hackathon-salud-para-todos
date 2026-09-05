@@ -67,9 +67,18 @@ class PrescriptionRepository:
         return receta
 
     async def get_receta_by_id(self, receta_id: str) -> Optional[Receta]:
+        # paciente y los catálogos de cada detalle se cargan acá (y no solo
+        # "detalles") porque el PDF de la receta (B15) necesita el nombre
+        # del paciente y el medicamento/unidad/vía de cada detalle; sin
+        # esto, accederlos fuera de este query lanzaría MissingGreenlet.
         query = (
             select(Receta)
-            .options(selectinload(Receta.detalles))
+            .options(
+                selectinload(Receta.paciente),
+                selectinload(Receta.detalles).selectinload(DetalleReceta.medicamento),
+                selectinload(Receta.detalles).selectinload(DetalleReceta.unidad_medida),
+                selectinload(Receta.detalles).selectinload(DetalleReceta.via_administracion),
+            )
             .where(Receta.id == receta_id)
         )
         result = await self.session.execute(query)

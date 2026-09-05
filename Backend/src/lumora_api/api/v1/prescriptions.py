@@ -1,7 +1,9 @@
+from datetime import datetime
 from typing import List
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Request, Response, status
 
 from lumora_api.api.dependencies import CurrentUser, SessionDep, require_permission, require_active_clinician
+from lumora_api.models import EventoAuditoria
 from lumora_api.repositories.prescriptions import PrescriptionRepository
 from lumora_api.schemas.prescriptions import (
     MedicamentoCreate,
@@ -14,6 +16,7 @@ from lumora_api.schemas.prescriptions import (
     DetalleRecetaResponse,
     DetalleRecetaUpdate,
 )
+from lumora_api.services.prescription_pdf import render_prescription_pdf
 from lumora_api.services.prescriptions import PrescriptionService
 
 router = APIRouter(prefix="/prescriptions", tags=["Recetas y medicamentos"])
@@ -85,6 +88,46 @@ async def create_receta(
 @router.get("/{receta_id}", response_model=RecetaResponse)
 async def get_receta(receta_id: str, db: SessionDep, current_user: CurrentUser):
     return await service(db).get_receta(db, current_user, receta_id)
+
+
+def _receta_pdf_filename(receta_id: str, generated_at: datetime) -> str:
+    stamp = generated_at.strftime("%Y%m%d-%H%M%S")
+    return f"receta-{receta_id}-{stamp}.pdf"
+
+
+@router.get("/{receta_id}/pdf")
+async def get_receta_pdf(
+    receta_id: str, db: SessionDep, current_user: CurrentUser, request: Request
+) -> Response:
+    receta = await service(db).get_receta(db, current_user, receta_id)
+    pdf_bytes = render_prescription_pdf(receta)
+
+    generated_at = datetime.utcnow()
+    db.add(
+        EventoAuditoria(
+            usuario_id=current_user.id,
+            accion="EXPORT",
+            entidad="receta_pdf",
+            # entidad_id es Integer -- receta.id es un UUID string, así que
+            # se audita por paciente_id (el dato sensible expuesto) y el id
+            # de la receta se conserva en datos_nuevos para trazabilidad.
+            entidad_id=receta.paciente_id,
+            datos_nuevos={"receta_id": receta.id, "generado_en": generated_at.isoformat()},
+            ip=request.client.host if request.client else None,
+            user_agent=request.headers.get("user-agent"),
+        )
+    )
+    await db.commit()
+
+    filename = _receta_pdf_filename(receta.id, generated_at)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Cache-Control": "no-store",
+        },
+    )
 
 
 @router.patch(
