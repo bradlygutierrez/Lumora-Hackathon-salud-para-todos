@@ -1,6 +1,20 @@
 import { render } from '@testing-library/react-native';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import StaffProfileScreen from '@/app/(staff)/profile';
+
+// StaffProfileScreen usa useQueryClient() para su pull-to-refresh -- necesita
+// un QueryClientProvider aunque estos tests no ejerciten esa acción.
+function renderScreen() {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <StaffProfileScreen />
+    </QueryClientProvider>,
+  );
+}
 
 const mockReloadUser = jest.fn();
 const mockSignOut = jest.fn();
@@ -121,7 +135,7 @@ describe('StaffProfileScreen', () => {
   });
 
   it('renders profile and MFA status only from backend data', async () => {
-    const screen = await render(<StaffProfileScreen />);
+    const screen = await renderScreen();
 
     expect(screen.getByText('Ana Mora')).toBeTruthy();
     expect(screen.getByText('8888-4444')).toBeTruthy();
@@ -133,7 +147,7 @@ describe('StaffProfileScreen', () => {
   });
 
   it('links to the edit-profile screen', async () => {
-    const screen = await render(<StaffProfileScreen />);
+    const screen = await renderScreen();
 
     expect(screen.getByText('Editar Perfil')).toBeTruthy();
   });
