@@ -2,9 +2,11 @@ import { apiClient } from '@/src/shared/api/client';
 import {
   createMySchedule,
   deleteMySchedule,
+  getAppointment,
   getMyAvailability,
   listMyAgenda,
   listMySchedules,
+  listPatientAppointments,
   updateMySchedule,
 } from '../api/appointments.api';
 
@@ -60,5 +62,19 @@ describe('professional workspace appointment API', () => {
       { activo: false },
     );
     expect(client.delete).toHaveBeenCalledWith('/profesional/me/horarios/1');
+  });
+
+  it('fetches a single appointment and a patient-scoped list from /citas', async () => {
+    client.get
+      .mockResolvedValueOnce({ data: { id: 4 } })
+      .mockResolvedValueOnce({ data: [{ id: 4 }] });
+
+    await getAppointment(4);
+    await listPatientAppointments(9);
+
+    expect(client.get).toHaveBeenNthCalledWith(1, '/citas/4');
+    expect(client.get).toHaveBeenNthCalledWith(2, '/citas', {
+      params: { paciente_id: 9 },
+    });
   });
 });
