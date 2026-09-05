@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -62,6 +62,7 @@ class AppointmentRepository:
         )
 
     async def available_professionals(self, search: str | None = None, specialty: str | None = None) -> list[ProfesionalSalud]:
+        now = datetime.now(timezone.utc)
         return list(
             await self.session.scalars(
                 select(ProfesionalSalud)
@@ -72,10 +73,19 @@ class AppointmentRepository:
                     ProfesionalSalud.deleted_at.is_(None),
                     ProfesionalSalud.licencia_verificada.is_(True),
                     AfiliacionProfesional.activo.is_(True),
-                    AfiliacionMedica.estado == "active",
-                    (AfiliacionMedica.inicia_en.is_(None) | (AfiliacionMedica.inicia_en <= datetime.now(timezone.utc))),
-                    AfiliacionMedica.pago_estado == "paid",
-                    (AfiliacionMedica.expira_en.is_(None) | (AfiliacionMedica.expira_en > datetime.now(timezone.utc))),
+                    or_(
+                        and_(
+                            AfiliacionMedica.tipo == "independiente",
+                            AfiliacionMedica.estado.in_(("pending", "active")),
+                        ),
+                        and_(
+                            AfiliacionMedica.tipo == "institucion",
+                            AfiliacionMedica.estado == "active",
+                            AfiliacionMedica.pago_estado == "paid",
+                        ),
+                    ),
+                    (AfiliacionMedica.inicia_en.is_(None) | (AfiliacionMedica.inicia_en <= now)),
+                    (AfiliacionMedica.expira_en.is_(None) | (AfiliacionMedica.expira_en > now)),
                     Persona.deleted_at.is_(None),
                     *( [or_(func.lower(Persona.nombres).contains(search.lower()), func.lower(Persona.apellidos).contains(search.lower()))] if search else [] ),
                     *( [func.lower(ProfesionalSalud.especialidad).contains(specialty.lower())] if specialty else [] ),

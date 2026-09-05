@@ -326,6 +326,24 @@ async def test_available_professionals_excludes_inactive_contexts(client, sessio
 
 
 @pytest.mark.asyncio
+async def test_available_professionals_includes_verified_independent_pending_affiliation(client, session_factory):
+    independent = await _medical(
+        session_factory,
+        "available-independent",
+        tipo="independiente",
+        affiliation_status="pending",
+        payment_status="pending",
+    )
+
+    response = await client.get(
+        "/api/v1/citas/profesionales-disponibles",
+        headers=_headers(independent["user"]),
+    )
+
+    assert response.status_code == 200
+    assert [item["id"] for item in response.json()] == [independent["professional"]]
+
+@pytest.mark.asyncio
 async def test_admin_can_manage_but_is_not_a_medical_professional(client, session_factory):
     admin_id = await _admin(session_factory, "portal-admin")
     response = await client.post("/api/v1/medical-affiliations", headers=_headers(admin_id), json=_affiliation_payload())
