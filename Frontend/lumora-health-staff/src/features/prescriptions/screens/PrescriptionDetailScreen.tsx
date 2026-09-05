@@ -16,9 +16,12 @@ import { theme } from '@/src/shared/constants/theme';
 import { MedicationChoiceField } from '../components/MedicationChoiceField';
 import {
   useAdministrationRoutes,
+  useCreateMedicationSchedule,
   useCreatePrescriptionDetail,
+  useDeleteMedicationSchedule,
   useDeletePrescriptionDetail,
   useMeasurementUnits,
+  useMedicationSchedules,
   usePrescription,
   usePrescriptionMedications,
   usePrescriptionStatuses,
@@ -424,6 +427,7 @@ export function PrescriptionDetailScreen({
                 {detail.instrucciones ? (
                   <Text style={styles.value}>{detail.instrucciones}</Text>
                 ) : null}
+                <MedicationSchedules canEdit={canEdit} detailId={detail.id} />
                 {canEdit ? (
                   <View style={styles.actions}>
                     <Button
@@ -584,6 +588,81 @@ export function PrescriptionDetailScreen({
   );
 }
 
+const HORA_PATTERN = /^\d{2}:\d{2}$/;
+
+function MedicationSchedules({ canEdit, detailId }: { canEdit: boolean; detailId: string }) {
+  const schedules = useMedicationSchedules(detailId);
+  const createSchedule = useCreateMedicationSchedule(detailId);
+  const deleteSchedule = useDeleteMedicationSchedule(detailId);
+  const [hora, setHora] = useState('');
+  const [error, setError] = useState<string | null>(null);
+
+  const addSchedule = async () => {
+    const trimmed = hora.trim();
+    if (!HORA_PATTERN.test(trimmed)) {
+      setError('Usá el formato HH:MM, ej. 08:00');
+      return;
+    }
+    setError(null);
+    try {
+      await createSchedule.mutateAsync({ hora: `${trimmed}:00` });
+      setHora('');
+    } catch (err) {
+      setError(toApiError(err).message);
+    }
+  };
+
+  const items = schedules.data ?? [];
+
+  return (
+    <View style={styles.schedulesBox}>
+      <Text style={styles.schedulesTitle}>Horarios de toma</Text>
+      {schedules.isLoading ? <Text style={styles.meta}>Cargando horarios…</Text> : null}
+      {!schedules.isLoading && items.length === 0 ? (
+        <Text style={styles.meta}>
+          Sin horarios: el paciente no verá este medicamento en su app hasta que se agregue al
+          menos uno.
+        </Text>
+      ) : null}
+      {items.map((item) => (
+        <View key={item.id} style={styles.scheduleRow}>
+          <Text style={styles.value}>{item.hora.slice(0, 5)}</Text>
+          {canEdit ? (
+            <Button
+              accessibilityLabel={`Eliminar horario ${item.hora.slice(0, 5)}`}
+              disabled={deleteSchedule.isPending}
+              onPress={() => deleteSchedule.mutate(item.id)}
+              variant="ghost"
+            >
+              Quitar
+            </Button>
+          ) : null}
+        </View>
+      ))}
+      {canEdit ? (
+        <View style={styles.scheduleForm}>
+          <TextField
+            accessibilityLabel="Nueva hora de toma"
+            error={error ?? undefined}
+            label="Agregar hora (HH:MM)"
+            onChangeText={setHora}
+            placeholder="08:00"
+            value={hora}
+          />
+          <Button
+            disabled={createSchedule.isPending}
+            loading={createSchedule.isPending}
+            onPress={() => void addSchedule()}
+            variant="secondary"
+          >
+            Agregar horario
+          </Button>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   content: { gap: theme.spacing.lg, paddingBottom: theme.spacing.xxl },
   header: { alignItems: 'center', flexDirection: 'row', gap: theme.spacing.sm },
@@ -626,4 +705,20 @@ const styles = StyleSheet.create({
   },
   errorBox: { backgroundColor: '#FFD7D2', borderRadius: theme.radius.md, padding: theme.spacing.md },
   errorText: { color: theme.color.danger, fontSize: 13, fontWeight: '700' },
+  schedulesBox: {
+    backgroundColor: theme.color.surface,
+    borderColor: theme.color.softBorder,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    gap: theme.spacing.sm,
+    marginTop: theme.spacing.sm,
+    padding: theme.spacing.md,
+  },
+  schedulesTitle: { color: theme.color.text, fontSize: 13, fontWeight: '900' },
+  scheduleRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  scheduleForm: { gap: theme.spacing.sm },
 });
