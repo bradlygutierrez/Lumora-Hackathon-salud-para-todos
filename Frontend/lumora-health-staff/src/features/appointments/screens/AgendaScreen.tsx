@@ -128,7 +128,7 @@ export function AgendaScreen() {
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} style={styles.scroll}>
         <View style={styles.heading}>
           <Text style={styles.title}>Agenda profesional</Text>
           <Text style={styles.subtitle}>
@@ -425,6 +425,7 @@ export function AgendaScreen() {
 }
 
 const styles = StyleSheet.create({
+  scroll: { flex: 1 },
   content: { gap: theme.spacing.lg, paddingBottom: theme.spacing.xxl },
   heading: { gap: theme.spacing.xs },
   title: { color: theme.color.text, fontSize: 26, fontWeight: '900' },

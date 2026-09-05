@@ -78,7 +78,7 @@ export function ConditionHistoryScreen({
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} style={styles.scroll}>
         <Button icon="arrow-back" onPress={() => router.back()} variant="ghost">
           Volver a condiciones
         </Button>
@@ -142,6 +142,7 @@ export function ConditionHistoryScreen({
 }
 
 const styles = StyleSheet.create({
+  scroll: { flex: 1 },
   content: { gap: theme.spacing.xl, paddingBottom: theme.spacing.xxl },
   header: { gap: 4 },
   eyebrow: { color: theme.color.subtleText, fontSize: 11, fontWeight: '900', letterSpacing: 1 },

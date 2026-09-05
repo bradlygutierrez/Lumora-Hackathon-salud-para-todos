@@ -13,7 +13,7 @@ export function NotificationsScreen() {
   return (
     <Screen>
       <AppTopBar showBack />
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} style={styles.scroll}>
         <View style={styles.titleBlock}>
           <Text style={styles.title}>Notificaciones</Text>
           {unreadCount > 0 ? (
@@ -54,6 +54,7 @@ export function NotificationsScreen() {
 }
 
 const styles = StyleSheet.create({
+  scroll: { flex: 1 },
   content: {
     gap: theme.spacing.lg,
     paddingBottom: theme.spacing.xl,

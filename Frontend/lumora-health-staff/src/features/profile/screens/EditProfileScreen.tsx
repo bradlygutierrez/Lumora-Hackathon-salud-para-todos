@@ -3,7 +3,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { toApiError } from '@/src/shared/api/api-error';
 import { Button } from '@/src/shared/components/Button';
@@ -123,7 +123,7 @@ export function EditProfileScreen() {
   return (
     <Screen>
       <AppTopBar showBack />
-      <View style={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} style={styles.scroll}>
         <Text style={styles.title}>Editar Perfil</Text>
 
         <View style={styles.avatarSection}>
@@ -220,12 +220,15 @@ export function EditProfileScreen() {
         <Button disabled={busy} onPress={() => router.back()} variant="secondary">
           Cancelar
         </Button>
-      </View>
+      </ScrollView>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  scroll: {
+    flex: 1,
+  },
   content: {
     gap: theme.spacing.md,
     padding: theme.spacing.lg,
