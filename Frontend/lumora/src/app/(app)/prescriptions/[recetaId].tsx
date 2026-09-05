@@ -5,18 +5,35 @@ import { Pressable, Text, View } from 'react-native';
 import { PrescriptionMedicationItem } from '@/features/prescriptions/components/PrescriptionMedicationItem';
 import { PrescriptionSummaryCard } from '@/features/prescriptions/components/PrescriptionSummaryCard';
 import { usePrescriptionDetail } from '@/features/prescriptions/hooks/usePrescriptionDetail';
+import { useSharePrescriptionPdf } from '@/features/prescriptions/hooks/usePrescriptionPdf';
+import { PrescriptionPdfUnavailableError } from '@/features/prescriptions/utils/prescription-pdf';
 import { AppButton } from '@/shared/components/AppButton';
 import { FullScreenState } from '@/shared/components/FullScreenState';
 import { Screen } from '@/shared/components/Screen';
+import { useFeedback } from '@/shared/feedback/FeedbackProvider';
 import { theme } from '@/shared/theme/tokens';
 
 /** "Detalle de Receta" — A07. */
 export default function PrescriptionDetailRoute() {
   const { recetaId } = useLocalSearchParams<{ recetaId: string }>();
   const router = useRouter();
+  const { showFeedback } = useFeedback();
+  const sharePdf = useSharePrescriptionPdf();
 
   const { receta, detalles, doctorNombre, especialidad, estadoNombre, isLoading, isError, refetch } =
     usePrescriptionDetail(recetaId);
+
+  const handleSharePdf = () => {
+    sharePdf.mutate(recetaId, {
+      onError: (err) =>
+        showFeedback(
+          err instanceof PrescriptionPdfUnavailableError
+            ? err.message
+            : 'No pudimos abrir la receta. Intenta de nuevo.',
+          'error',
+        ),
+    });
+  };
 
   if (isLoading) {
     return (
@@ -95,10 +112,12 @@ export default function PrescriptionDetailRoute() {
           onPress={() => router.push('/(app)/(tabs)/medication')}
         />
 
-        {/* No existe todavía un endpoint de backend que genere el PDF de
-            la receta; se deja visible pero deshabilitado en vez de
-            inventar una funcionalidad que no está soportada. */}
-        <AppButton title="Descargar PDF" variant="ghost" disabled />
+        <AppButton
+          title={sharePdf.isPending ? 'Preparando PDF…' : 'Descargar PDF'}
+          variant="ghost"
+          onPress={handleSharePdf}
+          loading={sharePdf.isPending}
+        />
       </View>
     </Screen>
   );
