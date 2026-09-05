@@ -7,18 +7,50 @@ type Props = {
   value?: string | null;
   onChange: (value: string) => void;
   error?: string;
-  mode?: 'date' | 'datetime';
+  mode?: 'date' | 'datetime' | 'time';
 };
 
+function timeStringToDate(value: string): Date {
+  const [hours, minutes, seconds] = value.split(':').map(Number);
+  const date = new Date();
+  date.setHours(hours || 0, minutes || 0, seconds || 0, 0);
+  return date;
+}
+
+/**
+ * `new Date('2005-10-20')` (una fecha SIN hora) se interpreta como
+ * medianoche UTC, no medianoche local -- en cualquier huso horario
+ * detrás de UTC (Nicaragua es UTC-6) eso cae en el día ANTERIOR al
+ * mostrarlo con getters locales, restando un día siempre. Por eso hay
+ * que parsear año/mes/día a mano y construir la fecha con el
+ * constructor local (`new Date(year, monthIndex, day)`), que sí
+ * interpreta sus argumentos en la zona horaria del dispositivo.
+ */
+function parseDateOnly(value: string): Date {
+  const [year, month, day] = value.split('-').map(Number);
+  return new Date(year, (month || 1) - 1, day || 1);
+}
+
 function display(value: string | null | undefined, mode: Props['mode']) {
-  if (!value) return 'Seleccionar fecha';
-  const date = new Date(value);
+  if (!value) return mode === 'time' ? 'Seleccionar hora' : 'Seleccionar fecha';
+  if (mode === 'time') {
+    return timeStringToDate(value).toLocaleTimeString('es-NI', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }
+  const date = mode === 'date' ? parseDateOnly(value) : new Date(value);
   return mode === 'datetime'
     ? date.toLocaleString('es-NI')
     : date.toLocaleDateString('es-NI');
 }
 
 function toValue(mode: Props['mode'], selected: Date): string {
+  if (mode === 'time') {
+    return [selected.getHours(), selected.getMinutes(), selected.getSeconds()]
+      .map((part) => String(part).padStart(2, '0'))
+      .join(':');
+  }
   return mode === 'date'
     ? [
         selected.getFullYear(),
@@ -47,6 +79,18 @@ function combineDateAndTime(date: Date, time: Date): Date {
  * el diálogo de fecha y el de hora, y se combinan los dos resultados.
  */
 function openAndroidPicker(current: Date, mode: Props['mode'], onPicked: (value: Date) => void) {
+  if (mode === 'time') {
+    DateTimePickerAndroid.open({
+      value: current,
+      mode: 'time',
+      display: 'default',
+      onChange: (_event, pickedTime) => {
+        if (!pickedTime) return;
+        onPicked(pickedTime);
+      },
+    });
+    return;
+  }
   DateTimePickerAndroid.open({
     value: current,
     mode: 'date',
@@ -72,7 +116,11 @@ function openAndroidPicker(current: Date, mode: Props['mode'], onPicked: (value:
 
 export function DateField({ label, value, onChange, error, mode = 'date' }: Props) {
   const [open, setOpen] = useState(false);
-  const current = value ? new Date(value) : new Date();
+  const current = mode === 'time'
+    ? (value ? timeStringToDate(value) : new Date())
+    : mode === 'date'
+      ? (value ? parseDateOnly(value) : new Date())
+      : (value ? new Date(value) : new Date());
 
   const openPicker = () => {
     if (Platform.OS === 'android') {

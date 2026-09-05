@@ -8,3 +8,17 @@ jest.mock('expo-secure-store', () => ({
   setItemAsync: jest.fn(),
   deleteItemAsync: jest.fn(),
 }));
+
+// @react-native-community/datetimepicker depende de módulos nativos -- para
+// simular la elección de una fecha en tests, se dispara `onChange` a mano
+// vía testID en vez de intentar abrir el picker nativo real.
+jest.mock('@react-native-community/datetimepicker', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+  return {
+    __esModule: true,
+    default: (props: Record<string, unknown>) =>
+      React.createElement(View, { testID: 'date-time-picker', ...props }),
+    DateTimePickerAndroid: { open: jest.fn() },
+  };
+});
