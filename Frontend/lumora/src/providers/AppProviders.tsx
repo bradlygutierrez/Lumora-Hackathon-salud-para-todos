@@ -1,6 +1,7 @@
 import { QueryClientProvider } from '@tanstack/react-query';
 import { type PropsWithChildren, useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { TourGuideOverlay, TourGuideProvider } from '@wrack/react-native-tour-guide';
 
 import { authApi } from '@/features/auth/api/auth-api';
 import { useAuthStore } from '@/features/auth/store/auth-store';
@@ -62,7 +63,10 @@ export function AppProviders({ children }: PropsWithChildren) {
       <GlobalErrorBoundary>
         <QueryClientProvider client={queryClient}>
           <FeedbackProvider>
-            {children}
+            <TourGuideProvider>
+              {children}
+              <TourGuideOverlay />
+            </TourGuideProvider>
             <GlobalOfflineBanner />
             <GlobalLoadingIndicator />
           </FeedbackProvider>

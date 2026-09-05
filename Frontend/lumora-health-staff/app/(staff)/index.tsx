@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
+import { TourTarget, useTourPersistence } from '@wrack/react-native-tour-guide';
 import { type Href, useRouter } from 'expo-router';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -18,6 +19,27 @@ type QuickAccessProps = {
   onPress: () => void;
 };
 
+const DASHBOARD_TOUR_STEPS = [
+  {
+    id: 'stats',
+    targetId: 'tour-stats',
+    title: 'Tu resumen',
+    description: 'Acá ves cuántos pacientes tenés vinculados y cuántas citas hay en tu agenda.',
+  },
+  {
+    id: 'quick-access',
+    targetId: 'tour-quick-access',
+    title: 'Acceso rápido',
+    description: 'Entrá directo a pacientes, tu agenda, el personal o tus ajustes desde acá.',
+  },
+  {
+    id: 'agenda',
+    targetId: 'tour-agenda',
+    title: 'Próximas citas',
+    description: 'Tus próximas citas publicadas aparecen acá, con acceso directo al paciente.',
+  },
+];
+
 export default function StaffDashboardScreen() {
   const router = useRouter();
   const { session } = useAuthSession();
@@ -25,6 +47,11 @@ export default function StaffDashboardScreen() {
   const myPatients = useMyPatients();
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
+  const { startTour } = useTourPersistence();
+
+  useEffect(() => {
+    startTour(DASHBOARD_TOUR_STEPS, { tourId: 'staff-dashboard-tour' });
+  }, [startTour]);
   const onRefresh = async () => {
     setRefreshing(true);
     try {
@@ -72,7 +99,7 @@ export default function StaffDashboardScreen() {
           </Text>
         </View>
 
-        <View style={styles.statsRow}>
+        <TourTarget id="tour-stats" style={styles.statsRow}>
           <View style={styles.statCard}>
             <View style={styles.statIcon}>
               <Ionicons
@@ -99,9 +126,9 @@ export default function StaffDashboardScreen() {
             </Text>
             <Text style={styles.statLabel}>Citas en agenda</Text>
           </View>
-        </View>
+        </TourTarget>
 
-        <View style={styles.sectionCard}>
+        <TourTarget id="tour-quick-access" style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
             <View>
               <Text style={styles.sectionEyebrow}>ACCESO RÁPIDO</Text>
@@ -130,9 +157,9 @@ export default function StaffDashboardScreen() {
               onPress={() => router.push('/(staff)/profile' as Href)}
             />
           </View>
-        </View>
+        </TourTarget>
 
-        <View style={styles.sectionCard}>
+        <TourTarget id="tour-agenda" style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
             <View>
               <Text style={styles.sectionEyebrow}>AGENDA</Text>
@@ -202,7 +229,7 @@ export default function StaffDashboardScreen() {
               ))}
             </View>
           )}
-        </View>
+        </TourTarget>
       </ScrollView>
     </Screen>
   );
