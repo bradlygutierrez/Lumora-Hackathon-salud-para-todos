@@ -30,9 +30,6 @@ export default function RootLayout() {
       <AuthBootstrap>
         <StatusBar
           style="dark"
-          backgroundColor={
-            theme.colors.background
-          }
         />
 
         <Stack

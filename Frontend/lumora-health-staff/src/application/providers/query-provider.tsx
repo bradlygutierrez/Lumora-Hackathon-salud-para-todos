@@ -28,7 +28,7 @@ export function AppQueryProvider({ children }: PropsWithChildren) {
         defaultOptions: {
           queries: {
             retry: 1,
-            staleTime: 30000,
+            staleTime: 0,
             refetchOnMount: 'always',
             refetchOnReconnect: true,
           },

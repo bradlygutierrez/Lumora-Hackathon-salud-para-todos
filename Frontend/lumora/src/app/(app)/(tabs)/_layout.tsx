@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   PatientContextBanner,
@@ -22,6 +23,7 @@ import {
  * En ambos casos el contenido utiliza el patientContext activo.
  */
 export default function TabsLayout() {
+  const insets = useSafeAreaInsets();
   const role = usePatientContextStore(
     (state) => state.role,
   );
@@ -50,8 +52,8 @@ export default function TabsLayout() {
         tabBarStyle: {
           backgroundColor: '#fffdfa',
           borderTopColor: '#d7e8f5',
-          height: 64,
-          paddingBottom: 8,
+          height: 64 + insets.bottom,
+          paddingBottom: 8 + insets.bottom,
           paddingTop: 6,
         },
 

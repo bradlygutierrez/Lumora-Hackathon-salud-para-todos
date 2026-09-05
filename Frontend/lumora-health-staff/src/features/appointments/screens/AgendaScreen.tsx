@@ -1,6 +1,7 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { type Href, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useAuthSession } from '@/src/features/auth/hooks/use-auth-session';
 import { Button } from '@/src/shared/components/Button';
@@ -46,6 +47,16 @@ function todayIso() {
 const TODAY_KEY = toDateKey(new Date());
 
 export function AgendaScreen() {
+  const queryClient = useQueryClient();
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await queryClient.refetchQueries({ type: 'active' });
+    } finally {
+      setRefreshing(false);
+    }
+  };
   const router = useRouter();
   const { permissions, session } = useAuthSession();
   const [section, setSection] = useState<'agenda' | 'availability'>('agenda');
@@ -130,7 +141,7 @@ export function AgendaScreen() {
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} style={styles.scroll}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} style={styles.scroll} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void onRefresh()} />}>
         <View style={styles.heading}>
           <Text style={styles.title}>Agenda profesional</Text>
           <Text style={styles.subtitle}>

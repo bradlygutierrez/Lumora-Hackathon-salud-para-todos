@@ -1,6 +1,8 @@
+import { useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { type Href, useRouter } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useProfessionalAgenda } from '@/src/features/appointments/hooks/use-appointments';
 import { formatWorkspaceDateTime } from '@/src/features/appointments/utils/workspace-date-time';
@@ -21,6 +23,16 @@ export default function StaffDashboardScreen() {
   const { session } = useAuthSession();
   const agenda = useProfessionalAgenda();
   const myPatients = useMyPatients();
+  const queryClient = useQueryClient();
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await queryClient.refetchQueries({ type: 'active' });
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const firstName =
     session?.user?.persona.nombres?.trim().split(/\s+/)[0] ??
