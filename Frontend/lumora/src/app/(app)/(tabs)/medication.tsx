@@ -1,4 +1,4 @@
-import { Link, router } from 'expo-router';
+import { Link, router, useLocalSearchParams } from 'expo-router';
 import { Text, View } from 'react-native';
 
 import { canManagePatientData } from '@/features/caregiver-access/utils/caregiver-permissions';
@@ -19,8 +19,9 @@ import { Screen } from '@/shared/components/Screen';
 
 /** "Medicación" / Plan de Hoy — A07. */
 export default function MedicationRoute() {
+  const { recetaId } = useLocalSearchParams<{ recetaId?: string }>();
   const { prescriptions, plan, planDate, isLoading, isError, refetch } =
-    useTodayMedicationPlan();
+    useTodayMedicationPlan(recetaId);
   const { activePatient, role } = useShellContext();
   const canManage =
     role !== 'caregiver' || canManagePatientData(activePatient?.accessLevel ?? null);
@@ -88,7 +89,9 @@ export default function MedicationRoute() {
         {plan.totalCount === 0 ? (
           <View className="rounded-2xl border border-bone-500 bg-bone-500 p-6">
             <Text className="text-center text-base text-coal-500">
-              No tienes medicación activa programada por ahora.
+              {recetaId
+                ? 'Esta receta no está activa o todavía no tiene horarios configurados por el médico.'
+                : 'No tienes medicación activa programada por ahora.'}
             </Text>
           </View>
         ) : (

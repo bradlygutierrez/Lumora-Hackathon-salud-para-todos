@@ -8,6 +8,7 @@ const mockUsePrescriptionDetail = jest.fn();
 const mockUseSharePrescriptionPdf = jest.fn();
 const mockShowFeedback = jest.fn();
 const mockMutate = jest.fn();
+const mockPush = jest.fn();
 
 jest.mock('expo-router', () => ({
   useLocalSearchParams: () => mockUseLocalSearchParams(),
@@ -45,7 +46,7 @@ describe('PrescriptionDetailRoute PDF download', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseLocalSearchParams.mockReturnValue({ recetaId: 'rx-1' });
-    mockUseRouter.mockReturnValue({ back: jest.fn(), push: jest.fn() });
+    mockUseRouter.mockReturnValue({ back: jest.fn(), push: mockPush });
     mockUsePrescriptionDetail.mockReturnValue({
       receta: {
         id: 'rx-1',
@@ -76,6 +77,17 @@ describe('PrescriptionDetailRoute PDF download', () => {
 
     await fireEvent.press(button);
     expect(mockMutate).toHaveBeenCalledWith('rx-1', expect.any(Object));
+  });
+
+  it('opens the medication schedule for this prescription', async () => {
+    const screen = await renderRoute(<PrescriptionDetailRoute />);
+
+    await fireEvent.press(screen.getByText('Ver horario de medicación'));
+
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: '/(app)/(tabs)/medication',
+      params: { recetaId: 'rx-1' },
+    });
   });
 
   it('shows the friendly error message when the PDF is unavailable', async () => {

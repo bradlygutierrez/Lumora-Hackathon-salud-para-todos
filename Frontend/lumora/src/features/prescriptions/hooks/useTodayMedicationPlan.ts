@@ -54,7 +54,7 @@ const EMPTY_SECTIONS: Record<TimeOfDayBucket, TodayMedicationItem[]> = {
  * por lo que esta integración debe respetar `activePatient` y funcionar
  * también para cuidadores autorizados.
  */
-export function useTodayMedicationPlan() {
+export function useTodayMedicationPlan(recetaId?: string) {
   const {
     status: shellStatus,
     activePatient,
@@ -85,7 +85,10 @@ export function useTodayMedicationPlan() {
   );
 
   const activePrescriptions = prescriptions.filter(
-    (receta) => activeEstadoId !== undefined && receta.estado_id === activeEstadoId,
+    (receta) =>
+      activeEstadoId !== undefined &&
+      receta.estado_id === activeEstadoId &&
+      (recetaId === undefined || receta.id === recetaId),
   );
 
   const activeDetails = activePrescriptions.flatMap((receta) =>

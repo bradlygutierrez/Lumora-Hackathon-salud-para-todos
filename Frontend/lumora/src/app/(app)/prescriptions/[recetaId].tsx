@@ -109,7 +109,12 @@ export default function PrescriptionDetailRoute() {
       <View className="gap-3">
         <AppButton
           title="Ver horario de medicación"
-          onPress={() => router.push('/(app)/(tabs)/medication')}
+          onPress={() =>
+            router.push({
+              pathname: '/(app)/(tabs)/medication',
+              params: { recetaId },
+            })
+          }
         />
 
         <AppButton
