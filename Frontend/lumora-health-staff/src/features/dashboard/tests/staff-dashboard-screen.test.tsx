@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react-native';
+import { fireEvent, render } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import StaffDashboardScreen from '@/app/(staff)/index';
@@ -94,6 +94,35 @@ describe('StaffDashboardScreen', () => {
     const screen = await renderScreen();
     expect(screen.getByText('Luis Paz')).toBeTruthy();
     expect(screen.getByLabelText('Abrir Pacientes')).toBeTruthy();
+  });
+
+  it('opens the appointment detail, not the patient file, when tapping an upcoming appointment', async () => {
+    // Regresión: esta fila abría directo la ficha del paciente
+    // (/(staff)/patients/{id}), así que nunca se podía ver el estado real
+    // de la cita (pendiente/confirmada/etc.), que solo se muestra en
+    // AppointmentDetailScreen.
+    mockUseProfessionalAgenda.mockReturnValue({
+      data: [
+        {
+          id: 42,
+          paciente_id: 9,
+          paciente_nombre: 'Luis Paz',
+          inicio: '2026-09-05T14:00:00Z',
+          fin: '2026-09-05T14:30:00Z',
+          notas: null,
+          estado: null,
+          tipo_cita: null,
+          ubicacion: null,
+        },
+      ],
+      isLoading: false,
+      isError: false,
+    });
+
+    const screen = await renderScreen();
+    await fireEvent.press(screen.getByLabelText('Abrir cita de Luis Paz'));
+
+    expect(mockPush).toHaveBeenCalledWith('/(staff)/appointments/42');
   });
 
   it('starts the dashboard tour with the expected steps', async () => {

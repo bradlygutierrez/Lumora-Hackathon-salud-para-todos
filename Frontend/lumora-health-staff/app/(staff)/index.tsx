@@ -191,12 +191,12 @@ export default function StaffDashboardScreen() {
             <View style={styles.agendaList}>
               {upcoming.map((item, index) => (
                 <Pressable
-                  accessibilityLabel={`Abrir paciente ${item.paciente_nombre}`}
+                  accessibilityLabel={`Abrir cita de ${item.paciente_nombre}`}
                   accessibilityRole="button"
                   key={item.id}
                   onPress={() =>
                     router.push(
-                      `/(staff)/patients/${item.paciente_id}` as Href,
+                      `/(staff)/appointments/${item.id}` as Href,
                     )
                   }
                   style={[
