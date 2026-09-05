@@ -1,19 +1,25 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { AppTopBar } from '@/src/shared/components/AppTopBar';
 import { EmptyState, ErrorState, LoadingState } from '@/src/shared/components/RemoteState';
 import { Screen } from '@/src/shared/components/Screen';
 import { theme } from '@/src/shared/constants/theme';
+import { usePullToRefresh } from '@/src/shared/hooks/use-pull-to-refresh';
 import { NotificationCard } from '../components/NotificationCard';
 import { useNotifications } from '../hooks/use-notifications';
 
 export function NotificationsScreen() {
   const { isError, isLoading, markAsRead, notifications, unreadCount } = useNotifications();
+  const { refreshing, onRefresh } = usePullToRefresh();
 
   return (
     <Screen>
       <AppTopBar showBack />
-      <ScrollView contentContainerStyle={styles.content} style={styles.scroll}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        style={styles.scroll}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      >
         <View style={styles.titleBlock}>
           <Text style={styles.title}>Notificaciones</Text>
           {unreadCount > 0 ? (

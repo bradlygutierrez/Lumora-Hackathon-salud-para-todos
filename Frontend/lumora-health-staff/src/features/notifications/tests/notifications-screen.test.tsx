@@ -1,6 +1,17 @@
 import { fireEvent, render } from '@testing-library/react-native';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { ReactElement } from 'react';
 
 import { NotificationsScreen } from '../screens/NotificationsScreen';
+
+// El screen usa usePullToRefresh() para su pull-to-refresh, que llama
+// useQueryClient() -- necesita un QueryClientProvider real ancestro.
+function renderWithClient(ui: ReactElement) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+}
 
 const mockUseNotifications = jest.fn();
 const mockMarkAsReadMutate = jest.fn();
@@ -62,7 +73,7 @@ describe('NotificationsScreen', () => {
       markAsRead: { mutate: mockMarkAsReadMutate },
     });
 
-    const screen = await render(<NotificationsScreen />);
+    const screen = await renderWithClient(<NotificationsScreen />);
 
     expect(screen.getByText('Cargando notificaciones')).toBeTruthy();
   });
@@ -76,7 +87,7 @@ describe('NotificationsScreen', () => {
       markAsRead: { mutate: mockMarkAsReadMutate },
     });
 
-    const screen = await render(<NotificationsScreen />);
+    const screen = await renderWithClient(<NotificationsScreen />);
 
     expect(screen.getByText('No tenés notificaciones')).toBeTruthy();
   });
@@ -90,7 +101,7 @@ describe('NotificationsScreen', () => {
       markAsRead: { mutate: mockMarkAsReadMutate },
     });
 
-    const screen = await render(<NotificationsScreen />);
+    const screen = await renderWithClient(<NotificationsScreen />);
 
     expect(screen.getByText('No se pudieron cargar tus notificaciones')).toBeTruthy();
   });
@@ -104,7 +115,7 @@ describe('NotificationsScreen', () => {
       markAsRead: { mutate: mockMarkAsReadMutate },
     });
 
-    const screen = await render(<NotificationsScreen />);
+    const screen = await renderWithClient(<NotificationsScreen />);
 
     expect(screen.getByText('1 sin leer')).toBeTruthy();
     expect(screen.getByText('Cita Próxima')).toBeTruthy();

@@ -16,11 +16,18 @@ jest.mock('expo-router', () => {
   const React = jest.requireActual('react');
   const { Text } = jest.requireActual('react-native');
   const Tabs = Object.assign(
-    ({ children, initialRouteName }: { children: React.ReactNode; initialRouteName?: string }) =>
+    (
+      {
+        children,
+        initialRouteName,
+        backBehavior,
+      }: { children: React.ReactNode; initialRouteName?: string; backBehavior?: string },
+    ) =>
       React.createElement(
         React.Fragment,
         null,
         React.createElement(Text, null, `InitialRouteName:${initialRouteName}`),
+        React.createElement(Text, null, `BackBehavior:${backBehavior}`),
         children,
       ),
     {
@@ -73,6 +80,14 @@ describe('staff navigation guard', () => {
     const screen = await render(<StaffLayout />);
 
     expect(screen.getByText('InitialRouteName:index')).toBeTruthy();
+    // Regresión: @react-navigation/bottom-tabs resuelve "volver" (botón o
+    // gesto físico de Android, o cualquier GO_BACK sin historial) usando
+    // `backBehavior`, que por defecto es 'firstRoute' -- IGNORA
+    // initialRouteName por completo. Sin fijarlo explícitamente en
+    // 'initialRoute', el botón físico de atrás seguía cayendo en
+    // "administration" (la primera Tabs.Screen registrada) y mostraba
+    // "Acceso restringido" a cualquier staff sin rbac:manage.
+    expect(screen.getByText('BackBehavior:initialRoute')).toBeTruthy();
   });
 
   it('redirects authenticated users without clinical permission away from the staff app', async () => {

@@ -1,7 +1,18 @@
 import { render } from '@testing-library/react-native';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { ReactElement } from 'react';
 
 import MedicalDirectoryScreen from '@/app/(staff)/directory';
 import StaffDetailScreen from '@/app/(staff)/staff/[id]';
+
+// Ambos screens usan usePullToRefresh() para su pull-to-refresh, que
+// llama useQueryClient() -- necesitan un QueryClientProvider real ancestro.
+function renderWithClient(ui: ReactElement) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+}
 
 const mockUseAuthSession = jest.fn();
 const mockUseProfessionals = jest.fn();
@@ -59,22 +70,22 @@ describe('professional directory permissions', () => {
   it('does not treat rbac:manage alone as clinical directory access', async () => {
     mockUseAuthSession.mockReturnValue({ permissions: new Set(['rbac:manage']) });
 
-    const directory = await render(<MedicalDirectoryScreen />);
+    const directory = await renderWithClient(<MedicalDirectoryScreen />);
     expect(directory.getByText('Acceso restringido')).toBeTruthy();
     await directory.unmount();
 
-    const detail = await render(<StaffDetailScreen />);
+    const detail = await renderWithClient(<StaffDetailScreen />);
     expect(detail.getByText('Acceso restringido')).toBeTruthy();
   });
 
   it('allows clinica:manage to access directory and staff profile', async () => {
     mockUseAuthSession.mockReturnValue({ permissions: new Set(['clinica:manage']) });
 
-    const directory = await render(<MedicalDirectoryScreen />);
+    const directory = await renderWithClient(<MedicalDirectoryScreen />);
     expect(directory.getByText('Directorio de Personal Médico')).toBeTruthy();
     await directory.unmount();
 
-    const detail = await render(<StaffDetailScreen />);
+    const detail = await renderWithClient(<StaffDetailScreen />);
     expect(detail.queryByText('Acceso restringido')).toBeNull();
   });
 
@@ -105,14 +116,14 @@ describe('professional directory permissions', () => {
       isError: false,
     });
 
-    const directory = await render(<MedicalDirectoryScreen />);
+    const directory = await renderWithClient(<MedicalDirectoryScreen />);
 
     expect(directory.getByText(/MED-007/)).toBeTruthy();
     expect(directory.queryByText('Médico de Cabecera')).toBeNull();
     expect(directory.queryByText('Activo')).toBeNull();
     await directory.unmount();
 
-    const detail = await render(<StaffDetailScreen />);
+    const detail = await renderWithClient(<StaffDetailScreen />);
     expect(detail.queryByText('Cuenta Activa')).toBeNull();
     expect(detail.queryByText('Especialidades y Certificaciones')).toBeNull();
     expect(detail.queryByText('Resumen de Pacientes Asignados')).toBeNull();

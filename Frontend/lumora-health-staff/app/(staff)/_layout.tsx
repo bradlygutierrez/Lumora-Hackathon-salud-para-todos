@@ -33,14 +33,17 @@ export default function StaffLayout() {
     <Tabs
       // "administration" está registrada primero (línea de abajo) solo para
       // que su `href` condicional (según rbac:manage) no reordene el resto
-      // de la tab bar visualmente -- pero sin initialRouteName, el Tabs
-      // navigator usa la PRIMERA screen registrada como fallback cuando
-      // "volver" (gesto/botón de Android, o router.back() sin historial)
-      // no tiene una entrada previa a la cual regresar. Eso mandaba a
-      // "administration", que para cualquier staff sin rbac:manage muestra
-      // "Acceso restringido" -- se veía justo al salir de Editar Perfil o
-      // de Notificaciones, dos tabs ocultas (href: null) sin pila propia.
+      // de la tab bar visualmente. Eso importa porque el default de
+      // `backBehavior` en @react-navigation/bottom-tabs es 'firstRoute'
+      // -- NO usa initialRouteName -- así que "volver" (botón/gesto físico
+      // de Android, o cualquier GO_BACK sin historial previo) caía siempre
+      // en la PRIMERA screen registrada ("administration"), sin importar
+      // qué dijera initialRouteName. Para cualquier staff sin rbac:manage
+      // eso mostraba "Acceso restringido" -- se veía al salir de Editar
+      // Perfil o de Notificaciones (tabs ocultas sin pila propia) y,
+      // sobre todo, al usar el botón físico/gesto de retroceso de Android.
       initialRouteName="index"
+      backBehavior="initialRoute"
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: theme.color.primaryPressed,
