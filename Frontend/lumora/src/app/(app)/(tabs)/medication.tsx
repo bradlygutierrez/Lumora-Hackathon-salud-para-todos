@@ -68,7 +68,7 @@ export default function MedicationRoute() {
   }
 
   return (
-    <Screen scrollable contentClassName="px-0 py-0">
+    <Screen scrollable contentClassName="px-0 py-0" tint="medication">
       <AppHeader
         title="Plan de Hoy"
         subtitle={formatPlanDate(planDate)}

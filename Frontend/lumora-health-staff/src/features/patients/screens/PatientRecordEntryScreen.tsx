@@ -27,7 +27,7 @@ export function PatientRecordEntryScreen({ patientId }: Props) {
   const record = summary.data.expediente;
 
   return (
-    <Screen>
+    <Screen tint="patients">
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} style={styles.scroll}>
         <Button accessibilityLabel="Volver al paciente" icon="arrow-back" onPress={() => router.back()} variant="ghost">
           Volver

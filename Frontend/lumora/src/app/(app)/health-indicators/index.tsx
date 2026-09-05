@@ -48,7 +48,7 @@ export default function SelectIndicatorRoute() {
   }
 
   return (
-    <Screen scrollable contentClassName="px-0 py-0">
+    <Screen scrollable contentClassName="px-0 py-0" tint="health">
       <AppHeader
         title="Seleccionar Indicador"
         subtitle={

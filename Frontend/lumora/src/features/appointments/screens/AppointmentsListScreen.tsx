@@ -215,6 +215,7 @@ export function AppointmentsListScreen() {
     <Screen
       scrollable
       contentClassName="px-0 py-0"
+      tint="appointments"
     >
       <AppHeader
         title="Tus Citas"

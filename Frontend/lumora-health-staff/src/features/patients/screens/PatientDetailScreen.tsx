@@ -116,7 +116,7 @@ export function PatientDetailScreen({ patientId }: Props) {
   const allergies = richSummary?.alergias ?? [];
 
   return (
-    <Screen>
+    <Screen tint="patients">
       <AppTopBar />
       <ScrollView
         contentContainerStyle={styles.content}

@@ -16,6 +16,22 @@ import {
 import { theme } from '@/shared/theme/tokens';
 import { useQueryClient } from '@tanstack/react-query';
 
+export type ScreenTint = 'neutral' | 'appointments' | 'health' | 'medication';
+
+/**
+ * Lavado de fondo muy sutil por sección, para ayudar a ubicar en qué
+ * parte de la app está el usuario -- cada tab principal (aparte de
+ * Inicio y Perfil, que se quedan en el fondo neutral) tiene su propio
+ * matiz de la paleta oficial (ver tailwind.config.js), a baja opacidad
+ * para no competir con el contenido.
+ */
+const TINT_CLASS: Record<ScreenTint, string> = {
+  neutral: 'bg-bone-100',
+  appointments: 'bg-lumen-300/10',
+  health: 'bg-mint-300/15',
+  medication: 'bg-warm-300/15',
+};
+
 type ScreenProps = PropsWithChildren<{
   /**
    * Permite hacer scroll en pantallas largas.
@@ -41,6 +57,9 @@ type ScreenProps = PropsWithChildren<{
 
   /** Permite actualizar las consultas activas deslizando hacia abajo. */
   refreshable?: boolean;
+
+  /** Ver ScreenTint -- por defecto "neutral" (el fondo de siempre). */
+  tint?: ScreenTint;
 }>;
 
 /**
@@ -68,6 +87,7 @@ export function Screen({
   keyboardAvoiding = false,
   contentClassName = '',
   refreshable = scrollable,
+  tint = 'neutral',
 }: ScreenProps) {
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
@@ -120,7 +140,10 @@ export function Screen({
   );
 
   return (
-    <SafeAreaView className="relative flex-1 overflow-hidden bg-bone-100">
+    <SafeAreaView
+      className={`relative flex-1 overflow-hidden ${TINT_CLASS[tint]}`}
+      testID="screen-root"
+    >
       <View
         pointerEvents="none"
         accessibilityElementsHidden

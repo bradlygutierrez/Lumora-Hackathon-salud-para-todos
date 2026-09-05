@@ -78,7 +78,7 @@ export default function NewMeasurementRoute() {
   }
 
   return (
-    <Screen scrollable keyboardAvoiding contentClassName="px-0 py-0">
+    <Screen scrollable keyboardAvoiding contentClassName="px-0 py-0" tint="health">
       <AppHeader title="Nueva Medición" />
 
       <View className="gap-6 px-4 py-4">
