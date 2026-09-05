@@ -1,6 +1,17 @@
 import { fireEvent, render } from '@testing-library/react-native';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { ReactElement } from 'react';
 
 import { PatientListScreen } from '../screens/PatientListScreen';
+
+// El screen usa usePullToRefresh() para su pull-to-refresh, que llama
+// useQueryClient() -- necesita un QueryClientProvider real ancestro.
+function renderWithClient(ui: ReactElement) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+}
 
 const mockUsePatients = jest.fn();
 const mockUseMyPatients = jest.fn();
@@ -109,7 +120,7 @@ describe('PatientListScreen J15', () => {
   });
 
   it('shows real my-patients context by default', async () => {
-    const screen = await render(<PatientListScreen />);
+    const screen = await renderWithClient(<PatientListScreen />);
     expect(screen.getByText('Mis pacientes')).toBeTruthy();
     expect(screen.getByText('Ana Mora')).toBeTruthy();
     expect(screen.getByText('Próxima cita')).toBeTruthy();
@@ -119,13 +130,13 @@ describe('PatientListScreen J15', () => {
   });
 
   it('offers a fast path to emergency intake regardless of the active tab', async () => {
-    const screen = await render(<PatientListScreen />);
+    const screen = await renderWithClient(<PatientListScreen />);
     await fireEvent.press(screen.getByLabelText('Registro de emergencia'));
     expect(mockPush).toHaveBeenCalledWith('/(staff)/patients/emergency');
   });
 
   it('preserves authorized search, filters and pagination', async () => {
-    const screen = await render(<PatientListScreen />);
+    const screen = await renderWithClient(<PatientListScreen />);
     await fireEvent.press(screen.getByText('Buscar pacientes'));
 
     await fireEvent.changeText(screen.getByLabelText('Buscar pacientes'), 'Ana');
@@ -149,7 +160,7 @@ describe('PatientListScreen J15', () => {
 
   it('blocks direct access without clinical permission', async () => {
     mockUseAuthSession.mockReturnValue({ permissions: new Set() });
-    const screen = await render(<PatientListScreen />);
+    const screen = await renderWithClient(<PatientListScreen />);
     expect(screen.getByText('Acceso restringido')).toBeTruthy();
   });
 });

@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { type Href, useRouter } from 'expo-router';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useAuthSession } from '@/src/features/auth/hooks/use-auth-session';
 import { usePatient } from '@/src/features/patients/hooks/use-patients';
@@ -9,6 +9,7 @@ import { Button } from '@/src/shared/components/Button';
 import { ErrorState, LoadingState } from '@/src/shared/components/RemoteState';
 import { Screen } from '@/src/shared/components/Screen';
 import { theme } from '@/src/shared/constants/theme';
+import { usePullToRefresh } from '@/src/shared/hooks/use-pull-to-refresh';
 import { useAppointment } from '../hooks/use-appointments';
 import { formatWorkspaceDateTime } from '../utils/workspace-date-time';
 
@@ -19,6 +20,7 @@ export function AppointmentDetailScreen({ appointmentId }: Props) {
   const { permissions } = useAuthSession();
   const appointment = useAppointment(appointmentId);
   const patient = usePatient(appointment.data?.paciente_id ?? 0);
+  const { refreshing, onRefresh } = usePullToRefresh();
 
   if (!permissions.has('clinica:manage')) {
     return (
@@ -56,7 +58,12 @@ export function AppointmentDetailScreen({ appointmentId }: Props) {
         <Text style={styles.title}>Cita clínica</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} style={styles.scroll}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        style={styles.scroll}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      >
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <Ionicons color={theme.color.primary} name="calendar-outline" size={24} />

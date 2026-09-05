@@ -1,6 +1,17 @@
 import { fireEvent, render } from '@testing-library/react-native';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { ReactElement } from 'react';
 
 import { PatientDetailScreen } from '../screens/PatientDetailScreen';
+
+// El screen usa usePullToRefresh() para su pull-to-refresh, que llama
+// useQueryClient() -- necesita un QueryClientProvider real ancestro.
+function renderWithClient(ui: ReactElement) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+}
 
 const mockUsePatient = jest.fn();
 const mockUsePatientCatalogs = jest.fn();
@@ -114,7 +125,7 @@ describe('PatientDetail prescription navigation J13', () => {
   });
 
   it('opens patient prescriptions with the available medical record context', async () => {
-    const screen = await render(<PatientDetailScreen patientId={9} />);
+    const screen = await renderWithClient(<PatientDetailScreen patientId={9} />);
 
     await fireEvent.press(screen.getByLabelText('Ver recetas del paciente'));
 

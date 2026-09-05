@@ -1,6 +1,17 @@
 import { fireEvent, render } from '@testing-library/react-native';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { ReactElement } from 'react';
 
 import { AppointmentDetailScreen } from '../screens/AppointmentDetailScreen';
+
+// El screen usa usePullToRefresh() para su pull-to-refresh, que llama
+// useQueryClient() -- necesita un QueryClientProvider real ancestro.
+function renderWithClient(ui: ReactElement) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+}
 
 const mockUseAuthSession = jest.fn();
 const mockUseAppointment = jest.fn();
@@ -61,18 +72,18 @@ describe('AppointmentDetailScreen', () => {
 
   it('blocks staff without clinical permission', async () => {
     mockUseAuthSession.mockReturnValue({ permissions: new Set() });
-    const screen = await render(<AppointmentDetailScreen appointmentId={4} />);
+    const screen = await renderWithClient(<AppointmentDetailScreen appointmentId={4} />);
     expect(screen.getByText('Acceso restringido')).toBeTruthy();
   });
 
   it('shows an error state when the appointment cannot be loaded', async () => {
     mockUseAppointment.mockReturnValue({ data: undefined, isLoading: false, isError: true });
-    const screen = await render(<AppointmentDetailScreen appointmentId={4} />);
+    const screen = await renderWithClient(<AppointmentDetailScreen appointmentId={4} />);
     expect(screen.getByText('No se pudo cargar la cita')).toBeTruthy();
   });
 
   it('shows patient, professional, location and notes, and navigates to the patient record', async () => {
-    const screen = await render(<AppointmentDetailScreen appointmentId={4} />);
+    const screen = await renderWithClient(<AppointmentDetailScreen appointmentId={4} />);
 
     expect(screen.getByText('John Doe')).toBeTruthy();
     expect(screen.getByText('Dra. Ana Ríos')).toBeTruthy();
@@ -89,7 +100,7 @@ describe('AppointmentDetailScreen', () => {
 
   it('falls back to a placeholder name while the patient is still loading', async () => {
     mockUsePatient.mockReturnValue({ data: undefined, isLoading: true, isError: false });
-    const screen = await render(<AppointmentDetailScreen appointmentId={4} />);
+    const screen = await renderWithClient(<AppointmentDetailScreen appointmentId={4} />);
     expect(screen.getByText('Paciente #9')).toBeTruthy();
   });
 });

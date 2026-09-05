@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { AppTopBar } from '@/src/shared/components/AppTopBar';
 import { PermissionGate } from '@/src/features/auth/components/PermissionGate';
@@ -10,10 +10,12 @@ import { EmptyState, ErrorState, LoadingState } from '@/src/shared/components/Re
 import { Screen } from '@/src/shared/components/Screen';
 import { TextField } from '@/src/shared/components/TextField';
 import { theme } from '@/src/shared/constants/theme';
+import { usePullToRefresh } from '@/src/shared/hooks/use-pull-to-refresh';
 import { StaffAvatar } from '@/src/shared/components/StaffAvatar';
 
 export default function MedicalDirectoryScreen() {
   const professionals = useProfessionals();
+  const { refreshing, onRefresh } = usePullToRefresh();
   const [search, setSearch] = useState('');
   const [specialty, setSpecialty] = useState('Todos');
   const specialties = useMemo(() => {
@@ -49,7 +51,11 @@ export default function MedicalDirectoryScreen() {
           />
         }
       >
-        <ScrollView contentContainerStyle={styles.container} style={styles.scroll}>
+        <ScrollView
+          contentContainerStyle={styles.container}
+          style={styles.scroll}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        >
           <AppTopBar showBack />
           <View style={styles.header}>
             <Text style={styles.title}>Directorio de Personal Médico</Text>

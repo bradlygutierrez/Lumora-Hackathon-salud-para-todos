@@ -3,6 +3,7 @@ import { type Href, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -20,6 +21,7 @@ import {
 } from '@/src/shared/components/RemoteState';
 import { Screen } from '@/src/shared/components/Screen';
 import { theme } from '@/src/shared/constants/theme';
+import { usePullToRefresh } from '@/src/shared/hooks/use-pull-to-refresh';
 import { ChoiceField } from '../components/ChoiceField';
 import { MyPatientCard } from '../components/MyPatientCard';
 import { PatientCard } from '../components/PatientCard';
@@ -31,6 +33,7 @@ const PAGE_SIZE = 10;
 export function PatientListScreen() {
   const router = useRouter();
   const { permissions } = useAuthSession();
+  const { refreshing, onRefresh } = usePullToRefresh();
   const [mode, setMode] = useState<'mine' | 'search'>('mine');
   const [search, setSearch] = useState('');
   const [sexId, setSexId] = useState<number | undefined>();
@@ -90,6 +93,7 @@ export function PatientListScreen() {
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         <View style={styles.titleBlock}>
           <Text style={styles.title}>Lista de Pacientes</Text>

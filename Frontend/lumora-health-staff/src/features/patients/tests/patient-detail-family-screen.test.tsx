@@ -1,7 +1,18 @@
 import { fireEvent, render } from '@testing-library/react-native';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { ReactElement } from 'react';
 
 import { PatientDetailScreen } from '../screens/PatientDetailScreen';
 import { PatientFamilyScreen } from '../screens/PatientFamilyScreen';
+
+// PatientDetailScreen usa usePullToRefresh() para su pull-to-refresh, que
+// llama useQueryClient() -- necesita un QueryClientProvider real ancestro.
+function renderWithClient(ui: ReactElement) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+}
 
 const mockUsePatient = jest.fn();
 const mockUsePatientFamily = jest.fn();
@@ -202,7 +213,7 @@ describe('patient detail and family screens J15', () => {
   });
 
   it('shows appointment, last consultation, vital signs and patient measurements', async () => {
-    const screen = await render(<PatientDetailScreen patientId={9} />);
+    const screen = await renderWithClient(<PatientDetailScreen patientId={9} />);
 
     expect(screen.getByText('John Doe')).toBeTruthy();
     expect(screen.getByText('Próxima cita')).toBeTruthy();
@@ -224,7 +235,7 @@ describe('patient detail and family screens J15', () => {
   });
 
   it('opens the appointment detail when pressing the pending appointment', async () => {
-    const screen = await render(<PatientDetailScreen patientId={9} />);
+    const screen = await renderWithClient(<PatientDetailScreen patientId={9} />);
     await fireEvent.press(screen.getByLabelText('Ver próxima cita'));
     expect(mockPush).toHaveBeenCalledWith('/(staff)/appointments/4');
   });
@@ -241,14 +252,14 @@ describe('patient detail and family screens J15', () => {
     });
     mockUseNextPatientAppointment.mockReturnValue({ data: null, isLoading: false });
 
-    const screen = await render(<PatientDetailScreen patientId={9} />);
+    const screen = await renderWithClient(<PatientDetailScreen patientId={9} />);
     expect(screen.getAllByText('No disponible')).toHaveLength(1);
     expect(mockUseMyPatients).toHaveBeenCalledTimes(1);
     expect(mockUseMedicalRecordSummary).toHaveBeenCalledTimes(1);
   });
 
   it('renders family access as read-only backend state', async () => {
-    const screen = await render(<PatientFamilyScreen patientId={9} />);
+    const screen = await renderWithClient(<PatientFamilyScreen patientId={9} />);
     expect(screen.getByText('Familiares y Acceso')).toBeTruthy();
     expect(screen.getByText('Jane Doe')).toBeTruthy();
     expect(screen.getByText('Lectura')).toBeTruthy();
@@ -256,10 +267,10 @@ describe('patient detail and family screens J15', () => {
 
   it('blocks direct access without clinica:manage', async () => {
     mockUseAuthSession.mockReturnValue({ permissions: new Set() });
-    const detailScreen = await render(<PatientDetailScreen patientId={9} />);
+    const detailScreen = await renderWithClient(<PatientDetailScreen patientId={9} />);
     expect(detailScreen.getByText('Acceso restringido')).toBeTruthy();
     await detailScreen.unmount();
-    const familyScreen = await render(<PatientFamilyScreen patientId={9} />);
+    const familyScreen = await renderWithClient(<PatientFamilyScreen patientId={9} />);
     expect(familyScreen.getByText('Acceso restringido')).toBeTruthy();
   });
 });
