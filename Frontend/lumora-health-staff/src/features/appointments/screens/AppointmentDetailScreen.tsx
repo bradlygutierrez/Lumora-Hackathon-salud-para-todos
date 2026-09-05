@@ -48,7 +48,7 @@ export function AppointmentDetailScreen({ appointmentId }: Props) {
     : `Paciente #${item.paciente_id}`;
 
   return (
-    <Screen>
+    <Screen tint="agenda">
       <View style={styles.header}>
         <Button accessibilityLabel="Volver" icon="arrow-back" onPress={() => router.back()} variant="ghost">
           Volver

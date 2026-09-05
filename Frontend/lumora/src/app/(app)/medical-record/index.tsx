@@ -97,7 +97,7 @@ export default function MedicalRecordRoute() {
   };
 
   return (
-    <Screen scrollable contentClassName="px-0 py-0">
+    <Screen scrollable contentClassName="px-0 py-0" tint="health">
       <AppHeader
         title="Expediente Médico"
         subtitle={`${document.paciente.nombres} ${document.paciente.apellidos}${

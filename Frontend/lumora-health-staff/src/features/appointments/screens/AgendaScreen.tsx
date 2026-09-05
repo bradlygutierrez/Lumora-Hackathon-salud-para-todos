@@ -140,7 +140,7 @@ export function AgendaScreen() {
   };
 
   return (
-    <Screen>
+    <Screen tint="agenda">
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} style={styles.scroll} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void onRefresh()} />}>
         <View style={styles.heading}>
           <Text style={styles.title}>Agenda profesional</Text>

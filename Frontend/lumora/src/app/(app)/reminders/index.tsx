@@ -275,7 +275,7 @@ export default function RemindersRoute() {
     confirmAction?.kind === 'skip' ? skipDose.isPending : deleteReminder.isPending;
 
   return (
-    <Screen scrollable contentClassName="px-0 py-0">
+    <Screen scrollable contentClassName="px-0 py-0" tint="medication">
       <AppHeader title="Recordatorios" subtitle="Mantente al día con tu bienestar." />
 
       <View className="gap-6 px-4 py-4">

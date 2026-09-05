@@ -84,7 +84,7 @@ export function PatientListScreen() {
   );
 
   return (
-    <Screen>
+    <Screen tint="patients">
       <AppTopBar />
       <ScrollView
         contentContainerStyle={styles.content}

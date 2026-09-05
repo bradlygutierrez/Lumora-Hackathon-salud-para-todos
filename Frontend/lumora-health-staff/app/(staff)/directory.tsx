@@ -39,7 +39,7 @@ export default function MedicalDirectoryScreen() {
   }, [professionals.data?.items, search, specialty]);
 
   return (
-    <Screen>
+    <Screen tint="directory">
       <PermissionGate
         anyOf={['clinica:manage']}
         fallback={

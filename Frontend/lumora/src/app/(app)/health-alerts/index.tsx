@@ -38,7 +38,7 @@ export default function HealthAlertsRoute() {
   }
 
   return (
-    <Screen scrollable contentClassName="px-0 py-0">
+    <Screen scrollable contentClassName="px-0 py-0" tint="health">
       <AppHeader
         title="Alertas de Salud"
         subtitle="Alertas clinicas, dosis pendientes y citas proximas de los ultimos dos dias."

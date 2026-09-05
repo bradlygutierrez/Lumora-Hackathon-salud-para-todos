@@ -20,6 +20,15 @@ export const theme = {
     success: '#196B59',
     successSoft: '#DDF4EE',
     info: '#175CD3',
+    // Lavados de fondo muy sutiles (más pálidos que los "Soft" de arriba,
+    // pensados para cubrir toda la pantalla sin competir con el contenido)
+    // usados por Screen para diferenciar secciones -- Pacientes, Agenda y
+    // Personal, cada una con un matiz de la misma paleta. El resto de la
+    // app se queda en appBackground (sin tinte) a propósito, para no
+    // saturar visualmente pantallas que no son "destinos" de navegación.
+    patientsWash: '#F3F8FC',
+    agendaWash: '#FFF8EC',
+    directoryWash: '#F1F9F6',
   },
   spacing: {
     xs: 4,

@@ -15,7 +15,7 @@ export default function StaffDetailScreen() {
   const professional = useProfessional(professionalId);
 
   return (
-    <Screen>
+    <Screen tint="directory">
       <PermissionGate
         anyOf={['clinica:manage']}
         fallback={
