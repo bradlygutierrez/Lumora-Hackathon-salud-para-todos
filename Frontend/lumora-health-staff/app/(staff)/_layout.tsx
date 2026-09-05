@@ -33,6 +33,16 @@ export default function StaffLayout() {
 
   return (
     <Tabs
+      // "administration" está registrada primero (línea de abajo) solo para
+      // que su `href` condicional (según rbac:manage) no reordene el resto
+      // de la tab bar visualmente -- pero sin initialRouteName, el Tabs
+      // navigator usa la PRIMERA screen registrada como fallback cuando
+      // "volver" (gesto/botón de Android, o router.back() sin historial)
+      // no tiene una entrada previa a la cual regresar. Eso mandaba a
+      // "administration", que para cualquier staff sin rbac:manage muestra
+      // "Acceso restringido" -- se veía justo al salir de Editar Perfil o
+      // de Notificaciones, dos tabs ocultas (href: null) sin pila propia.
+      initialRouteName="index"
       screenOptions={{
         headerShown: false,
         tabBarActiveBackgroundColor: theme.color.primarySoft,
