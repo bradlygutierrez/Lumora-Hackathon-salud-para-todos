@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Link, router } from 'expo-router';
+import { Link } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useNotifications } from '@/src/features/notifications/hooks/use-notifications';
@@ -17,11 +17,13 @@ export function AppTopBar({ showBack = false }: AppTopBarProps) {
     <View style={styles.container}>
       <View style={styles.side}>
         {showBack ? (
-          <Pressable accessibilityLabel="Volver" accessibilityRole="button" onPress={() => router?.back()}>
-            <View style={styles.avatar}>
-              <Ionicons color={theme.color.primaryPressed} name="arrow-back" size={21} />
-            </View>
-          </Pressable>
+          <Link asChild href="/(staff)">
+            <Pressable accessibilityLabel="Volver" accessibilityRole="button">
+              <View style={styles.avatar}>
+                <Ionicons color={theme.color.primaryPressed} name="arrow-back" size={21} />
+              </View>
+            </Pressable>
+          </Link>
         ) : (
           <Link asChild href="/(staff)/profile">
             <Pressable accessibilityLabel="Abrir mi perfil" accessibilityRole="button">

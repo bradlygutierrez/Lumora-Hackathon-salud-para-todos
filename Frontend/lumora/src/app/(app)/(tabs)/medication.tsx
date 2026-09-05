@@ -19,7 +19,8 @@ import { Screen } from '@/shared/components/Screen';
 
 /** "Medicación" / Plan de Hoy — A07. */
 export default function MedicationRoute() {
-  const { plan, planDate, isLoading, isError, refetch } = useTodayMedicationPlan();
+  const { activePrescriptions, plan, planDate, isLoading, isError, refetch } =
+    useTodayMedicationPlan();
   const { activePatient, role } = useShellContext();
   const canManage =
     role !== 'caregiver' || canManagePatientData(activePatient?.accessLevel ?? null);
@@ -44,11 +45,6 @@ export default function MedicationRoute() {
     }
     cancelDose.mutate({ dosisId: item.dosisHoyId, horarioId: item.horarioId });
   }
-
-  const recetaIdsHoy = new Set(
-    TIME_OF_DAY_ORDER.flatMap((bucket) => plan.sections[bucket].map((item) => item.recetaId)),
-  );
-  const soloRecetaActivaId = recetaIdsHoy.size === 1 ? [...recetaIdsHoy][0] : null;
 
   if (isLoading) {
     return (
@@ -110,19 +106,25 @@ export default function MedicationRoute() {
           ))
         )}
 
-        {/* Con una sola receta activa el enlace es directo; con varias,
-            cada tarjeta ya lleva a SU receta (ver MedicationCard), así que
-            este botón se omite para no ser ambiguo. */}
-        {soloRecetaActivaId ? (
-          <Link
-            href={{
-              pathname: '/(app)/prescriptions/[recetaId]',
-              params: { recetaId: soloRecetaActivaId },
-            }}
-            asChild
-          >
-            <AppButton title="Ver receta completa" variant="ghost" />
-          </Link>
+        {activePrescriptions.length > 0 ? (
+          <View className="gap-3">
+            <Text className="text-lg font-semibold text-coal-900">Recetas activas</Text>
+            {activePrescriptions.map((receta) => (
+              <Link
+                key={receta.id}
+                href={{
+                  pathname: '/(app)/prescriptions/[recetaId]',
+                  params: { recetaId: receta.id },
+                }}
+                asChild
+              >
+                <AppButton
+                  title={receta.titulo ?? 'Ver receta médica'}
+                  variant="ghost"
+                />
+              </Link>
+            ))}
+          </View>
         ) : null}
 
         {/* El acceso a Alertas de Salud (A09) ya vive en el tab "Mi
