@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+export const MAX_MEASUREMENT_VALUE_LENGTH = 10;
+
 /**
  * Validación del formulario "Nueva Medición".
  *
@@ -13,6 +15,7 @@ export const measurementFormSchema = z.object({
     .string()
     .trim()
     .min(1, 'Ingresa un valor.')
+    .max(MAX_MEASUREMENT_VALUE_LENGTH, 'Máximo 10 caracteres.')
     .refine(
       (value) => !Number.isNaN(Number(value)),
       'Ingresa un número válido.',
