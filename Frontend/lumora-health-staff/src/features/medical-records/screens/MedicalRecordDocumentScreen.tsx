@@ -162,7 +162,7 @@ export function MedicalRecordDocumentScreen({ patientId }: Props) {
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} style={styles.scroll}>
         <View style={styles.topRow}>
           <Button
             accessibilityLabel="Volver al expediente médico"
@@ -632,6 +632,7 @@ function SectionEmpty() {
 }
 
 const styles = StyleSheet.create({
+  scroll: { flex: 1 },
   content: { gap: theme.spacing.xl, paddingBottom: theme.spacing.xxl },
   remoteState: { flex: 1, gap: theme.spacing.md },
   topRow: { alignItems: 'center', flexDirection: 'row', gap: theme.spacing.md },

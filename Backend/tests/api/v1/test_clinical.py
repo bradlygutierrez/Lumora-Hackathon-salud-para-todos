@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta, timezone
+
 import pytest
 
 from helpers.medical import create_active_medical_professional
@@ -5,9 +7,11 @@ from sqlalchemy import select
 
 from lumora_api.models import (
     Alergia,
+    Cita,
     Discapacidad,
     EstadoCondicion,
     EstadoExpediente,
+    Expediente,
     NivelSeveridad,
     Paciente,
     Permiso,
@@ -20,7 +24,9 @@ from lumora_api.models import (
 )
 
 
-async def _register(client, session_factory, username: str, *, clinical: bool) -> str:
+async def _register(
+    client, session_factory, username: str, *, clinical: bool
+) -> tuple[str, int | None]:
     async with session_factory() as session:
         if await session.scalar(select(Rol).where(Rol.nombre == "Paciente")) is None:
             session.add(Rol(nombre="Paciente"))
@@ -49,18 +55,21 @@ async def _register(client, session_factory, username: str, *, clinical: bool) -
         },
     )
     assert response.status_code == 201
+    professional_id = None
     async with session_factory() as session:
         user = await session.get(Usuario, response.json()["id"])
         role = await session.scalar(select(Rol).where(Rol.nombre == f"Rol {username}"))
         session.add(UsuarioRol(usuario_id=user.id, rol_id=role.id))
-        if clinical: await create_active_medical_professional(session, user=user)
+        if clinical:
+            result = await create_active_medical_professional(session, user=user)
+            professional_id = result["professional"].id
         await session.commit()
     token = await client.post(
         "/api/v1/auth/token",
         data={"username": username, "password": "safe-password"},
     )
     assert token.status_code == 200
-    return token.json()["access_token"]
+    return token.json()["access_token"], professional_id
 
 
 async def _clinical_setup(session_factory):
@@ -86,7 +95,7 @@ async def _clinical_setup(session_factory):
 
 @pytest.mark.asyncio
 async def test_clinical_routes_require_clinical_permission(client, session_factory):
-    access_token = await _register(client, session_factory, "plain", clinical=False)
+    access_token, _ = await _register(client, session_factory, "plain", clinical=False)
     response = await client.get(
         "/api/v1/expedientes",
         headers={"Authorization": f"Bearer {access_token}"},
@@ -97,9 +106,26 @@ async def test_clinical_routes_require_clinical_permission(client, session_facto
 
 @pytest.mark.asyncio
 async def test_medical_record_history_allergies_and_disabilities_flow(client, session_factory):
-    access_token = await _register(client, session_factory, "clinician", clinical=True)
+    access_token, professional_id = await _register(
+        client, session_factory, "clinician", clinical=True
+    )
     headers = {"Authorization": f"Bearer {access_token}"}
     setup = await _clinical_setup(session_factory)
+
+    # Relación real profesional-paciente: sin esto, las mutaciones de
+    # antecedentes/alergias/discapacidades ahora exigen que el paciente
+    # esté asignado al profesional (ensure_patient_is_assigned_to_professional).
+    async with session_factory() as session:
+        now = datetime.now(timezone.utc)
+        session.add(
+            Cita(
+                paciente_id=setup["patient_id"],
+                profesional_id=professional_id,
+                inicio=now,
+                fin=now + timedelta(minutes=30),
+            )
+        )
+        await session.commit()
 
     record = await client.post(
         "/api/v1/expedientes",
@@ -223,3 +249,123 @@ async def test_medical_record_history_allergies_and_disabilities_flow(client, se
     async with session_factory() as session:
         assert await session.get(Alergia, allergy_id) is not None
         assert await session.get(Discapacidad, disability_id) is not None
+
+
+@pytest.mark.asyncio
+async def test_staff_cannot_manage_allergies_disabilities_or_history_of_an_unrelated_patient(
+    client, session_factory
+):
+    # Paciente sin ninguna cita/consulta con el profesional que hace la
+    # llamada -- antes, clinica:manage alcanzaba para modificar estos
+    # tres recursos de cualquier paciente.
+    access_token, _ = await _register(
+        client, session_factory, "clinician-unrelated", clinical=True
+    )
+    headers = {"Authorization": f"Bearer {access_token}"}
+    setup = await _clinical_setup(session_factory)
+
+    # Expediente creado directo por ORM (no vía API): la creación de
+    # expedientes no forma parte de este fix -- solo hace falta un
+    # record_id real para poder probar el gap de antecedentes.
+    async with session_factory() as session:
+        record = Expediente(
+            paciente_id=setup["patient_id"],
+            estado_expediente_id=setup["state_id"],
+            numero_expediente="EXP-UNRELATED",
+        )
+        session.add(record)
+        await session.commit()
+        record_id = record.id
+
+    allergy = await client.post(
+        f"/api/v1/pacientes/{setup['patient_id']}/alergias",
+        json={"nombre": "Penicilina"},
+        headers=headers,
+    )
+    assert allergy.status_code == 403
+    assert allergy.json()["error"]["code"] == "forbidden"
+
+    disability = await client.post(
+        f"/api/v1/pacientes/{setup['patient_id']}/discapacidades",
+        json={"nombre": "Movilidad reducida"},
+        headers=headers,
+    )
+    assert disability.status_code == 403
+    assert disability.json()["error"]["code"] == "forbidden"
+
+    history = await client.post(
+        f"/api/v1/expedientes/{record_id}/antecedentes",
+        json={
+            "tipo_antecedente_id": setup["history_type_id"],
+            "descripcion": "Diabetes familiar",
+        },
+        headers=headers,
+    )
+    assert history.status_code == 403
+    assert history.json()["error"]["code"] == "forbidden"
+
+
+@pytest.mark.asyncio
+async def test_staff_cannot_edit_or_delete_the_medical_record_of_an_unrelated_patient(
+    client, session_factory
+):
+    # Crear el expediente (POST /expedientes) sigue sin restricción --
+    # es, junto con la primera cita, el arranque legítimo de la relación
+    # con un paciente nuevo. Editar/borrar un expediente YA existente sí
+    # debe exigir una relación real con ese paciente.
+    owner_token, owner_professional_id = await _register(
+        client, session_factory, "clinician-record-owner", clinical=True
+    )
+    owner_headers = {"Authorization": f"Bearer {owner_token}"}
+    setup = await _clinical_setup(session_factory)
+
+    async with session_factory() as session:
+        now = datetime.now(timezone.utc)
+        session.add(
+            Cita(
+                paciente_id=setup["patient_id"],
+                profesional_id=owner_professional_id,
+                inicio=now,
+                fin=now + timedelta(minutes=30),
+            )
+        )
+        await session.commit()
+
+    record = await client.post(
+        "/api/v1/expedientes",
+        json={
+            "paciente_id": setup["patient_id"],
+            "estado_expediente_id": setup["state_id"],
+            "numero_expediente": "EXP-OWNER",
+        },
+        headers=owner_headers,
+    )
+    assert record.status_code == 201
+    record_id = record.json()["id"]
+
+    outsider_token, _ = await _register(
+        client, session_factory, "clinician-record-outsider", clinical=True
+    )
+    outsider_headers = {"Authorization": f"Bearer {outsider_token}"}
+
+    update = await client.patch(
+        f"/api/v1/expedientes/{record_id}",
+        json={"notas": "Intento no autorizado"},
+        headers=outsider_headers,
+    )
+    assert update.status_code == 403
+    assert update.json()["error"]["code"] == "forbidden"
+
+    delete = await client.delete(
+        f"/api/v1/expedientes/{record_id}", headers=outsider_headers
+    )
+    assert delete.status_code == 403
+    assert delete.json()["error"]["code"] == "forbidden"
+
+    # El profesional con la relación real sigue pudiendo editarlo.
+    owner_update = await client.patch(
+        f"/api/v1/expedientes/{record_id}",
+        json={"notas": "Actualización legítima"},
+        headers=owner_headers,
+    )
+    assert owner_update.status_code == 200

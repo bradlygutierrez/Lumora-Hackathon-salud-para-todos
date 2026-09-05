@@ -49,8 +49,8 @@ export default function MedicalDirectoryScreen() {
           />
         }
       >
-        <ScrollView contentContainerStyle={styles.container}>
-          <AppTopBar />
+        <ScrollView contentContainerStyle={styles.container} style={styles.scroll}>
+          <AppTopBar showBack />
           <View style={styles.header}>
             <Text style={styles.title}>Directorio de Personal Médico</Text>
             <Text style={styles.subtitle}>Consulta el personal clínico registrado.</Text>
@@ -125,6 +125,7 @@ export default function MedicalDirectoryScreen() {
 }
 
 const styles = StyleSheet.create({
+  scroll: { flex: 1 },
   container: {
     gap: theme.spacing.md,
     paddingBottom: theme.spacing.xxl,
@@ -198,10 +199,6 @@ const styles = StyleSheet.create({
     borderLeftColor: '#10B981',
     borderLeftWidth: 4,
     padding: 24,
-    shadowColor: '#003C90',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
   },
   cardHeader: {
     alignItems: 'flex-start',

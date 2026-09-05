@@ -85,10 +85,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     maxWidth: 760,
     overflow: 'hidden',
-    shadowColor: '#003C90',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.05,
-    shadowRadius: 9,
     width: '100%',
   },
   accent: {

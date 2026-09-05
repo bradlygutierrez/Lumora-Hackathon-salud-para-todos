@@ -12,6 +12,7 @@ import { Button } from '@/src/shared/components/Button';
 import { ErrorState, LoadingState } from '@/src/shared/components/RemoteState';
 import { Screen } from '@/src/shared/components/Screen';
 import { TextField } from '@/src/shared/components/TextField';
+import { DateField } from '@/src/shared/components/DateField';
 import { theme } from '@/src/shared/constants/theme';
 import { useConsultation, useConsultationReasons, useCreateConsultation, useUpdateConsultation } from '../hooks/use-consultations';
 import { consultationFormSchema, type ConsultationForm, type ConsultationFormInput } from '../schemas/consultation.schema';
@@ -22,7 +23,7 @@ function serverMessage(error: unknown) {
   const apiError = toApiError(error);
   if (apiError.code === 'forbidden') return 'No tenés permiso para guardar consultas clínicas.';
   if (apiError.code === 'not_found') return 'El expediente, paciente, profesional o motivo seleccionado ya no está disponible.';
-  if (apiError.code === 'validation_error') return 'FastAPI rechazó uno o más datos. Revisá el formulario.';
+  if (apiError.code === 'validation_error') return 'El servidor rechazó uno o más datos. Revisá el formulario.';
   return apiError.message;
 }
 
@@ -131,7 +132,7 @@ export function ConsultationFormScreen({ patientId, recordId, consultationId }: 
           </Text>
         </View>
       </View>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} style={styles.scroll}>
         <Controller control={control} name="motivo_consulta_id" render={({ field }) => (
           <ChoiceField
             clearLabel="Sin catálogo"
@@ -146,7 +147,7 @@ export function ConsultationFormScreen({ patientId, recordId, consultationId }: 
           <TextField accessibilityLabel="Motivo de consulta" error={errors.motivo?.message} label="Motivo de consulta *" multiline onBlur={field.onBlur} onChangeText={field.onChange} placeholder="Describí el motivo principal" value={field.value} />
         )} />
         <Controller control={control} name="fecha_consulta" render={({ field }) => (
-          <TextField accessibilityLabel="Fecha de consulta" error={errors.fecha_consulta?.message} label="Fecha y hora" onBlur={field.onBlur} onChangeText={field.onChange} placeholder="Opcional; FastAPI asigna la fecha si se deja vacío" value={field.value} />
+          <DateField error={errors.fecha_consulta?.message} label="Fecha y hora" mode="datetime" onChange={field.onChange} value={field.value} />
         )} />
         {(['sintomas', 'evaluacion', 'indicaciones', 'observaciones'] as const).map((name) => (
           <Controller control={control} key={name} name={name} render={({ field }) => (
@@ -157,7 +158,15 @@ export function ConsultationFormScreen({ patientId, recordId, consultationId }: 
               multiline
               onBlur={field.onBlur}
               onChangeText={field.onChange}
-              placeholder="Opcional según contrato J03"
+              placeholder={
+                name === 'sintomas'
+                  ? 'Opcional. Ej.: dolor de cabeza, fiebre, tos'
+                  : name === 'evaluacion'
+                    ? 'Opcional. Hallazgos y valoración clínica'
+                    : name === 'indicaciones'
+                      ? 'Opcional. Tratamiento o recomendaciones para el paciente'
+                      : 'Opcional. Notas adicionales sobre la consulta'
+              }
               value={field.value ?? ''}
             />
           )} />
@@ -181,11 +190,12 @@ export function ConsultationFormScreen({ patientId, recordId, consultationId }: 
 }
 
 const styles = StyleSheet.create({
+  scroll: { flex: 1 },
   header: { alignItems: 'center', flexDirection: 'row', gap: theme.spacing.sm },
   headerCopy: { flex: 1, gap: 2 },
   title: { color: theme.color.text, fontSize: 24, fontWeight: '900' },
   subtitle: { color: theme.color.mutedText, fontSize: 12 },
   content: { gap: theme.spacing.lg, paddingBottom: theme.spacing.xxl, paddingTop: theme.spacing.lg },
-  errorBox: { backgroundColor: '#FFD7D2', borderRadius: theme.radius.md, padding: theme.spacing.md },
+  errorBox: { backgroundColor: theme.color.dangerSoft, borderRadius: theme.radius.md, padding: theme.spacing.md },
   errorText: { color: theme.color.danger, fontSize: 13, fontWeight: '700' },
 });

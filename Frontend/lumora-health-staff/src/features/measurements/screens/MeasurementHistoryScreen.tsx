@@ -53,7 +53,7 @@ export function MeasurementHistoryScreen({
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} style={styles.scroll}>
         <Button icon="arrow-back" onPress={onBack} variant="ghost">
           Volver
         </Button>
@@ -137,6 +137,7 @@ export function MeasurementHistoryScreen({
 }
 
 const styles = StyleSheet.create({
+  scroll: { flex: 1 },
   content: { gap: theme.spacing.lg, paddingBottom: theme.spacing.xxl },
   heading: { gap: theme.spacing.xs },
   title: { color: theme.color.text, fontSize: 24, fontWeight: '900' },

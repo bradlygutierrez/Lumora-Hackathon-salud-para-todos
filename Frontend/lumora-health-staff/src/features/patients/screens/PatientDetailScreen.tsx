@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { type Href, useRouter } from 'expo-router';
 import { useMemo } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { useNextPatientAppointment } from '@/src/features/appointments/hooks/use-appointments';
 import { formatWorkspaceDateTime } from '@/src/features/appointments/utils/workspace-date-time';
 import { useAuthSession } from '@/src/features/auth/hooks/use-auth-session';
 import { useMedicalRecordSummary } from '@/src/features/medical-records/hooks/use-medical-record';
@@ -45,6 +46,7 @@ export function PatientDetailScreen({ patientId }: Props) {
   const catalogs = usePatientCatalogs();
   const clinicalSummary = useMedicalRecordSummary(patientId);
   const myPatients = useMyPatients();
+  const nextAppointment = useNextPatientAppointment(patientId);
   const measurements = usePatientMeasurements(patientId);
   const measurementCatalogs = useMeasurementCatalogs();
 
@@ -110,7 +112,6 @@ export function PatientDetailScreen({ patientId }: Props) {
   const workspacePatient = myPatients.data?.find(
     (item) => item.paciente.id === patientId,
   );
-  const nextAppointment = workspacePatient?.proxima_cita;
   const lastConsultation = workspacePatient?.ultima_consulta;
   const allergies = richSummary?.alergias ?? [];
 
@@ -298,11 +299,27 @@ export function PatientDetailScreen({ patientId }: Props) {
         </View>
 
         <InfoCard icon="calendar-outline" title="Seguimiento profesional">
-          <InfoRow
-            icon="calendar-number-outline"
-            label="Próxima cita"
-            value={formatWorkspaceDateTime(nextAppointment?.inicio)}
-          />
+          {nextAppointment.data ? (
+            <Pressable
+              accessibilityLabel="Ver próxima cita"
+              accessibilityRole="button"
+              onPress={() =>
+                router.push(`/(staff)/appointments/${nextAppointment.data!.id}` as Href)
+              }
+            >
+              <InfoRow
+                icon="calendar-number-outline"
+                label="Próxima cita"
+                value={formatWorkspaceDateTime(nextAppointment.data.inicio)}
+              />
+            </Pressable>
+          ) : (
+            <InfoRow
+              icon="calendar-number-outline"
+              label="Próxima cita"
+              value={nextAppointment.isLoading ? 'Cargando…' : 'No disponible'}
+            />
+          )}
           <InfoRow
             icon="time-outline"
             label="Última consulta"
@@ -520,10 +537,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     gap: theme.spacing.lg,
     padding: theme.spacing.lg,
-    shadowColor: '#003C90',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
   },
   hero: {
     alignItems: 'center',
@@ -534,7 +547,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: theme.color.primarySoft,
     borderColor: theme.color.surface,
-    borderRadius: 42,
+    borderRadius: theme.radius.pill,
     borderWidth: 3,
     height: 84,
     justifyContent: 'center',
@@ -605,8 +618,8 @@ const styles = StyleSheet.create({
     borderLeftWidth: 6,
   },
   allergyBox: {
-    backgroundColor: '#FFF4F2',
-    borderColor: '#FFD0CB',
+    backgroundColor: theme.color.dangerSoft,
+    borderColor: '#F6C9C9',
     borderRadius: theme.radius.md,
     borderWidth: 1,
     gap: theme.spacing.sm,
@@ -645,7 +658,7 @@ const styles = StyleSheet.create({
   allergyMarker: {
     alignItems: 'center',
     backgroundColor: theme.color.dangerSoft,
-    borderRadius: 16,
+    borderRadius: theme.radius.pill,
     height: 32,
     justifyContent: 'center',
     width: 32,
@@ -664,10 +677,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     gap: theme.spacing.lg,
     padding: theme.spacing.lg,
-    shadowColor: '#003C90',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
   },
   cardAccent: {
     borderLeftColor: theme.color.primary,
@@ -681,7 +690,7 @@ const styles = StyleSheet.create({
   cardIcon: {
     alignItems: 'center',
     backgroundColor: theme.color.primarySoft,
-    borderRadius: 19,
+    borderRadius: theme.radius.pill,
     height: 38,
     justifyContent: 'center',
     width: 38,
@@ -702,7 +711,7 @@ const styles = StyleSheet.create({
   infoIcon: {
     alignItems: 'center',
     backgroundColor: theme.color.surfaceMuted,
-    borderRadius: 18,
+    borderRadius: theme.radius.pill,
     height: 36,
     justifyContent: 'center',
     width: 36,

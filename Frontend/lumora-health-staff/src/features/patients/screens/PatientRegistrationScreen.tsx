@@ -10,6 +10,7 @@ import { Button } from '@/src/shared/components/Button';
 import { ErrorState, LoadingState } from '@/src/shared/components/RemoteState';
 import { Screen } from '@/src/shared/components/Screen';
 import { TextField } from '@/src/shared/components/TextField';
+import { DateField } from '@/src/shared/components/DateField';
 import { theme } from '@/src/shared/constants/theme';
 import { ChoiceField } from '../components/ChoiceField';
 import { usePatientCatalogs, useRegisterPatient } from '../hooks/use-patients';
@@ -189,21 +190,14 @@ export function PatientRegistrationScreen() {
         </FormSection>
 
         <FormSection icon="medkit-outline" title="Información del paciente">
-          <Controller
-            control={control}
-            name="fecha_nacimiento"
-            render={({ field }) => (
-              <TextField
-                accessibilityLabel="Fecha de nacimiento"
-                error={errors.fecha_nacimiento?.message}
-                label="Fecha de nacimiento *"
-                onBlur={field.onBlur}
-                onChangeText={field.onChange}
-                placeholder="AAAA-MM-DD"
-                value={field.value}
-              />
-            )}
+          <Controller control={control} name="fecha_nacimiento" render={({ field }) => (
+          <DateField
+            error={errors.fecha_nacimiento?.message}
+            label="Fecha de nacimiento"
+            onChange={field.onChange}
+            value={field.value}
           />
+        )} />
           <Controller
             control={control}
             name="sexo_id"
@@ -400,7 +394,7 @@ const styles = StyleSheet.create({
   },
   sectionHeader: {
     alignItems: 'center',
-    backgroundColor: '#F1F4FA',
+    backgroundColor: theme.color.surfaceMuted,
     borderBottomColor: theme.color.softBorder,
     borderBottomWidth: 1,
     flexDirection: 'row',

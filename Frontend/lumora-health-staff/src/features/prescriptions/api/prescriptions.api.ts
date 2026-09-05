@@ -1,6 +1,8 @@
 import { apiClient } from '@/src/shared/api/client';
 import type {
   Medication,
+  MedicationSchedule,
+  MedicationScheduleCreate,
   Page,
   Prescription,
   PrescriptionCatalogItem,
@@ -92,6 +94,30 @@ export async function deletePrescriptionDetail(
   await apiClient.delete(
     `/prescriptions/${prescriptionId}/detalles/${detailId}`,
   );
+}
+
+export async function listMedicationSchedules(
+  detailId: string,
+): Promise<MedicationSchedule[]> {
+  const response = await apiClient.get<MedicationSchedule[]>(
+    `/recetas/${detailId}/horarios`,
+  );
+  return response.data;
+}
+
+export async function createMedicationSchedule(
+  detailId: string,
+  data: MedicationScheduleCreate,
+): Promise<MedicationSchedule> {
+  const response = await apiClient.post<MedicationSchedule>(
+    `/recetas/${detailId}/horarios`,
+    data,
+  );
+  return response.data;
+}
+
+export async function deleteMedicationSchedule(scheduleId: string): Promise<void> {
+  await apiClient.delete(`/horarios/${scheduleId}`);
 }
 
 async function listCatalog(

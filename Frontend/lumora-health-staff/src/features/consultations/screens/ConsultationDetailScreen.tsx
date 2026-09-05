@@ -35,7 +35,7 @@ function mutationError(error: unknown, action: 'signs' | 'note') {
   const apiError = toApiError(error);
   if (apiError.code === 'forbidden') return 'No tenés permiso para modificar información clínica.';
   if (apiError.code === 'not_found') return action === 'signs' ? 'La consulta ya no está disponible.' : 'La consulta o nota ya no está disponible.';
-  if (apiError.code === 'validation_error') return 'FastAPI rechazó los datos. Revisá los valores ingresados.';
+  if (apiError.code === 'validation_error') return 'El servidor rechazó los datos. Revisá los valores ingresados.';
   return apiError.message;
 }
 
@@ -111,7 +111,7 @@ export function ConsultationDetailScreen({ patientId, consultationId }: { patien
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} style={styles.scroll}>
         <View style={styles.headerRow}>
           <Button icon="arrow-back" onPress={() => router.back()} variant="ghost">Volver</Button>
           <View style={styles.headerCopy}>
@@ -214,6 +214,7 @@ function VitalCard({ record }: { record: import('../types/consultation.types').V
 }
 
 const styles = StyleSheet.create({
+  scroll: { flex: 1 },
   content: { gap: theme.spacing.xl, paddingBottom: theme.spacing.xxl },
   headerRow: { alignItems: 'center', flexDirection: 'row', gap: theme.spacing.sm },
   headerCopy: { flex: 1, gap: 2 },

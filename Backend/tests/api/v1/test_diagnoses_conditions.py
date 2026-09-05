@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta, timezone
+
 import pytest
 
 from helpers.medical import create_active_medical_professional
@@ -22,7 +24,9 @@ from lumora_api.models import (
 )
 
 
-async def _token(client, session_factory, username: str, *, clinical: bool) -> str:
+async def _token(
+    client, session_factory, username: str, *, clinical: bool
+) -> tuple[str, int | None]:
     async with session_factory() as session:
         if await session.scalar(select(Rol).where(Rol.nombre == "Paciente")) is None:
             session.add(Rol(nombre="Paciente"))
@@ -51,39 +55,36 @@ async def _token(client, session_factory, username: str, *, clinical: bool) -> s
         },
     )
     assert user.status_code == 201
+    professional_id = None
     async with session_factory() as session:
         stored = await session.get(Usuario, user.json()["id"])
         role = await session.scalar(select(Rol).where(Rol.nombre == f"Rol {username}"))
         session.add(UsuarioRol(usuario_id=stored.id, rol_id=role.id))
-        if clinical: await create_active_medical_professional(session, user=stored)
+        if clinical:
+            result = await create_active_medical_professional(session, user=stored)
+            professional_id = result["professional"].id
         await session.commit()
     token = await client.post(
         "/api/v1/auth/token",
         data={"username": username, "password": "safe-password"},
     )
     assert token.status_code == 200
-    return token.json()["access_token"]
+    return token.json()["access_token"], professional_id
 
 
-async def _setup(session_factory):
+async def _setup(session_factory, professional_id: int):
     async with session_factory() as session:
         patient_person = Persona(nombres="Paciente", apellidos="J04")
-        professional_person = Persona(nombres="Profesional", apellidos="J04")
-        session.add_all([patient_person, professional_person])
+        session.add(patient_person)
         await session.flush()
         patient = Paciente(persona_id=patient_person.id)
-        professional = ProfesionalSalud(
-            persona_id=professional_person.id,
-            especialidad="Medicina interna",
-            numero_licencia="MED-J04",
-        )
         record_state = EstadoExpediente(nombre="Activo")
         active = EstadoCondicion(nombre="Activa")
         resolved = EstadoCondicion(nombre="Resuelta")
         chronic = EstadoCondicion(nombre="Crónica")
         diagnosis_type = TipoDiagnostico(nombre="Confirmado")
         session.add_all(
-            [patient, professional, record_state, active, resolved, chronic, diagnosis_type]
+            [patient, record_state, active, resolved, chronic, diagnosis_type]
         )
         await session.flush()
         record = Expediente(
@@ -93,10 +94,12 @@ async def _setup(session_factory):
         )
         session.add(record)
         await session.flush()
+        # Consulta previa a nombre del mismo profesional: establece la
+        # relación real que ensure_patient_is_assigned_to_professional exige.
         consultation = ConsultaMedica(
             expediente_id=record.id,
             paciente_id=patient.id,
-            profesional_id=professional.id,
+            profesional_id=professional_id,
             motivo="Evaluación",
         )
         session.add(consultation)
@@ -104,7 +107,7 @@ async def _setup(session_factory):
         return {
             "consultation_id": consultation.id,
             "record_id": record.id,
-            "professional_id": professional.id,
+            "professional_id": professional_id,
             "active_id": active.id,
             "resolved_id": resolved.id,
             "chronic_id": chronic.id,
@@ -114,7 +117,7 @@ async def _setup(session_factory):
 
 @pytest.mark.asyncio
 async def test_diagnoses_require_clinical_permission(client, session_factory):
-    access_token = await _token(client, session_factory, "j04-no-clinical", clinical=False)
+    access_token, _ = await _token(client, session_factory, "j04-no-clinical", clinical=False)
     response = await client.get(
         "/api/v1/consultas/1/diagnosticos",
         headers={"Authorization": f"Bearer {access_token}"},
@@ -124,9 +127,11 @@ async def test_diagnoses_require_clinical_permission(client, session_factory):
 
 @pytest.mark.asyncio
 async def test_diagnoses_conditions_transitions_and_history(client, session_factory):
-    access_token = await _token(client, session_factory, "j04-clinical", clinical=True)
+    access_token, professional_id = await _token(
+        client, session_factory, "j04-clinical", clinical=True
+    )
     headers = {"Authorization": f"Bearer {access_token}"}
-    setup = await _setup(session_factory)
+    setup = await _setup(session_factory, professional_id)
 
     diagnosis = await client.post(
         f"/api/v1/consultas/{setup['consultation_id']}/diagnosticos",
@@ -206,3 +211,186 @@ async def test_diagnoses_conditions_transitions_and_history(client, session_fact
     async with session_factory() as session:
         assert (await session.get(Diagnostico, diagnosis_id)).deleted_at is not None
         assert (await session.get(CondicionMedica, condition_id)).deleted_at is not None
+
+
+@pytest.mark.asyncio
+async def test_staff_cannot_diagnose_a_patient_with_no_relationship(client, session_factory):
+    async with session_factory() as session:
+        other_person = Persona(nombres="Otro", apellidos="Profesional")
+        session.add(other_person)
+        await session.flush()
+        other_professional = ProfesionalSalud(
+            persona_id=other_person.id,
+            especialidad="Neurología",
+            numero_licencia="MED-OTHER-J04",
+        )
+        session.add(other_professional)
+        await session.commit()
+        other_professional_id = other_professional.id
+
+    # A different professional's consultation, unrelated to the acting user.
+    other_setup = await _setup(session_factory, other_professional_id)
+
+    access_token, _ = await _token(
+        client, session_factory, "j04-no-relation", clinical=True
+    )
+    headers = {"Authorization": f"Bearer {access_token}"}
+
+    response = await client.post(
+        f"/api/v1/consultas/{other_setup['consultation_id']}/diagnosticos",
+        json={
+            "tipo_diagnostico_id": other_setup["diagnosis_type_id"],
+            "descripcion": "Hipertensión arterial",
+            "es_principal": True,
+        },
+        headers=headers,
+    )
+    assert response.status_code == 403
+    assert response.json()["error"]["code"] == "forbidden"
+
+
+@pytest.mark.asyncio
+async def test_staff_cannot_create_condition_for_a_patient_with_no_relationship(
+    client, session_factory
+):
+    async with session_factory() as session:
+        other_person = Persona(nombres="Otro", apellidos="Condicion")
+        session.add(other_person)
+        await session.flush()
+        other_professional = ProfesionalSalud(
+            persona_id=other_person.id,
+            especialidad="Neurología",
+            numero_licencia="MED-OTHER-COND",
+        )
+        session.add(other_professional)
+        await session.commit()
+        other_professional_id = other_professional.id
+
+    # Expediente de un paciente que nunca tuvo contacto con el usuario actual.
+    other_setup = await _setup(session_factory, other_professional_id)
+
+    access_token, _ = await _token(
+        client, session_factory, "j04-cond-no-relation", clinical=True
+    )
+    headers = {"Authorization": f"Bearer {access_token}"}
+
+    response = await client.post(
+        f"/api/v1/expedientes/{other_setup['record_id']}/condiciones",
+        json={"estado_condicion_id": other_setup["active_id"], "nombre": "Hipertensión"},
+        headers=headers,
+    )
+    assert response.status_code == 403
+    assert response.json()["error"]["code"] == "forbidden"
+
+
+@pytest.mark.asyncio
+async def test_staff_cannot_modify_condition_of_a_patient_with_no_relationship(
+    client, session_factory
+):
+    owner_token, owner_professional_id = await _token(
+        client, session_factory, "j04-cond-owner", clinical=True
+    )
+    owner_setup = await _setup(session_factory, owner_professional_id)
+    condition = await client.post(
+        f"/api/v1/expedientes/{owner_setup['record_id']}/condiciones",
+        json={"estado_condicion_id": owner_setup["active_id"], "nombre": "Diabetes"},
+        headers={"Authorization": f"Bearer {owner_token}"},
+    )
+    assert condition.status_code == 201
+    condition_id = condition.json()["id"]
+
+    outsider_token, _ = await _token(
+        client, session_factory, "j04-cond-outsider", clinical=True
+    )
+    outsider_headers = {"Authorization": f"Bearer {outsider_token}"}
+
+    update = await client.patch(
+        f"/api/v1/condiciones/{condition_id}",
+        json={"estado_condicion_id": owner_setup["resolved_id"]},
+        headers=outsider_headers,
+    )
+    assert update.status_code == 403
+    assert update.json()["error"]["code"] == "forbidden"
+
+    delete = await client.delete(
+        f"/api/v1/condiciones/{condition_id}", headers=outsider_headers
+    )
+    assert delete.status_code == 403
+    assert delete.json()["error"]["code"] == "forbidden"
+
+
+@pytest.mark.asyncio
+async def test_staff_cannot_edit_or_delete_a_diagnosis_of_a_patient_with_no_relationship(
+    client, session_factory
+):
+    owner_token, owner_professional_id = await _token(
+        client, session_factory, "j04-diag-owner", clinical=True
+    )
+    owner_setup = await _setup(session_factory, owner_professional_id)
+    diagnosis = await client.post(
+        f"/api/v1/consultas/{owner_setup['consultation_id']}/diagnosticos",
+        json={
+            "tipo_diagnostico_id": owner_setup["diagnosis_type_id"],
+            "descripcion": "Diabetes tipo 2",
+        },
+        headers={"Authorization": f"Bearer {owner_token}"},
+    )
+    assert diagnosis.status_code == 201
+    diagnosis_id = diagnosis.json()["id"]
+
+    outsider_token, _ = await _token(
+        client, session_factory, "j04-diag-outsider", clinical=True
+    )
+    outsider_headers = {"Authorization": f"Bearer {outsider_token}"}
+
+    update = await client.patch(
+        f"/api/v1/diagnosticos/{diagnosis_id}",
+        json={"descripcion": "Diabetes tipo 1"},
+        headers=outsider_headers,
+    )
+    assert update.status_code == 403
+    assert update.json()["error"]["code"] == "forbidden"
+
+    delete = await client.delete(
+        f"/api/v1/diagnosticos/{diagnosis_id}", headers=outsider_headers
+    )
+    assert delete.status_code == 403
+    assert delete.json()["error"]["code"] == "forbidden"
+
+
+@pytest.mark.asyncio
+async def test_staff_cannot_edit_a_diagnosis_past_the_editable_window(
+    client, session_factory
+):
+    token, professional_id = await _token(
+        client, session_factory, "j04-diag-stale", clinical=True
+    )
+    headers = {"Authorization": f"Bearer {token}"}
+    setup = await _setup(session_factory, professional_id)
+    diagnosis = await client.post(
+        f"/api/v1/consultas/{setup['consultation_id']}/diagnosticos",
+        json={
+            "tipo_diagnostico_id": setup["diagnosis_type_id"],
+            "descripcion": "Migraña",
+        },
+        headers=headers,
+    )
+    assert diagnosis.status_code == 201
+    diagnosis_id = diagnosis.json()["id"]
+
+    async with session_factory() as session:
+        item = await session.get(Diagnostico, diagnosis_id)
+        item.created_at = datetime.now(timezone.utc) - timedelta(hours=49)
+        await session.commit()
+
+    update = await client.patch(
+        f"/api/v1/diagnosticos/{diagnosis_id}",
+        json={"descripcion": "Migraña crónica"},
+        headers=headers,
+    )
+    assert update.status_code == 409
+    assert update.json()["error"]["code"] == "conflict"
+
+    delete = await client.delete(f"/api/v1/diagnosticos/{diagnosis_id}", headers=headers)
+    assert delete.status_code == 409
+    assert delete.json()["error"]["code"] == "conflict"

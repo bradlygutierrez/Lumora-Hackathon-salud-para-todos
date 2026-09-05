@@ -55,8 +55,10 @@ async def list_consultations(
 
 
 @router.post("", response_model=ConsultationRead, status_code=201, responses=ERRORS)
-async def create_consultation(data: ConsultationCreate, session: SessionDep):
-    return await service(session).create(data)
+async def create_consultation(
+    data: ConsultationCreate, current_user: CurrentUser, session: SessionDep
+):
+    return await service(session).create(data, current_user)
 
 
 @router.get("/{consultation_id}", response_model=ConsultationRead, responses={404: ERRORS[404]})
@@ -132,7 +134,7 @@ async def create_note(
     current_user: CurrentUser,
     session: SessionDep,
 ):
-    return await service(session).create_note(consultation_id, current_user.id, data)
+    return await service(session).create_note(consultation_id, current_user, data)
 
 
 @router.get(
@@ -153,6 +155,7 @@ async def update_note(
     consultation_id: int,
     note_id: int,
     data: ClinicalNoteUpdate,
+    current_user: CurrentUser,
     session: SessionDep,
 ):
-    return await service(session).update_note(consultation_id, note_id, data)
+    return await service(session).update_note(consultation_id, note_id, current_user, data)

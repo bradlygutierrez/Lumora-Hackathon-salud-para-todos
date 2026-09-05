@@ -12,6 +12,7 @@ import {
   LoadingState,
 } from '@/src/shared/components/RemoteState';
 import { TextField } from '@/src/shared/components/TextField';
+import { DateField } from '@/src/shared/components/DateField';
 import { theme } from '@/src/shared/constants/theme';
 import { ClinicalFormShell } from '../components/ClinicalFormShell';
 import { structuredHistoryErrorMessage } from '../components/structured-history.ui';
@@ -111,7 +112,7 @@ export function MedicalHistoryFormScreen({
     return (
       <ErrorState
         title="Tipos no disponibles"
-        message="No se pudo cargar el catálogo de tipos de antecedente desde FastAPI."
+        message="No se pudo cargar el catálogo de tipos de antecedente."
       />
     );
   }
@@ -198,21 +199,9 @@ export function MedicalHistoryFormScreen({
           />
         )}
       />
-      <Controller
-        control={control}
-        name="fecha"
-        render={({ field }) => (
-          <TextField
-            accessibilityLabel="Fecha de antecedente"
-            error={errors.fecha?.message}
-            label="Fecha"
-            onBlur={field.onBlur}
-            onChangeText={field.onChange}
-            placeholder="AAAA-MM-DD"
-            value={field.value}
-          />
-        )}
-      />
+      <Controller control={control} name="fecha" render={({ field }) => (
+          <DateField error={errors.fecha?.message} label="Fecha" mode="date" onChange={field.onChange} value={field.value} />
+        )} />
       {isEditing ? (
         <Controller
           control={control}

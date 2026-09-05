@@ -8,12 +8,15 @@ import {
 import { useAuthSession } from '@/src/features/auth/hooks/use-auth-session';
 import { queryKeys } from '@/src/shared/api/query-keys';
 import {
+  createMedicationSchedule,
   createPrescription,
   createPrescriptionDetail,
+  deleteMedicationSchedule,
   deletePrescriptionDetail,
   getPrescription,
   listAdministrationRoutes,
   listMeasurementUnits,
+  listMedicationSchedules,
   listMedications,
   listPatientPrescriptions,
   listPrescriptionStatuses,
@@ -21,10 +24,13 @@ import {
   updatePrescriptionDetail,
 } from '../api/prescriptions.api';
 import {
+  createPreviewMedicationSchedule,
   createPreviewPrescription,
   createPreviewPrescriptionDetail,
+  deletePreviewMedicationSchedule,
   deletePreviewPrescriptionDetail,
   getPreviewPrescription,
+  listPreviewMedicationSchedules,
   listPreviewMedications,
   listPreviewPrescriptions,
   previewAdministrationRoutes,
@@ -34,6 +40,7 @@ import {
   updatePreviewPrescriptionDetail,
 } from '../preview/prescriptions-preview';
 import type {
+  MedicationScheduleCreate,
   PrescriptionCatalogItem,
   PrescriptionCreate,
   PrescriptionDetailCreate,
@@ -51,6 +58,8 @@ export const prescriptionKeys = {
   medications: ['clinical', 'catalogs', 'medications'] as const,
   routes: ['clinical', 'catalogs', 'administration-routes'] as const,
   units: ['clinical', 'catalogs', 'measurement-units'] as const,
+  schedules: (detailId: string) =>
+    [...prescriptionKeys.all, 'schedules', detailId] as const,
 };
 
 function usePreviewMode() {
@@ -253,6 +262,53 @@ export function useUpdatePrescriptionDetail(
         queryKey: prescriptionKeys.detail(prescriptionId),
       });
       await invalidatePrescriptionViews(queryClient, patientId, recordId);
+    },
+  });
+}
+
+export function useMedicationSchedules(detailId: string, enabled = true) {
+  const preview = usePreviewMode();
+  return useQuery({
+    enabled: enabled && detailId.length > 0,
+    queryKey: prescriptionKeys.schedules(detailId),
+    queryFn: () =>
+      preview
+        ? Promise.resolve(listPreviewMedicationSchedules(detailId))
+        : listMedicationSchedules(detailId),
+  });
+}
+
+export function useCreateMedicationSchedule(detailId: string) {
+  const preview = usePreviewMode();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: MedicationScheduleCreate) =>
+      preview
+        ? Promise.resolve(createPreviewMedicationSchedule(detailId, data))
+        : createMedicationSchedule(detailId, data),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: prescriptionKeys.schedules(detailId),
+      });
+    },
+  });
+}
+
+export function useDeleteMedicationSchedule(detailId: string) {
+  const preview = usePreviewMode();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (scheduleId: string) => {
+      if (preview) {
+        deletePreviewMedicationSchedule(detailId, scheduleId);
+        return Promise.resolve();
+      }
+      return deleteMedicationSchedule(scheduleId);
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: prescriptionKeys.schedules(detailId),
+      });
     },
   });
 }

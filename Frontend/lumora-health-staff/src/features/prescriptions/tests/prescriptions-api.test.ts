@@ -1,11 +1,14 @@
 import { apiClient } from '@/src/shared/api/client';
 import {
+  createMedicationSchedule,
   createPrescription,
   createPrescriptionDetail,
+  deleteMedicationSchedule,
   deletePrescriptionDetail,
   getPrescription,
   listAdministrationRoutes,
   listMeasurementUnits,
+  listMedicationSchedules,
   listMedications,
   listPatientPrescriptions,
   listPrescriptionStatuses,
@@ -123,5 +126,21 @@ describe('prescriptions API J13', () => {
       '/unidades-medida',
       { params: { limit: 100, offset: 0 } },
     );
+  });
+
+  it('uses the /recetas and /horarios routes for medication schedules', async () => {
+    mockedApiClient.get.mockResolvedValueOnce({ data: [] });
+    mockedApiClient.post.mockResolvedValueOnce({ data: { id: 'schedule-1' } });
+    mockedApiClient.delete.mockResolvedValueOnce({ data: undefined });
+
+    await listMedicationSchedules('detail-1');
+    await createMedicationSchedule('detail-1', { hora: '08:00:00' });
+    await deleteMedicationSchedule('schedule-1');
+
+    expect(mockedApiClient.get).toHaveBeenCalledWith('/recetas/detail-1/horarios');
+    expect(mockedApiClient.post).toHaveBeenCalledWith('/recetas/detail-1/horarios', {
+      hora: '08:00:00',
+    });
+    expect(mockedApiClient.delete).toHaveBeenCalledWith('/horarios/schedule-1');
   });
 });

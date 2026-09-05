@@ -13,6 +13,7 @@ from lumora_api.models.health_indicators import (
     MedicionIndicador,
     RangoIndicador,
 )
+from lumora_api.models.identity import Usuario
 from lumora_api.models.reminders import Notificacion, Recordatorio
 from lumora_api.repositories.patient_access_repository import PatientAccessRepository
 from lumora_api.schemas.health_indicators import (
@@ -23,6 +24,7 @@ from lumora_api.schemas.health_indicators import (
     RangoIndicadorCreate,
     RangoIndicadorUpdate,
 )
+from lumora_api.services.authorization import ensure_clinical_relationship_if_professional
 
 # A09: nombres sembrados en seed.py::CATALOGS -- se resuelven por nombre
 # (no por id fijo) porque el id=1 legado de TipoAlerta ("Interacción") es
@@ -101,8 +103,9 @@ class HealthIndicatorsService:
     # --- MEDICIONES Y EVALUACIÓN DE ALERTAS ---
     @staticmethod
     async def registrar_medicion(
-        db: AsyncSession, paciente_id: int, data: MedicionIndicadorCreate
+        db: AsyncSession, paciente_id: int, data: MedicionIndicadorCreate, current_user: Usuario
     ) -> MedicionIndicador:
+        await ensure_clinical_relationship_if_professional(db, current_user, paciente_id)
         medicion = MedicionIndicador(paciente_id=paciente_id, **data.model_dump())
         db.add(medicion)
         await db.flush()
@@ -271,7 +274,7 @@ class HealthIndicatorsService:
 
     @staticmethod
     async def atender_alerta(
-        db: AsyncSession, alerta_id: UUID, data: AlertaClinicaUpdate
+        db: AsyncSession, alerta_id: UUID, data: AlertaClinicaUpdate, current_user: Usuario
     ) -> AlertaClinica:
         query = select(AlertaClinica).where(AlertaClinica.id == alerta_id)
         result = await db.execute(query)
@@ -281,6 +284,8 @@ class HealthIndicatorsService:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Alerta no encontrada"
             )
+
+        await ensure_clinical_relationship_if_professional(db, current_user, alerta.paciente_id)
 
         alerta.atendida = data.atendida
         alerta.atendida_por_id = data.atendida_por_id

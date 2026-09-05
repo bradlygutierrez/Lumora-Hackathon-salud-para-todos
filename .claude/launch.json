@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "lumora-health-staff-web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "Frontend/lumora-health-staff", "run", "web", "--", "--port", "4173"],
+      "port": 4173
+    }
+  ]
+}

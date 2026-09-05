@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query, Response, status
 
-from lumora_api.api.dependencies import SessionDep, require_permission, require_clinical_access
+from lumora_api.api.dependencies import CurrentUser, SessionDep, require_permission, require_clinical_access
 from lumora_api.api.v1.catalog_router import ERRORS
 from lumora_api.models import AntecedenteMedico, Expediente
 from lumora_api.repositories.consultation_repository import ConsultationRepository
@@ -59,13 +59,17 @@ async def get_record(record_id: int, session: SessionDep):
 
 
 @router.patch("/{record_id}", response_model=MedicalRecordRead, responses=ERRORS)
-async def update_record(record_id: int, data: MedicalRecordUpdate, session: SessionDep):
-    return await record_service(session).update(record_id, data)
+async def update_record(
+    record_id: int, data: MedicalRecordUpdate, current_user: CurrentUser, session: SessionDep
+):
+    return await record_service(session).update(record_id, data, current_user)
 
 
 @router.delete("/{record_id}", status_code=status.HTTP_204_NO_CONTENT, responses={404: ERRORS[404]})
-async def delete_record(record_id: int, session: SessionDep) -> Response:
-    await record_service(session).delete(record_id)
+async def delete_record(
+    record_id: int, current_user: CurrentUser, session: SessionDep
+) -> Response:
+    await record_service(session).delete(record_id, current_user)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -104,9 +108,9 @@ async def list_histories(
     responses=ERRORS,
 )
 async def create_history(
-    record_id: int, data: MedicalHistoryCreate, session: SessionDep
+    record_id: int, data: MedicalHistoryCreate, current_user: CurrentUser, session: SessionDep
 ):
-    return await history_service(session).create_for_record(record_id, data)
+    return await history_service(session).create_for_record(record_id, data, current_user)
 
 
 @router.get(
@@ -124,9 +128,15 @@ async def get_history(record_id: int, history_id: int, session: SessionDep):
     responses=ERRORS,
 )
 async def update_history(
-    record_id: int, history_id: int, data: MedicalHistoryUpdate, session: SessionDep
+    record_id: int,
+    history_id: int,
+    data: MedicalHistoryUpdate,
+    current_user: CurrentUser,
+    session: SessionDep,
 ):
-    return await history_service(session).update_for_record(record_id, history_id, data)
+    return await history_service(session).update_for_record(
+        record_id, history_id, data, current_user
+    )
 
 
 @router.delete(
@@ -134,6 +144,8 @@ async def update_history(
     status_code=status.HTTP_204_NO_CONTENT,
     responses={404: ERRORS[404]},
 )
-async def delete_history(record_id: int, history_id: int, session: SessionDep) -> Response:
-    await history_service(session).delete_for_record(record_id, history_id)
+async def delete_history(
+    record_id: int, history_id: int, current_user: CurrentUser, session: SessionDep
+) -> Response:
+    await history_service(session).delete_for_record(record_id, history_id, current_user)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

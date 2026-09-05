@@ -12,6 +12,7 @@ const mockUseMyPatients = jest.fn();
 const mockUseAuthSession = jest.fn();
 const mockUseCurrentProfessional = jest.fn();
 const mockUseProfessionalAgenda = jest.fn();
+const mockUseNextPatientAppointment = jest.fn();
 const mockUsePatientMeasurements = jest.fn();
 const mockUseMeasurementCatalogs = jest.fn();
 const mockPush = jest.fn();
@@ -28,6 +29,7 @@ jest.mock('@/src/features/profile/hooks/use-professionals', () => ({
 }));
 jest.mock('@/src/features/appointments/hooks/use-appointments', () => ({
   useProfessionalAgenda: () => mockUseProfessionalAgenda(),
+  useNextPatientAppointment: () => mockUseNextPatientAppointment(),
 }));
 jest.mock('@/src/features/measurements/hooks/use-measurements', () => ({
   usePatientMeasurements: () => mockUsePatientMeasurements(),
@@ -46,6 +48,9 @@ jest.mock('expo-router', () => ({
   useRouter: () => ({ push: mockPush, back: mockBack }),
 }));
 jest.mock('@expo/vector-icons', () => ({ Ionicons: () => null }));
+jest.mock('@/src/shared/components/AppTopBar', () => ({
+  AppTopBar: () => null,
+}));
 jest.mock('@/src/shared/components/Screen', () => {
   const React = jest.requireActual('react');
   return {
@@ -146,6 +151,10 @@ function defaults() {
       },
     ],
   });
+  mockUseNextPatientAppointment.mockReturnValue({
+    data: { id: 4, inicio: '2026-09-02T14:00:00Z' },
+    isLoading: false,
+  });
   mockUsePatientMeasurements.mockReturnValue({
     data: [
       {
@@ -214,6 +223,12 @@ describe('patient detail and family screens J15', () => {
     expect(mockPush).toHaveBeenCalledWith('/(staff)/patients/9/record/document');
   });
 
+  it('opens the appointment detail when pressing the pending appointment', async () => {
+    const screen = await render(<PatientDetailScreen patientId={9} />);
+    await fireEvent.press(screen.getByLabelText('Ver próxima cita'));
+    expect(mockPush).toHaveBeenCalledWith('/(staff)/appointments/4');
+  });
+
   it('keeps Bruno-style follow-up self-scoped: no next appointment but a last consultation', async () => {
     mockUseMyPatients.mockReturnValue({
       data: [
@@ -224,6 +239,7 @@ describe('patient detail and family screens J15', () => {
         },
       ],
     });
+    mockUseNextPatientAppointment.mockReturnValue({ data: null, isLoading: false });
 
     const screen = await render(<PatientDetailScreen patientId={9} />);
     expect(screen.getAllByText('No disponible')).toHaveLength(1);

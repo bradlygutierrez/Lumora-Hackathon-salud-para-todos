@@ -1,4 +1,5 @@
 import secrets
+from datetime import datetime, timezone
 from typing import Annotated
 
 from fastapi import Depends, Request
@@ -29,8 +30,16 @@ async def get_current_user(
     user = await repository.user_by_id(user_id)
     if user is None:
         raise AuthenticationError("Usuario no autenticado")
-    if session_id is not None and await repository.active_session(session_id, user_id) is None:
-        raise AuthenticationError("Sesión revocada o expirada")
+    if session_id is not None:
+        user_session = await repository.active_session(session_id, user_id)
+        if user_session is None:
+            raise AuthenticationError("Sesión revocada o expirada")
+        # I02 -- cada request autenticado valido cuenta como actividad:
+        # refresca last_used_at para que el idle timeout (ver
+        # AuthService.refresh/_idle_expired) se base en uso real de la
+        # app, no solo en cuando el cliente pide un refresh token.
+        user_session.last_used_at = datetime.now(timezone.utc)
+        await session.commit()
     return user
 
 

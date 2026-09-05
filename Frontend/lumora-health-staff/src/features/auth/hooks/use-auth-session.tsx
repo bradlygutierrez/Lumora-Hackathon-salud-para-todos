@@ -76,16 +76,24 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
       return toClientSession(storedSession);
     }
 
-    const tokens = await refreshStaffSession(storedSession.refreshToken);
-    const nextSession = {
-      ...(await secureSessionManager.saveTokenPair(tokens)),
-      userId: storedSession.userId,
-      user: storedSession.user,
-    };
-    await secureSessionManager.saveSession(nextSession);
-    setSession(nextSession);
-    setStatus('authenticated');
-    return toClientSession(nextSession);
+    try {
+      const tokens = await refreshStaffSession(storedSession.refreshToken);
+      const nextSession = {
+        ...(await secureSessionManager.saveTokenPair(tokens)),
+        userId: storedSession.userId,
+        user: storedSession.user,
+      };
+      await secureSessionManager.saveSession(nextSession);
+      setSession(nextSession);
+      setStatus('authenticated');
+      return toClientSession(nextSession);
+    } catch {
+      // Un refresh token inválido/expirado/revocado no debe tumbar la app
+      // con una promesa sin capturar -- se trata igual que "no hay sesión
+      // guardada", para que el interceptor de client.ts limpie la sesión
+      // y el usuario vuelva al login en vez de ver un error crudo.
+      return null;
+    }
   }, []);
 
   const enrichSession = useCallback(async (baseSession: StaffSession) => {

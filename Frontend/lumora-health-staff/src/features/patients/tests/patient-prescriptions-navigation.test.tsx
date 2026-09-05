@@ -10,6 +10,7 @@ const mockUseMyPatients = jest.fn();
 const mockUseAuthSession = jest.fn();
 const mockUseCurrentProfessional = jest.fn();
 const mockUseProfessionalAgenda = jest.fn();
+const mockUseNextPatientAppointment = jest.fn();
 const mockUsePatientMeasurements = jest.fn();
 const mockUseMeasurementCatalogs = jest.fn();
 const mockPush = jest.fn();
@@ -25,6 +26,7 @@ jest.mock('@/src/features/profile/hooks/use-professionals', () => ({
 }));
 jest.mock('@/src/features/appointments/hooks/use-appointments', () => ({
   useProfessionalAgenda: () => mockUseProfessionalAgenda(),
+  useNextPatientAppointment: () => mockUseNextPatientAppointment(),
 }));
 jest.mock('@/src/features/measurements/hooks/use-measurements', () => ({
   usePatientMeasurements: () => mockUsePatientMeasurements(),
@@ -42,6 +44,9 @@ jest.mock('expo-router', () => ({
   useRouter: () => ({ push: mockPush, back: jest.fn() }),
 }));
 jest.mock('@expo/vector-icons', () => ({ Ionicons: () => null }));
+jest.mock('@/src/shared/components/AppTopBar', () => ({
+  AppTopBar: () => null,
+}));
 jest.mock('@/src/shared/components/Screen', () => {
   const React = jest.requireActual('react');
   return {
@@ -60,6 +65,7 @@ describe('PatientDetail prescription navigation J13', () => {
     mockUseMyPatients.mockReturnValue({ data: [] });
     mockUseCurrentProfessional.mockReturnValue({ data: undefined });
     mockUseProfessionalAgenda.mockReturnValue({ data: [] });
+    mockUseNextPatientAppointment.mockReturnValue({ data: null, isLoading: false });
     mockUsePatientMeasurements.mockReturnValue({ data: [] });
     mockUseMeasurementCatalogs.mockReturnValue({
       indicators: { data: [] },

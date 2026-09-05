@@ -7,9 +7,13 @@ const mockAgenda = jest.fn();
 const mockSchedules = jest.fn();
 const mockAvailability = jest.fn();
 const mockMutations = jest.fn();
+const mockPush = jest.fn();
 
 jest.mock('@/src/features/auth/hooks/use-auth-session', () => ({
   useAuthSession: () => mockUseAuthSession(),
+}));
+jest.mock('expo-router', () => ({
+  useRouter: () => ({ push: mockPush }),
 }));
 jest.mock('../hooks/use-appointments', () => ({
   useProfessionalAgenda: () => mockAgenda(),
@@ -29,6 +33,8 @@ jest.mock('@/src/shared/components/Screen', () => {
 describe('AgendaScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-09-03T12:00:00Z'));
     mockUseAuthSession.mockReturnValue({
       permissions: new Set(['clinica:manage']),
       session: { isPreview: false },
@@ -41,6 +47,17 @@ describe('AgendaScreen', () => {
           paciente_nombre: 'Ana Mora',
           inicio: '2026-09-01T14:00:00Z',
           fin: '2026-09-01T14:45:00Z',
+          notas: null,
+          estado: { id: 1, nombre: 'Confirmada' },
+          tipo_cita: null,
+          ubicacion: null,
+        },
+        {
+          id: 2,
+          paciente_id: 11,
+          paciente_nombre: 'Luis Paz',
+          inicio: '2026-09-03T09:00:00Z',
+          fin: '2026-09-03T09:30:00Z',
           notas: null,
           estado: { id: 1, nombre: 'Confirmada' },
           tipo_cita: null,
@@ -76,6 +93,10 @@ describe('AgendaScreen', () => {
     });
   });
 
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   it('shows own upcoming agenda and recurring availability', async () => {
     const screen = await render(<AgendaScreen />);
     expect(screen.getByText('Ana Mora')).toBeTruthy();
@@ -83,6 +104,36 @@ describe('AgendaScreen', () => {
     await fireEvent.press(screen.getByText('Mi disponibilidad'));
     expect(screen.getAllByText('Lunes').length).toBeGreaterThan(0);
     expect(screen.getByText('08:00–10:00')).toBeTruthy();
+  });
+
+  it('groups the week into dated sections and filters when a day is selected', async () => {
+    const screen = await render(<AgendaScreen />);
+
+    expect(screen.getByText(/31 ago.*6 sept/)).toBeTruthy();
+    expect(screen.getByText('Martes, 1 de septiembre')).toBeTruthy();
+    expect(screen.getByText('Jueves, 3 de septiembre')).toBeTruthy();
+    expect(screen.getByText('Ana Mora')).toBeTruthy();
+    expect(screen.getByText('Luis Paz')).toBeTruthy();
+
+    await fireEvent.press(screen.getByText('3'));
+    expect(screen.queryByText('Ana Mora')).toBeNull();
+    expect(screen.getByText('Luis Paz')).toBeTruthy();
+
+    await fireEvent.press(screen.getByText('3'));
+    expect(screen.getByText('Ana Mora')).toBeTruthy();
+    expect(screen.getByText('Luis Paz')).toBeTruthy();
+  });
+
+  it('opens the appointment detail when a card is pressed', async () => {
+    const screen = await render(<AgendaScreen />);
+    await fireEvent.press(screen.getByLabelText('Ver cita de Ana Mora'));
+    expect(mockPush).toHaveBeenCalledWith('/(staff)/appointments/1');
+  });
+
+  it('shows an empty state scoped to the week when there are no appointments', async () => {
+    mockAgenda.mockReturnValue({ data: [], isLoading: false, isError: false });
+    const screen = await render(<AgendaScreen />);
+    expect(screen.getByText('Sin citas esta semana')).toBeTruthy();
   });
 
   it('blocks users without clinical permission', async () => {

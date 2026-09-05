@@ -276,7 +276,7 @@ export function MedicalRecordSummaryScreen({
           <View style={styles.recordHeading}>
             <Text style={styles.recordTitle}>Expediente Médico</Text>
             <Text style={styles.recordSubtitle}>
-              Información clínica consolidada por FastAPI.
+              Información clínica consolidada del expediente.
             </Text>
           </View>
           <View style={styles.recordActions}>
@@ -505,10 +505,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: theme.spacing.md,
     padding: theme.spacing.lg,
-    shadowColor: '#003C90',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
   },
   avatar: {
     alignItems: 'center',

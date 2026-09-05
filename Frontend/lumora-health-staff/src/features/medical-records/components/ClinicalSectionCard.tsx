@@ -72,10 +72,6 @@ const styles = StyleSheet.create({
     gap: theme.spacing.md,
     minHeight: 82,
     padding: theme.spacing.md,
-    shadowColor: '#003C90',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 7,
   },
   selected: {
     backgroundColor: theme.color.primarySoft,
@@ -87,7 +83,7 @@ const styles = StyleSheet.create({
   iconBox: {
     alignItems: 'center',
     backgroundColor: theme.color.primarySoft,
-    borderRadius: 20,
+    borderRadius: theme.radius.pill,
     height: 40,
     justifyContent: 'center',
     width: 40,

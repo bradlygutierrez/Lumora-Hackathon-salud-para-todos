@@ -5,38 +5,42 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AppTopBar } from '@/src/shared/components/AppTopBar';
 import { useAuthSession } from '@/src/features/auth/hooks/use-auth-session';
 import { useMfaMethods } from '@/src/features/auth/hooks/use-security';
-import { useProfessionals } from '@/src/features/profile/hooks/use-professionals';
+import { useAccountProfile } from '@/src/features/profile/hooks/use-account';
+import { useCurrentProfessional } from '@/src/features/profile/hooks/use-professionals';
+import { resolveProfileImageUrl } from '@/src/features/profile/utils/profile-image';
 import { Screen } from '@/src/shared/components/Screen';
 import { StaffAvatar } from '@/src/shared/components/StaffAvatar';
 import { theme } from '@/src/shared/constants/theme';
 
 export default function StaffProfileScreen() {
   const { session, signOut } = useAuthSession();
-  const professionals = useProfessionals();
+  const currentProfessional = useCurrentProfessional();
+  const account = useAccountProfile();
   const mfaMethods = useMfaMethods();
   const user = session?.user;
-  const professional = professionals.data?.items.find(
-    (item) => item.persona.id === user?.persona.id,
-  );
+  const professional = currentProfessional.data;
   const fullName = user ? `${user.persona.nombres} ${user.persona.apellidos}` : 'Perfil no resuelto';
   const mfaActive = Boolean(mfaMethods.data?.some((method) => method.activo));
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={styles.container}>
-        <AppTopBar />
+      <ScrollView contentContainerStyle={styles.container} style={styles.scroll}>
+        <AppTopBar showBack />
 
         <View style={styles.profileCard}>
           <View style={styles.avatarWrap}>
             <StaffAvatar
               firstName={user?.persona.nombres}
+              imageUrl={resolveProfileImageUrl(account.data?.profile_image_url)}
               lastName={user?.persona.apellidos}
               size={96}
             />
           </View>
           <Text style={styles.title}>{fullName}</Text>
           <Text style={styles.subtitle}>{user?.email ?? 'Correo no disponible'}</Text>
-          <Text style={styles.subtitle}>{professional?.persona.telefono ?? 'Teléfono no disponible'}</Text>
+          <Text style={styles.subtitle}>
+            {user?.persona.telefono ?? professional?.persona.telefono ?? 'Teléfono no disponible'}
+          </Text>
           <View style={styles.badges}>
             <Badge
               icon="mail-outline"
@@ -51,6 +55,11 @@ export default function StaffProfileScreen() {
         </View>
 
         <View style={styles.menuCard}>
+          <Link href="/(staff)/edit-profile" asChild>
+            <Pressable>
+              <MenuRow icon="person-outline" title="Editar Perfil" />
+            </Pressable>
+          </Link>
           <Link href="/(staff)/security" asChild>
             <Pressable>
               <MenuRow icon="shield-checkmark-outline" title="Centro de Seguridad" />
@@ -96,6 +105,9 @@ function MenuRow({
 }
 
 const styles = StyleSheet.create({
+  scroll: {
+    flex: 1,
+  },
   container: {
     gap: theme.spacing.lg,
     paddingBottom: theme.spacing.xl,

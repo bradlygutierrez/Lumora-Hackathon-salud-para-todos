@@ -99,6 +99,16 @@ export function PatientListScreen() {
           </Text>
         </View>
 
+        <Pressable
+          accessibilityLabel="Registro de emergencia"
+          accessibilityRole="button"
+          onPress={() => router.push('/(staff)/patients/emergency' as Href)}
+          style={styles.emergencyButton}
+        >
+          <Ionicons color={theme.color.danger} name="alert-circle-outline" size={20} />
+          <Text style={styles.emergencyButtonText}>Registro de emergencia</Text>
+        </Pressable>
+
         <View style={styles.modeRow}>
           <Pressable
             accessibilityRole="tab"
@@ -379,6 +389,23 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 21,
   },
+  emergencyButton: {
+    alignItems: 'center',
+    backgroundColor: theme.color.dangerSoft,
+    borderColor: theme.color.dangerSoft,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
+    justifyContent: 'center',
+    minHeight: 48,
+    paddingHorizontal: theme.spacing.lg,
+  },
+  emergencyButtonText: {
+    color: theme.color.dangerText,
+    fontSize: 14,
+    fontWeight: '800',
+  },
   modeRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -426,7 +453,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: theme.color.surface,
     borderColor: theme.color.border,
-    borderRadius: 10,
+    borderRadius: theme.radius.md,
     borderWidth: 1,
     flexDirection: 'row',
     gap: theme.spacing.sm,
@@ -473,16 +500,12 @@ const styles = StyleSheet.create({
   fab: {
     alignItems: 'center',
     backgroundColor: theme.color.primary,
-    borderRadius: 20,
+    borderRadius: theme.radius.pill,
     bottom: theme.spacing.lg,
     height: 62,
     justifyContent: 'center',
     position: 'absolute',
     right: theme.spacing.lg,
-    shadowColor: '#003C90',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.2,
-    shadowRadius: 9,
     width: 62,
   },
 });

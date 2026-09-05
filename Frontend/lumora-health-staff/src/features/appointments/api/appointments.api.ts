@@ -1,13 +1,19 @@
 import { apiClient } from '@/src/shared/api/client';
 import type {
+  AppointmentDetail,
   ProfessionalAgendaItem,
   ProfessionalAvailability,
   ProfessionalSchedule,
   ProfessionalSchedulePayload,
 } from '../types/appointment.types';
 
-export async function listMyAgenda(): Promise<ProfessionalAgendaItem[]> {
-  const response = await apiClient.get<ProfessionalAgendaItem[]>('/profesional/me/agenda');
+export async function listMyAgenda(range?: {
+  desde?: string;
+  hasta?: string;
+}): Promise<ProfessionalAgendaItem[]> {
+  const response = await apiClient.get<ProfessionalAgendaItem[]>('/profesional/me/agenda', {
+    params: range,
+  });
   return response.data;
 }
 
@@ -39,6 +45,20 @@ export async function updateMySchedule(
 
 export async function deleteMySchedule(scheduleId: number): Promise<void> {
   await apiClient.delete(`/profesional/me/horarios/${scheduleId}`);
+}
+
+export async function getAppointment(appointmentId: number): Promise<AppointmentDetail> {
+  const response = await apiClient.get<AppointmentDetail>(`/citas/${appointmentId}`);
+  return response.data;
+}
+
+export async function listPatientAppointments(
+  patientId: number,
+): Promise<AppointmentDetail[]> {
+  const response = await apiClient.get<AppointmentDetail[]>('/citas', {
+    params: { paciente_id: patientId },
+  });
+  return response.data;
 }
 
 export async function getMyAvailability(

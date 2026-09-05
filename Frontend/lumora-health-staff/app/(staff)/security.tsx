@@ -170,8 +170,8 @@ export default function SecurityCenterScreen() {
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-        <AppTopBar />
+      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false} style={styles.scroll}>
+        <AppTopBar showBack />
         <View style={styles.header}>
           <Text style={styles.title}>Centro de Seguridad</Text>
           <Text style={styles.subtitle}>
@@ -181,7 +181,7 @@ export default function SecurityCenterScreen() {
 
         <SectionCard icon="keypad-outline" title="Contraseña">
           <Text style={styles.description}>
-            Al cambiarla, FastAPI conserva la sesión actual y revoca las demás sesiones activas.
+            Al cambiarla, se conserva la sesión actual y se revocan las demás sesiones activas.
           </Text>
           <TextField
             label="Contraseña actual"
@@ -218,7 +218,7 @@ export default function SecurityCenterScreen() {
           {methods.isLoading ? <LoadingState title="Cargando MFA" /> : null}
           {methods.isError ? <ErrorState title="No se pudo cargar MFA" /> : null}
           {!methods.isLoading && !methods.isError && methods.data?.length === 0 ? (
-            <EmptyState title="MFA no disponible" message="FastAPI no anunció métodos MFA para esta cuenta." />
+            <EmptyState title="MFA no disponible" message="No hay métodos de MFA disponibles para esta cuenta." />
           ) : null}
 
           {methods.data?.map((method) => (
@@ -297,7 +297,7 @@ export default function SecurityCenterScreen() {
                 <View style={styles.methodText}>
                   <Text style={styles.recoveryTitle}>MFA activado</Text>
                   <Text style={styles.methodMeta}>
-                    Guarda estos códigos de recuperación ahora. FastAPI solo los entrega al activar el método.
+                    Guardá estos códigos de recuperación ahora. Solo se muestran al activar el método.
                   </Text>
                 </View>
               </View>
@@ -399,6 +399,7 @@ function StatusPill({ active }: { active: boolean }) {
 }
 
 const styles = StyleSheet.create({
+  scroll: { flex: 1 },
   container: { gap: theme.spacing.lg, paddingBottom: theme.spacing.xxl },
   header: { gap: theme.spacing.sm, marginTop: theme.spacing.xl },
   title: { color: theme.color.primaryPressed, fontSize: 28, fontWeight: '900' },
@@ -410,10 +411,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     gap: theme.spacing.lg,
     padding: 22,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
   },
   cardHeader: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
   cardTitleGroup: { alignItems: 'center', flex: 1, flexDirection: 'row', gap: theme.spacing.md },

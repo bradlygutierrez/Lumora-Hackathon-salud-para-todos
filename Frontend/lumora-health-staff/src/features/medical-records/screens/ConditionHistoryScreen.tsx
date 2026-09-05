@@ -55,7 +55,7 @@ export function ConditionHistoryScreen({
     return (
       <ErrorState
         title="Historial no disponible"
-        message="La condición no existe o fue eliminada. J04 requiere que la condición siga disponible para consultar su historial."
+        message="La condición no existe o fue eliminada; debe seguir disponible para poder consultar su historial."
       />
     );
   }
@@ -78,13 +78,13 @@ export function ConditionHistoryScreen({
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} style={styles.scroll}>
         <Button icon="arrow-back" onPress={() => router.back()} variant="ghost">
           Volver a condiciones
         </Button>
 
         <View style={styles.header}>
-          <Text style={styles.eyebrow}>TRAZABILIDAD J04</Text>
+          <Text style={styles.eyebrow}>TRAZABILIDAD</Text>
           <Text style={styles.title}>{condition.data.nombre}</Text>
           <Text style={styles.subtitle}>
             Estado actual: {catalogName(statuses.data?.items, condition.data.estado_condicion_id)}
@@ -142,6 +142,7 @@ export function ConditionHistoryScreen({
 }
 
 const styles = StyleSheet.create({
+  scroll: { flex: 1 },
   content: { gap: theme.spacing.xl, paddingBottom: theme.spacing.xxl },
   header: { gap: 4 },
   eyebrow: { color: theme.color.subtleText, fontSize: 11, fontWeight: '900', letterSpacing: 1 },

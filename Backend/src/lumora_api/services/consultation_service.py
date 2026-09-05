@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
-from lumora_api.core.exceptions import ResourceNotFoundError
+from lumora_api.core.exceptions import PermissionDeniedError, ResourceNotFoundError
 from lumora_api.models import (
     ConsultaMedica,
     Expediente,
@@ -11,8 +11,13 @@ from lumora_api.models import (
     Paciente,
     ProfesionalSalud,
     SignoVital,
+    Usuario,
 )
 from lumora_api.repositories.consultation_repository import ConsultationRepository
+from lumora_api.services.authorization import (
+    ensure_patient_is_assigned_to_professional,
+    resolve_current_professional,
+)
 
 
 class ConsultationService:
@@ -80,9 +85,19 @@ class ConsultationService:
             raise ResourceNotFoundError(f"Consulta médica con id {consultation_id} no existe")
         return item
 
-    async def create(self, data: BaseModel) -> ConsultaMedica:
+    async def create(self, data: BaseModel, current_user: Usuario) -> ConsultaMedica:
         values = data.model_dump(exclude_none=True)
         await self._validate_consultation_values(values)
+        professional = await resolve_current_professional(
+            self.repository.session, current_user
+        )
+        if values["profesional_id"] != professional.id:
+            raise PermissionDeniedError(
+                "No puede registrar una consulta a nombre de otro profesional"
+            )
+        await ensure_patient_is_assigned_to_professional(
+            self.repository.session, professional.id, values["paciente_id"]
+        )
         item = await self.repository.create_consultation(values)
         await self.repository.session.commit()
         return item
@@ -121,14 +136,25 @@ class ConsultationService:
         await self.get(consultation_id)
         return await self.repository.list_notes(consultation_id, limit, offset, activo)
 
+    async def _ensure_assigned_to_consultation_patient(
+        self, current_user: Usuario, consultation: ConsultaMedica
+    ) -> None:
+        professional = await resolve_current_professional(
+            self.repository.session, current_user
+        )
+        await ensure_patient_is_assigned_to_professional(
+            self.repository.session, professional.id, consultation.paciente_id
+        )
+
     async def create_note(
-        self, consultation_id: int, author_id: int, data: BaseModel
+        self, consultation_id: int, current_user: Usuario, data: BaseModel
     ) -> NotaClinica:
-        await self.get(consultation_id)
+        consultation = await self.get(consultation_id)
+        await self._ensure_assigned_to_consultation_patient(current_user, consultation)
         item = await self.repository.create_note(
             {
                 "consulta_id": consultation_id,
-                "autor_id": author_id,
+                "autor_id": current_user.id,
                 **data.model_dump(exclude_none=True),
             }
         )
@@ -143,9 +169,11 @@ class ConsultationService:
         return item
 
     async def update_note(
-        self, consultation_id: int, note_id: int, data: BaseModel
+        self, consultation_id: int, note_id: int, current_user: Usuario, data: BaseModel
     ) -> NotaClinica:
         item = await self.get_note(consultation_id, note_id)
+        consultation = await self.get(consultation_id)
+        await self._ensure_assigned_to_consultation_patient(current_user, consultation)
         values = data.model_dump(exclude_unset=True, exclude_none=True)
         item = await self.repository.update_note(item, values)
         await self.repository.session.commit()

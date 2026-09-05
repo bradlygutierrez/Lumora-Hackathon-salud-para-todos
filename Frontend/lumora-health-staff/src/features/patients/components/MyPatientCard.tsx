@@ -107,10 +107,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     gap: theme.spacing.md,
     padding: theme.spacing.lg,
-    shadowColor: '#003C90',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
   },
   pressed: {
     opacity: 0.76,
@@ -123,7 +119,7 @@ const styles = StyleSheet.create({
   avatar: {
     alignItems: 'center',
     backgroundColor: theme.color.primarySoft,
-    borderRadius: 27,
+    borderRadius: theme.radius.pill,
     height: 54,
     justifyContent: 'center',
     width: 54,
@@ -175,7 +171,7 @@ const styles = StyleSheet.create({
   rowIcon: {
     alignItems: 'center',
     backgroundColor: theme.color.primarySoft,
-    borderRadius: 17,
+    borderRadius: theme.radius.pill,
     height: 34,
     justifyContent: 'center',
     width: 34,

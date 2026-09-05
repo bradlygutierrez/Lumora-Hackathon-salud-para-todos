@@ -128,7 +128,7 @@ describe('ConditionsScreen J12', () => {
     await fireEvent.press(screen.getByLabelText('Eliminar Hipertensión'));
     expect(alert).toHaveBeenCalledWith(
       'Confirmar borrado lógico',
-      expect.stringContaining('DELETE con borrado lógico de J04'),
+      expect.stringContaining('no se borra de forma permanente'),
       expect.any(Array),
     );
 

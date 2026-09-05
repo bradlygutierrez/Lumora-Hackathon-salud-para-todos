@@ -2,9 +2,11 @@ import { apiClient } from '@/src/shared/api/client';
 import {
   createMySchedule,
   deleteMySchedule,
+  getAppointment,
   getMyAvailability,
   listMyAgenda,
   listMySchedules,
+  listPatientAppointments,
   updateMySchedule,
 } from '../api/appointments.api';
 
@@ -31,7 +33,7 @@ describe('professional workspace appointment API', () => {
     client.patch.mockResolvedValueOnce({ data: { id: 1 } });
     client.delete.mockResolvedValueOnce({ data: undefined });
 
-    await listMyAgenda();
+    await listMyAgenda({ desde: '2026-08-31T00:00:00.000Z', hasta: '2026-09-07T00:00:00.000Z' });
     await listMySchedules();
     await getMyAvailability('2026-08-31');
     await createMySchedule({
@@ -42,7 +44,9 @@ describe('professional workspace appointment API', () => {
     await updateMySchedule(1, { activo: false });
     await deleteMySchedule(1);
 
-    expect(client.get).toHaveBeenNthCalledWith(1, '/profesional/me/agenda');
+    expect(client.get).toHaveBeenNthCalledWith(1, '/profesional/me/agenda', {
+      params: { desde: '2026-08-31T00:00:00.000Z', hasta: '2026-09-07T00:00:00.000Z' },
+    });
     expect(client.get).toHaveBeenNthCalledWith(2, '/profesional/me/horarios');
     expect(client.get).toHaveBeenNthCalledWith(
       3,
@@ -58,5 +62,19 @@ describe('professional workspace appointment API', () => {
       { activo: false },
     );
     expect(client.delete).toHaveBeenCalledWith('/profesional/me/horarios/1');
+  });
+
+  it('fetches a single appointment and a patient-scoped list from /citas', async () => {
+    client.get
+      .mockResolvedValueOnce({ data: { id: 4 } })
+      .mockResolvedValueOnce({ data: [{ id: 4 }] });
+
+    await getAppointment(4);
+    await listPatientAppointments(9);
+
+    expect(client.get).toHaveBeenNthCalledWith(1, '/citas/4');
+    expect(client.get).toHaveBeenNthCalledWith(2, '/citas', {
+      params: { paciente_id: 9 },
+    });
   });
 });

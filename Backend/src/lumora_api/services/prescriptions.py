@@ -20,7 +20,11 @@ from lumora_api.schemas.prescriptions import (
     RecetaCreate,
     RecetaUpdate,
 )
-from lumora_api.services.authorization import ensure_can_access_patient_data
+from lumora_api.services.authorization import (
+    ensure_can_access_patient_data,
+    ensure_patient_is_assigned_to_professional,
+    ensure_within_editable_window,
+)
 
 
 class PrescriptionService:
@@ -103,6 +107,14 @@ class PrescriptionService:
             receta.paciente_id,
             action="write",
         )
+        # La propiedad de la receta por sí sola no re-confirma que la
+        # relación con el paciente siga vigente (p. ej. si la única cita
+        # que la había establecido se canceló después) -- se revalida acá,
+        # igual que al crearla.
+        await ensure_patient_is_assigned_to_professional(
+            self.repository.session, professional.id, receta.paciente_id
+        )
+        ensure_within_editable_window(receta.fecha_emision)
         return receta
 
     # --- RECETAS ---
@@ -116,6 +128,9 @@ class PrescriptionService:
             current_user,
             patient.id,
             action="write",
+        )
+        await ensure_patient_is_assigned_to_professional(
+            self.repository.session, professional.id, patient.id
         )
         if schema.profesional_id != professional.id:
             raise PermissionDeniedError(

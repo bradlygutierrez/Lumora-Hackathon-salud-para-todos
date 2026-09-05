@@ -26,6 +26,6 @@ describe('J12 API error presentation', () => {
         new ApiError('Validation', 'validation_error', 422),
         'editar',
       ),
-    ).toContain('FastAPI rechazó');
+    ).toContain('El servidor rechazó');
   });
 });

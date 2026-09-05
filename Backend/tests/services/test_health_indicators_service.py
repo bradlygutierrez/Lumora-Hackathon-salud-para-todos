@@ -1,6 +1,8 @@
 import pytest
 from sqlalchemy import select
 
+from helpers.medical import create_active_medical_professional
+from lumora_api.core.exceptions import PermissionDeniedError
 from lumora_api.core.security import hash_password
 from lumora_api.models import (
     AlertaClinica,
@@ -17,7 +19,7 @@ from lumora_api.models import (
     UnidadMedida,
     Usuario,
 )
-from lumora_api.schemas.health_indicators import MedicionIndicadorCreate
+from lumora_api.schemas.health_indicators import AlertaClinicaUpdate, MedicionIndicadorCreate
 from lumora_api.services.health_indicators_service import HealthIndicatorsService
 
 
@@ -83,6 +85,24 @@ async def _seed_paciente_con_usuario(session_factory):
         return paciente.id, pu.id
 
 
+async def _seed_clinical_professional(session_factory, username: str) -> int:
+    """Devuelve el user_id -- el llamador debe re-fetchear el Usuario en su
+    propia sesión activa antes de usarlo (roles es lazy="selectin" y no
+    sobrevive fuera de la sesión en la que se cargó)."""
+    async with session_factory() as s:
+        user = Usuario(
+            persona=Persona(nombres="Dra", apellidos="Sin Relación"),
+            email=f"{username}@example.com",
+            username=username,
+            password_hash=hash_password("Safe123!"),
+        )
+        s.add(user)
+        await s.flush()
+        await create_active_medical_professional(s, user=user, username=username)
+        await s.commit()
+        return user.id
+
+
 async def _seed_paciente_sin_usuario(session_factory):
     async with session_factory() as s:
         persona = Persona(nombres="Sin", apellidos="Cuenta")
@@ -110,7 +130,10 @@ async def test_medicion_fuera_de_rango_crea_alerta_recordatorio_y_notificacion(
     )
 
     async with session_factory() as db:
-        medicion = await HealthIndicatorsService.registrar_medicion(db, paciente_id, data)
+        registrador = await db.get(Usuario, base["registrador_id"])
+        medicion = await HealthIndicatorsService.registrar_medicion(
+            db, paciente_id, data, registrador
+        )
 
         alerta = (
             await db.execute(
@@ -157,7 +180,10 @@ async def test_medicion_dentro_de_rango_no_genera_alertas(session_factory):
     )
 
     async with session_factory() as db:
-        medicion = await HealthIndicatorsService.registrar_medicion(db, paciente_id, data)
+        registrador = await db.get(Usuario, base["registrador_id"])
+        medicion = await HealthIndicatorsService.registrar_medicion(
+            db, paciente_id, data, registrador
+        )
 
         alertas = (
             await db.execute(
@@ -183,7 +209,10 @@ async def test_medicion_fuera_de_rango_sin_cuenta_de_usuario_no_crea_notificacio
     )
 
     async with session_factory() as db:
-        medicion = await HealthIndicatorsService.registrar_medicion(db, paciente_id, data)
+        registrador = await db.get(Usuario, base["registrador_id"])
+        medicion = await HealthIndicatorsService.registrar_medicion(
+            db, paciente_id, data, registrador
+        )
 
         # La alerta clinica se genera igual (paciente sin cuenta propia no
         # es motivo para dejar de registrar la alerta), pero no hay a
@@ -225,8 +254,9 @@ async def test_resolver_tipo_alerta_medicion_es_self_healing_e_idempotente(
     )
 
     async with session_factory() as db:
-        await HealthIndicatorsService.registrar_medicion(db, paciente_id, data)
-        await HealthIndicatorsService.registrar_medicion(db, paciente_id, data)
+        registrador = await db.get(Usuario, base["registrador_id"])
+        await HealthIndicatorsService.registrar_medicion(db, paciente_id, data, registrador)
+        await HealthIndicatorsService.registrar_medicion(db, paciente_id, data, registrador)
 
         tipos = (
             (
@@ -240,3 +270,69 @@ async def test_resolver_tipo_alerta_medicion_es_self_healing_e_idempotente(
             .all()
         )
         assert len(tipos) == 1
+
+
+@pytest.mark.asyncio
+async def test_registrar_medicion_rechaza_profesional_sin_relacion_con_el_paciente(
+    session_factory,
+):
+    base = await _seed_base(session_factory)
+    paciente_id, _usuario_id = await _seed_paciente_con_usuario(session_factory)
+    professional_user_id = await _seed_clinical_professional(
+        session_factory, "doc-medicion-sin-relacion"
+    )
+
+    data = MedicionIndicadorCreate(
+        indicador_id=base["indicador_id"],
+        valor=150,
+        unidad_medida_id=base["unidad_medida_id"],
+        origen_registro_id=base["origen_registro_id"],
+        registrado_por_id=base["registrador_id"],
+    )
+
+    async with session_factory() as db:
+        professional_user = await db.get(Usuario, professional_user_id)
+        with pytest.raises(PermissionDeniedError):
+            await HealthIndicatorsService.registrar_medicion(
+                db, paciente_id, data, professional_user
+            )
+
+
+@pytest.mark.asyncio
+async def test_atender_alerta_rechaza_profesional_sin_relacion_con_el_paciente(
+    session_factory,
+):
+    base = await _seed_base(session_factory)
+    paciente_id, _usuario_id = await _seed_paciente_con_usuario(session_factory)
+    professional_user_id = await _seed_clinical_professional(
+        session_factory, "doc-alerta-sin-relacion"
+    )
+
+    data = MedicionIndicadorCreate(
+        indicador_id=base["indicador_id"],
+        valor=150,
+        unidad_medida_id=base["unidad_medida_id"],
+        origen_registro_id=base["origen_registro_id"],
+        registrado_por_id=base["registrador_id"],
+    )
+
+    async with session_factory() as db:
+        registrador = await db.get(Usuario, base["registrador_id"])
+        medicion = await HealthIndicatorsService.registrar_medicion(
+            db, paciente_id, data, registrador
+        )
+        alerta = (
+            await db.execute(
+                select(AlertaClinica).where(AlertaClinica.medicion_id == medicion.id)
+            )
+        ).scalar_one()
+
+    async with session_factory() as db:
+        professional_user = await db.get(Usuario, professional_user_id)
+        with pytest.raises(PermissionDeniedError):
+            await HealthIndicatorsService.atender_alerta(
+                db,
+                alerta.id,
+                AlertaClinicaUpdate(atendida=True, atendida_por_id=professional_user_id),
+                professional_user,
+            )

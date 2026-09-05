@@ -28,8 +28,8 @@ export default function StaffDetailScreen() {
         {professional.isLoading ? <LoadingState title="Cargando perfil" /> : null}
         {professional.isError ? <ErrorState title="No se pudo cargar el perfil" /> : null}
         {professional.data ? (
-          <ScrollView contentContainerStyle={styles.container}>
-            <AppTopBar />
+          <ScrollView contentContainerStyle={styles.container} style={styles.scroll}>
+            <AppTopBar showBack />
             <View style={styles.header}>
               <Text style={styles.title}>Perfil del Staff</Text>
               <Text style={styles.subtitle}>Información profesional registrada en Lumora.</Text>
@@ -71,6 +71,7 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 }
 
 const styles = StyleSheet.create({
+  scroll: { flex: 1 },
   container: {
     gap: theme.spacing.lg,
     paddingBottom: theme.spacing.xxl,

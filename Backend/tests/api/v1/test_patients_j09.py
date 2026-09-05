@@ -173,6 +173,39 @@ async def test_patient_detail_includes_emergency_contact(client, session_factory
 
 
 @pytest.mark.asyncio
+async def test_patient_detail_accessible_with_the_real_seeded_role_name(client, session_factory):
+    # Regresión: require_access comparaba el rol contra el string literal
+    # "profesional", pero el rol clínico real sembrado es "Profesional de
+    # Salud" (ver db/seed.py) -- nunca matcheaba, así que GET/PATCH
+    # /pacientes/{id} devolvía 404 siempre a cualquier profesional real,
+    # aunque tuviera clinica:manage. create_actor() de este archivo usa
+    # "Profesional" a secas, por eso los demás tests no lo detectaban.
+    async with session_factory() as session:
+        role = Rol(nombre="Profesional de Salud", permisos=[Permiso(nombre="clinica:manage")])
+        user = Usuario(
+            persona=Persona(nombres="Doc", apellidos="RealRole"),
+            email="doc-real-role@example.com",
+            username="doc-real-role",
+            password_hash=hash_password("safe-password"),
+            roles=[role],
+        )
+        session.add(user)
+        patient_person = Persona(nombres="Paciente", apellidos="RealRole")
+        session.add(patient_person)
+        await session.flush()
+        patient = Paciente(persona_id=patient_person.id)
+        session.add(patient)
+        await session.flush()
+        user_id, patient_id = user.id, patient.id
+        await session.commit()
+
+    response = await client.get(
+        f"/api/v1/pacientes/{patient_id}", headers=auth_headers(user_id)
+    )
+    assert response.status_code == 200
+
+
+@pytest.mark.asyncio
 async def test_family_view_is_authorized_and_returns_resolved_relationship(client, session_factory):
     sex_id, blood_id = await create_catalogs(session_factory)
     clinician = await create_actor(session_factory, username="family-clinician", clinical=True)

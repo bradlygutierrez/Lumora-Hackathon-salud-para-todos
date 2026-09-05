@@ -36,14 +36,14 @@ export function PatientFamilyScreen({ patientId }: Props) {
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} style={styles.scroll}>
         <Button accessibilityLabel="Volver al paciente" icon="arrow-back" onPress={() => router.back()} variant="ghost">
           Volver
         </Button>
         <View style={styles.heading}>
           <Text style={styles.title}>Familiares y Acceso</Text>
           <Text style={styles.subtitle}>
-            Vista clínica de las relaciones autorizadas por el paciente. El personal no modifica estos permisos desde J09.
+            Vista clínica de las relaciones autorizadas por el paciente. El personal no modifica estos permisos desde aquí.
           </Text>
         </View>
 
@@ -106,6 +106,7 @@ function AccessRow({ icon, label, value }: { icon: keyof typeof Ionicons.glyphMa
 }
 
 const styles = StyleSheet.create({
+  scroll: { flex: 1 },
   content: { gap: theme.spacing.lg, paddingBottom: theme.spacing.xxl },
   heading: { gap: theme.spacing.sm },
   title: { color: theme.color.text, fontSize: 26, fontWeight: '900' },

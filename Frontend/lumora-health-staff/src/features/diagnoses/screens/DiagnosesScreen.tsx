@@ -11,6 +11,7 @@ import { Button } from '@/src/shared/components/Button';
 import { EmptyState, ErrorState, LoadingState } from '@/src/shared/components/RemoteState';
 import { Screen } from '@/src/shared/components/Screen';
 import { TextField } from '@/src/shared/components/TextField';
+import { DateField } from '@/src/shared/components/DateField';
 import { theme } from '@/src/shared/constants/theme';
 import {
   useCreateDiagnosis,
@@ -49,7 +50,7 @@ function diagnosisError(error: unknown) {
     return apiError.message;
   }
   if (apiError.code === 'validation_error') {
-    return 'FastAPI rechazó los datos del diagnóstico. Revisá el formulario.';
+    return 'El servidor rechazó los datos del diagnóstico. Revisá el formulario.';
   }
   return apiError.message;
 }
@@ -133,7 +134,7 @@ export function DiagnosesScreen({
     return (
       <ErrorState
         title="Tipos de diagnóstico no disponibles"
-        message="No se pudo cargar el catálogo real de FastAPI."
+        message="No se pudo cargar el catálogo de diagnósticos."
       />
     );
   }
@@ -340,21 +341,9 @@ export function DiagnosesScreen({
               />
             )}
           />
-          <Controller
-            control={control}
-            name="fecha_diagnostico"
-            render={({ field }) => (
-              <TextField
-                accessibilityLabel="Fecha del diagnóstico"
-                error={errors.fecha_diagnostico?.message}
-                label="Fecha"
-                onBlur={field.onBlur}
-                onChangeText={field.onChange}
-                placeholder="AAAA-MM-DD"
-                value={field.value}
-              />
-            )}
-          />
+          <Controller control={control} name="fecha_diagnostico" render={({ field }) => (
+          <DateField error={errors.fecha_diagnostico?.message} label="Fecha" mode="date" onChange={field.onChange} value={field.value} />
+        )} />
           <Controller
             control={control}
             name="es_principal"

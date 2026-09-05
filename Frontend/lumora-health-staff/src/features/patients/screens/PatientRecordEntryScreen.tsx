@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useAuthSession } from '@/src/features/auth/hooks/use-auth-session';
 import { Button } from '@/src/shared/components/Button';
@@ -28,7 +28,7 @@ export function PatientRecordEntryScreen({ patientId }: Props) {
 
   return (
     <Screen>
-      <View style={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} style={styles.scroll}>
         <Button accessibilityLabel="Volver al paciente" icon="arrow-back" onPress={() => router.back()} variant="ghost">
           Volver
         </Button>
@@ -36,7 +36,7 @@ export function PatientRecordEntryScreen({ patientId }: Props) {
           <Ionicons color={theme.color.primary} name="folder-open-outline" size={28} />
           <View style={styles.headingText}>
             <Text style={styles.title}>Expediente Médico</Text>
-            <Text style={styles.subtitle}>Entrada segura al expediente respaldada por el resumen clínico de FastAPI.</Text>
+            <Text style={styles.subtitle}>Entrada segura al expediente, respaldada por el resumen clínico del paciente.</Text>
           </View>
         </View>
 
@@ -65,13 +65,14 @@ export function PatientRecordEntryScreen({ patientId }: Props) {
             message="El paciente no tiene expediente clínico disponible."
           />
         )}
-      </View>
+      </ScrollView>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { flex: 1, gap: theme.spacing.xl },
+  scroll: { flex: 1 },
+  content: { gap: theme.spacing.xl, paddingBottom: theme.spacing.xxl },
   heading: { alignItems: 'center', flexDirection: 'row', gap: theme.spacing.md },
   headingText: { flex: 1, gap: theme.spacing.xs },
   title: { color: theme.color.text, fontSize: 26, fontWeight: '900' },
