@@ -49,7 +49,7 @@ export default function MedicalDirectoryScreen() {
           />
         }
       >
-        <ScrollView contentContainerStyle={styles.container}>
+        <ScrollView contentContainerStyle={styles.container} style={styles.scroll}>
           <AppTopBar showBack />
           <View style={styles.header}>
             <Text style={styles.title}>Directorio de Personal Médico</Text>
@@ -125,6 +125,7 @@ export default function MedicalDirectoryScreen() {
 }
 
 const styles = StyleSheet.create({
+  scroll: { flex: 1 },
   container: {
     gap: theme.spacing.md,
     paddingBottom: theme.spacing.xxl,

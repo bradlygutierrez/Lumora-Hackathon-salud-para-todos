@@ -101,7 +101,8 @@ describe('PatientRegistrationScreen', () => {
 
     await fireEvent.changeText(screen.getByLabelText('Nombres'), 'Juan');
     await fireEvent.changeText(screen.getByLabelText('Apellidos'), 'Pérez');
-    await fireEvent.changeText(screen.getByLabelText('Fecha de nacimiento'), '1995-03-02');
+    await fireEvent.press(screen.getByLabelText('Fecha de nacimiento'));
+    await fireEvent(screen.getByTestId('date-time-picker'), 'onChange', {}, new Date(1995, 2, 2));
     await fireEvent.changeText(screen.getByLabelText('Teléfono'), '8888-8888');
     await fireEvent.press(screen.getByText('Masculino'));
     await fireEvent.changeText(screen.getByLabelText('Dirección'), 'Bolonia');

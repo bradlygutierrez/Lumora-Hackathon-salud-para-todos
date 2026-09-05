@@ -62,7 +62,7 @@ export function ConsultationHistoryScreen({ patientId, recordId }: { patientId: 
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} style={styles.scroll}>
         <View style={styles.headerRow}>
           <Button icon="arrow-back" onPress={() => router.back()} variant="ghost">Volver</Button>
           <View style={styles.headerCopy}>
@@ -167,6 +167,7 @@ function ConsultationCard({ consultation, onPress }: { consultation: Consultatio
 }
 
 const styles = StyleSheet.create({
+  scroll: { flex: 1 },
   content: { gap: theme.spacing.lg, paddingBottom: theme.spacing.xxl },
   headerRow: { alignItems: 'center', flexDirection: 'row', gap: theme.spacing.sm },
   headerCopy: { flex: 1, gap: 2 },

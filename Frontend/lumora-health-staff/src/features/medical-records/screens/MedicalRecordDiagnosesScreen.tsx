@@ -69,7 +69,7 @@ export function MedicalRecordDiagnosesScreen({ patientId, recordId }: Props) {
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} style={styles.scroll}>
         <Button
           accessibilityLabel="Volver al resumen clínico"
           icon="arrow-back"
@@ -138,6 +138,7 @@ export function MedicalRecordDiagnosesScreen({ patientId, recordId }: Props) {
 }
 
 const styles = StyleSheet.create({
+  scroll: { flex: 1 },
   content: { gap: theme.spacing.lg, paddingBottom: theme.spacing.xxl },
   header: { gap: theme.spacing.xs },
   eyebrow: {

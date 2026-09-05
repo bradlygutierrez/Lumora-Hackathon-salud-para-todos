@@ -132,7 +132,20 @@ export function ConsultationFormScreen({ patientId, recordId, consultationId }: 
           </Text>
         </View>
       </View>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} style={styles.scroll}>
+        <Controller control={control} name="motivo_consulta_id" render={({ field }) => (
+          <ChoiceField
+            clearLabel="Sin catálogo"
+            items={reasons.data?.items ?? []}
+            label="Motivo catalogado"
+            onChange={field.onChange}
+            optional={!isEditing || detail.data?.motivo_consulta_id === null}
+            value={field.value}
+          />
+        )} />
+        <Controller control={control} name="motivo" render={({ field }) => (
+          <TextField accessibilityLabel="Motivo de consulta" error={errors.motivo?.message} label="Motivo de consulta *" multiline onBlur={field.onBlur} onChangeText={field.onChange} placeholder="Describí el motivo principal" value={field.value} />
+        )} />
         <Controller control={control} name="fecha_consulta" render={({ field }) => (
           <DateField error={errors.fecha_consulta?.message} label="Fecha y hora" mode="datetime" onChange={field.onChange} value={field.value} />
         )} />
@@ -177,6 +190,7 @@ export function ConsultationFormScreen({ patientId, recordId, consultationId }: 
 }
 
 const styles = StyleSheet.create({
+  scroll: { flex: 1 },
   header: { alignItems: 'center', flexDirection: 'row', gap: theme.spacing.sm },
   headerCopy: { flex: 1, gap: 2 },
   title: { color: theme.color.text, fontSize: 24, fontWeight: '900' },

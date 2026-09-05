@@ -88,7 +88,7 @@ export function PrescriptionsScreen({
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} style={styles.scroll}>
         <View style={styles.header}>
           <Button icon="arrow-back" onPress={() => router.back()} variant="ghost">
             Volver
@@ -186,6 +186,7 @@ function TabButton({
 }
 
 const styles = StyleSheet.create({
+  scroll: { flex: 1 },
   content: { gap: theme.spacing.lg, paddingBottom: theme.spacing.xxl },
   header: { alignItems: 'center', flexDirection: 'row', gap: theme.spacing.sm },
   headerCopy: { flex: 1, gap: 2 },
