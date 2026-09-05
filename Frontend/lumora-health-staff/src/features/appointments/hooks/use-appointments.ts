@@ -4,12 +4,15 @@ import { useAuthSession } from '@/src/features/auth/hooks/use-auth-session';
 import {
   createMySchedule,
   deleteMySchedule,
+  getAppointment,
   getMyAvailability,
   listMyAgenda,
   listMySchedules,
+  listPatientAppointments,
   updateMySchedule,
 } from '../api/appointments.api';
 import type { ProfessionalSchedulePayload } from '../types/appointment.types';
+import { pickNextAppointment } from '../utils/next-appointment';
 
 const workspaceKey = ['clinical', 'professional-workspace'] as const;
 
@@ -38,6 +41,29 @@ export function useProfessionalAvailability(date: string, enabled = true) {
       session?.isPreview
         ? Promise.resolve({ fecha: date, slots: [] })
         : getMyAvailability(date),
+  });
+}
+
+export function useAppointment(appointmentId: number) {
+  const { session } = useAuthSession();
+  return useQuery({
+    enabled: Number.isFinite(appointmentId) && appointmentId > 0,
+    queryKey: [...workspaceKey, 'appointment', appointmentId],
+    queryFn: () =>
+      session?.isPreview
+        ? Promise.reject(new Error('La vista previa no tiene citas reales'))
+        : getAppointment(appointmentId),
+  });
+}
+
+export function useNextPatientAppointment(patientId: number) {
+  const { session } = useAuthSession();
+  return useQuery({
+    enabled: Number.isFinite(patientId) && patientId > 0,
+    queryKey: [...workspaceKey, 'patient-appointments', patientId],
+    queryFn: () =>
+      session?.isPreview ? Promise.resolve([]) : listPatientAppointments(patientId),
+    select: (items) => pickNextAppointment(items),
   });
 }
 

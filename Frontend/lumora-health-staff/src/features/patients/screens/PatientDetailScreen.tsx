@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { type Href, useRouter } from 'expo-router';
 import { useMemo } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { useNextPatientAppointment } from '@/src/features/appointments/hooks/use-appointments';
 import { formatWorkspaceDateTime } from '@/src/features/appointments/utils/workspace-date-time';
 import { useAuthSession } from '@/src/features/auth/hooks/use-auth-session';
 import { useMedicalRecordSummary } from '@/src/features/medical-records/hooks/use-medical-record';
@@ -45,6 +46,7 @@ export function PatientDetailScreen({ patientId }: Props) {
   const catalogs = usePatientCatalogs();
   const clinicalSummary = useMedicalRecordSummary(patientId);
   const myPatients = useMyPatients();
+  const nextAppointment = useNextPatientAppointment(patientId);
   const measurements = usePatientMeasurements(patientId);
   const measurementCatalogs = useMeasurementCatalogs();
 
@@ -110,7 +112,6 @@ export function PatientDetailScreen({ patientId }: Props) {
   const workspacePatient = myPatients.data?.find(
     (item) => item.paciente.id === patientId,
   );
-  const nextAppointment = workspacePatient?.proxima_cita;
   const lastConsultation = workspacePatient?.ultima_consulta;
   const allergies = richSummary?.alergias ?? [];
 
@@ -298,11 +299,27 @@ export function PatientDetailScreen({ patientId }: Props) {
         </View>
 
         <InfoCard icon="calendar-outline" title="Seguimiento profesional">
-          <InfoRow
-            icon="calendar-number-outline"
-            label="Próxima cita"
-            value={formatWorkspaceDateTime(nextAppointment?.inicio)}
-          />
+          {nextAppointment.data ? (
+            <Pressable
+              accessibilityLabel="Ver próxima cita"
+              accessibilityRole="button"
+              onPress={() =>
+                router.push(`/(staff)/appointments/${nextAppointment.data!.id}` as Href)
+              }
+            >
+              <InfoRow
+                icon="calendar-number-outline"
+                label="Próxima cita"
+                value={formatWorkspaceDateTime(nextAppointment.data.inicio)}
+              />
+            </Pressable>
+          ) : (
+            <InfoRow
+              icon="calendar-number-outline"
+              label="Próxima cita"
+              value={nextAppointment.isLoading ? 'Cargando…' : 'No disponible'}
+            />
+          )}
           <InfoRow
             icon="time-outline"
             label="Última consulta"

@@ -1,3 +1,4 @@
+import { type Href, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -45,6 +46,7 @@ function todayIso() {
 const TODAY_KEY = toDateKey(new Date());
 
 export function AgendaScreen() {
+  const router = useRouter();
   const { permissions, session } = useAuthSession();
   const [section, setSection] = useState<'agenda' | 'availability'>('agenda');
   const [weekStart, setWeekStart] = useState(() => startOfWeekUtc(new Date()));
@@ -248,7 +250,13 @@ export function AgendaScreen() {
                 <View key={daySection.dateKey} style={styles.daySection}>
                   <Text style={styles.dayHeader}>{formatSectionHeader(daySection.dateKey)}</Text>
                   {daySection.items.map((item) => (
-                    <View key={item.id} style={styles.card}>
+                    <Pressable
+                      accessibilityLabel={`Ver cita de ${item.paciente_nombre}`}
+                      accessibilityRole="button"
+                      key={item.id}
+                      onPress={() => router.push(`/(staff)/appointments/${item.id}` as Href)}
+                      style={styles.card}
+                    >
                       <Text style={styles.cardTitle}>{item.paciente_nombre}</Text>
                       <Text style={styles.cardMeta}>{formatWorkspaceDateTime(item.inicio)}</Text>
                       <Text style={styles.cardMeta}>
@@ -260,7 +268,7 @@ export function AgendaScreen() {
                           {item.ubicacion.consultorio ? ` · ${item.ubicacion.consultorio}` : ''}
                         </Text>
                       ) : null}
-                    </View>
+                    </Pressable>
                   ))}
                 </View>
               ))}
