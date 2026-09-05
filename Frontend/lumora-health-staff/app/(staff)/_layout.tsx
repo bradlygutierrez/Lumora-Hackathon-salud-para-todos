@@ -6,14 +6,12 @@ import { useAuthSession } from '@/src/features/auth/hooks/use-auth-session';
 import { LoadingState } from '@/src/shared/components/RemoteState';
 import { theme } from '@/src/shared/constants/theme';
 
-const TAB_BAR_CONTENT_HEIGHT = 72;
+const TAB_BAR_CONTENT_HEIGHT = 64;
 
 export default function StaffLayout() {
   const { permissions, status } = useAuthSession();
   const insets = useSafeAreaInsets();
-  // Un poco más de aire además del inset real, para que los íconos no
-  // queden pegados a la barra de navegación nativa del celular.
-  const tabBarBottomPadding = insets.bottom + theme.spacing.sm;
+  const tabBarBottomPadding = insets.bottom + 8;
 
   if (status === 'restoring') {
     return <LoadingState title="Restaurando sesión clínica" />;
@@ -45,25 +43,19 @@ export default function StaffLayout() {
       initialRouteName="index"
       screenOptions={{
         headerShown: false,
-        tabBarActiveBackgroundColor: theme.color.primarySoft,
         tabBarActiveTintColor: theme.color.primaryPressed,
         tabBarHideOnKeyboard: true,
         tabBarInactiveTintColor: theme.color.mutedText,
-        tabBarItemStyle: {
-          borderRadius: 16,
-          marginHorizontal: 2,
-          marginVertical: 7,
-        },
         tabBarLabelStyle: {
           fontSize: 11,
-          fontWeight: '800',
+          fontWeight: '500',
         },
         tabBarStyle: {
           backgroundColor: theme.color.surfaceMuted,
           borderTopColor: theme.color.softBorder,
           height: TAB_BAR_CONTENT_HEIGHT + tabBarBottomPadding,
           paddingBottom: tabBarBottomPadding,
-          paddingHorizontal: 8,
+          paddingTop: 6,
         },
       }}
     >

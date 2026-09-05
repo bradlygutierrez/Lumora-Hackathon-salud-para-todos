@@ -33,23 +33,27 @@ export function AppTopBar({ showBack = false }: AppTopBarProps) {
         )}
       </View>
 
-      <LumoraBrand compact />
+      <View style={styles.brandSlot}>
+        <LumoraBrand compact />
+      </View>
 
       <View style={[styles.side, styles.sideRight]}>
         <Link asChild href="/(staff)/notifications">
-          <Pressable accessibilityLabel="Abrir notificaciones" accessibilityRole="button">
-            <View>
-              <Ionicons
-                color={theme.color.primaryPressed}
-                name="notifications-outline"
-                size={23}
-              />
-              {unreadCount > 0 ? (
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
-                </View>
-              ) : null}
-            </View>
+          <Pressable
+            accessibilityLabel="Abrir notificaciones"
+            accessibilityRole="button"
+            style={styles.notificationButton}
+          >
+            <Ionicons
+              color={theme.color.primaryPressed}
+              name="notifications-outline"
+              size={23}
+            />
+            {unreadCount > 0 ? (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+              </View>
+            ) : null}
           </Pressable>
         </Link>
       </View>
@@ -76,10 +80,17 @@ const styles = StyleSheet.create({
   },
   side: {
     alignItems: 'flex-start',
-    flex: 1,
+    flexShrink: 0,
+    width: 36,
   },
   sideRight: {
     alignItems: 'flex-end',
+  },
+  brandSlot: {
+    alignItems: 'center',
+    flex: 1,
+    minWidth: 0,
+    overflow: 'hidden',
   },
   avatar: {
     alignItems: 'center',
@@ -104,5 +115,12 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 10,
     fontWeight: '900',
+  },
+  notificationButton: {
+    alignItems: 'center',
+    height: 36,
+    justifyContent: 'center',
+    position: 'relative',
+    width: 36,
   },
 });

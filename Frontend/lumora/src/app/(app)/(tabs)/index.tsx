@@ -233,6 +233,26 @@ function PatientHome({
         </View>
       </View>
 
+      <SurfaceCard>
+        <View className="flex-row items-start gap-3">
+          <Ionicons
+            name="information-circle-outline"
+            size={22}
+            color="#4A86B6"
+          />
+          <View className="flex-1">
+            <Text className="text-sm font-semibold text-coal-900">
+              Información registrada por tu médico
+            </Text>
+            <Text className="mt-1 text-sm leading-5 text-coal-500">
+              Las condiciones médicas y los medicamentos deben ser agregados o
+              actualizados por un profesional de salud. Tú puedes registrar tus
+              mediciones y el seguimiento de tus dosis.
+            </Text>
+          </View>
+        </View>
+      </SurfaceCard>
+
       {data.nextDose ? (
         <NextDoseCard
           dose={data.nextDose}
