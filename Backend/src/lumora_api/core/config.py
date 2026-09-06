@@ -42,7 +42,7 @@ class Settings(BaseSettings):
     email_verification_hours: int = 24
     verification_code_minutes: int = 15
     verification_resend_seconds: int = 60
-    smtp_host: str = "smtp.gmail.com"
+    smtp_host: str = "smtp-relay.brevo.com"
     smtp_port: int = 587
     smtp_username: str = ""
     smtp_app_password: SecretStr = SecretStr("")
