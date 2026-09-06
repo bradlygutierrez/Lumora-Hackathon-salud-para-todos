@@ -1,0 +1,195 @@
+import axios, { type AxiosError } from 'axios';
+
+/** Categorías de error que entiende la UI de Lumora. */
+export type ApiErrorCode =
+  | 'BAD_REQUEST'
+  | 'UNAUTHORIZED'
+  | 'FORBIDDEN'
+  | 'NOT_FOUND'
+  | 'CONFLICT'
+  | 'VALIDATION'
+  | 'RATE_LIMITED'
+  | 'SERVER_ERROR'
+  | 'NETWORK_ERROR'
+  | 'UNKNOWN';
+
+/**
+ * Error normalizado del frontend.
+ *
+ * En lugar de hacer `if (status === 401)` en cada pantalla, toda la app
+ * recibe una estructura consistente con `code`, `status` y `message`.
+ */
+export class ApiError extends Error {
+  constructor(
+    public readonly code: ApiErrorCode,
+    public readonly status: number | null,
+    message: string,
+    public readonly details?: unknown,
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+
+  /** Solo errores temporales de red/servidor se reintentan automáticamente. */
+  public isRetryable(): boolean {
+    return this.code === 'NETWORK_ERROR' || this.code === 'SERVER_ERROR';
+  }
+}
+
+type BackendDomainError = {
+  error?: {
+    code?: unknown;
+    message?: unknown;
+  };
+  detail?: unknown;
+  message?: unknown;
+};
+
+/** Traduce Axios/FastAPI al formato interno de Lumora. */
+class ApiErrorMapper {
+  public map(error: unknown): ApiError {
+    // Evita convertir por segunda vez un error que ya normalizamos.
+    if (error instanceof ApiError) {
+      return error;
+    }
+
+    if (!axios.isAxiosError(error)) {
+      return new ApiError(
+        'UNKNOWN',
+        null,
+        'Ocurrió un error inesperado.',
+        error,
+      );
+    }
+
+    // Axios sin `response` significa que el servidor no respondió:
+    // sin Internet, DNS, timeout, conexión rechazada, etc.
+    if (!error.response) {
+      return new ApiError(
+        'NETWORK_ERROR',
+        null,
+        'No fue posible conectarse con el servidor.',
+        error,
+      );
+    }
+
+    const status = error.response.status;
+    const data = error.response.data as BackendDomainError | undefined;
+
+    return new ApiError(
+      this.mapStatus(status),
+      status,
+      this.extractMessage(data),
+      data,
+    );
+  }
+
+  private mapStatus(status: number): ApiErrorCode {
+    switch (status) {
+      case 400:
+        return 'BAD_REQUEST';
+      case 401:
+        return 'UNAUTHORIZED';
+      case 403:
+        return 'FORBIDDEN';
+      case 404:
+        return 'NOT_FOUND';
+      case 409:
+        return 'CONFLICT';
+      case 422:
+        return 'VALIDATION';
+      case 429:
+        return 'RATE_LIMITED';
+      default:
+        return status >= 500 ? 'SERVER_ERROR' : 'UNKNOWN';
+    }
+  }
+
+  /**
+   * Soporta los dos formatos reales usados actualmente por FastAPI:
+   *
+   * Error de dominio:
+   * { "error": { "code": "...", "message": "..." } }
+   *
+   * Validación de Pydantic/FastAPI:
+   * { "detail": [...] }
+   */
+  private extractMessage(data: BackendDomainError | undefined): string {
+    const domainMessage = data?.error?.message;
+    if (typeof domainMessage === 'string' && domainMessage.trim()) {
+      return this.repairMojibake(domainMessage);
+    }
+
+    if (typeof data?.detail === 'string' && data.detail.trim()) {
+      return this.repairMojibake(data.detail);
+    }
+
+    if (Array.isArray(data?.detail)) {
+      return 'Hay datos inválidos en la solicitud.';
+    }
+
+    if (typeof data?.message === 'string' && data.message.trim()) {
+      return this.repairMojibake(data.message);
+    }
+
+    return 'La solicitud no pudo completarse.';
+  }
+
+  private repairMojibake(message: string): string {
+    const replacements: Record<string, string> = {
+      'Ã¡': 'á',
+      'Ã©': 'é',
+      'Ã­': 'í',
+      'Ã³': 'ó',
+      'Ãº': 'ú',
+      'Ã±': 'ñ',
+      'Ã¼': 'ü',
+      'Ã': 'Á',
+      'Ã‰': 'É',
+      'Ã': 'Í',
+      'Ã“': 'Ó',
+      'Ãš': 'Ú',
+      'Ã‘': 'Ñ',
+      'Â¿': '¿',
+      'Â¡': '¡',
+    };
+
+    return message.replace(/Ã.|Â./g, (value) => replacements[value] ?? value);
+  }
+}
+
+export const apiErrorMapper = new ApiErrorMapper();
+
+/** Helper para código que solo necesita convertir un error. */
+export function toApiError(error: unknown): ApiError {
+  return apiErrorMapper.map(error);
+}
+
+export type ApiErrorPresentation = {
+  title: string;
+  message: string;
+  kind: 'error' | 'offline' | 'forbidden' | 'not-found';
+};
+
+export function presentApiError(error: unknown): ApiErrorPresentation {
+  const apiError = error instanceof ApiError ? error : toApiError(error);
+
+  switch (apiError.code) {
+    case 'FORBIDDEN':
+      return { title: 'Acción no permitida', message: 'No tenés permiso para realizar esta acción.', kind: 'forbidden' };
+    case 'NOT_FOUND':
+      return { title: 'Información no encontrada', message: 'No encontramos la información solicitada.', kind: 'not-found' };
+    case 'CONFLICT':
+      return { title: 'No pudimos realizar la acción', message: apiError.message, kind: 'error' };
+    case 'VALIDATION':
+      return { title: 'Revisá los datos', message: 'Hay datos inválidos. Revisalos e intentá nuevamente.', kind: 'error' };
+    case 'NETWORK_ERROR':
+      return { title: 'Sin conexión', message: 'No fue posible conectarse.', kind: 'offline' };
+    case 'UNAUTHORIZED':
+      return { title: 'Sesión no válida', message: 'Iniciá sesión nuevamente.', kind: 'error' };
+    case 'SERVER_ERROR':
+      return { title: 'No pudimos completar la solicitud', message: 'Intentá nuevamente.', kind: 'error' };
+    default:
+      return { title: 'No pudimos completar la solicitud', message: 'Intentá nuevamente.', kind: 'error' };
+  }
+}

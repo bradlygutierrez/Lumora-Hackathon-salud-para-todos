@@ -1,1 +1,1 @@
-#Frontend creado en Kotlin destinado a android
+#Frontend creado en React Native multiplataforma.
