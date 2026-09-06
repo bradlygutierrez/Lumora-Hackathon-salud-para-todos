@@ -87,7 +87,7 @@ export default function StaffDashboardScreen() {
   const myPatients = useMyPatients();
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
-  const { startTour } = useTourPersistence();
+  const { startTour, endTour } = useTourPersistence();
   const scrollRef = useRef<ScrollView>(null);
   const scrollOffsetRef = useRef(0);
   const canManageRbac = permissions.has('rbac:manage');
@@ -124,7 +124,16 @@ export default function StaffDashboardScreen() {
       : dashboardSteps;
 
     void startTour(steps, { tourId: 'staff-dashboard-tour' });
-  }, [canManageRbac, getCurrentScrollOffset, startTour]);
+
+    // Sin esto, un tour activo cuando la pantalla se desmonta (logout,
+    // sesión expirada -> redirect a login) se queda "vivo" en el contexto
+    // global de TourGuideProvider -- el overlay vive en el root layout, por
+    // encima de TODO el Stack, así que sigue mostrando el tooltip encima de
+    // login o cualquier otra pantalla hasta que el usuario lo cierre.
+    return () => {
+      endTour();
+    };
+  }, [canManageRbac, endTour, getCurrentScrollOffset, startTour]);
   const onRefresh = async () => {
     setRefreshing(true);
     try {

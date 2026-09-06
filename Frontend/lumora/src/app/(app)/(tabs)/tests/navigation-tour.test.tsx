@@ -32,7 +32,7 @@ jest.mock('@wrack/react-native-tour-guide', () => {
         ReactRuntime.createElement(Text, null, `Target:${id}`),
         children,
       ),
-    useTourPersistence: () => ({ startTour: mockStartTour }),
+    useTourPersistence: () => ({ startTour: mockStartTour, endTour: jest.fn() }),
   };
 });
 jest.mock('expo-router', () => {
