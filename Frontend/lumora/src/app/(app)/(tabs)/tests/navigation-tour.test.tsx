@@ -3,7 +3,11 @@ import { render, waitFor } from '@testing-library/react-native';
 import TabsLayout from '@/app/(app)/(tabs)/_layout';
 
 const mockStartTour = jest.fn();
-let mockRole = 'caregiver';
+let mockShellState = {
+  role: 'caregiver',
+  status: 'ready',
+  activePatient: { patientId: 7 } as { patientId: number } | null,
+};
 
 jest.mock('@expo/vector-icons', () => ({ Ionicons: () => null }));
 jest.mock('react-native-safe-area-context', () => ({
@@ -11,8 +15,8 @@ jest.mock('react-native-safe-area-context', () => ({
 }));
 jest.mock('@/features/shell/store/patient-context-store', () => ({
   usePatientContextStore: (
-    selector: (state: { role: string }) => unknown,
-  ) => selector({ role: mockRole }),
+    selector: (state: typeof mockShellState) => unknown,
+  ) => selector(mockShellState),
 }));
 jest.mock('@wrack/react-native-tour-guide', () => {
   const ReactRuntime = jest.requireActual('react') as typeof import('react');
@@ -39,8 +43,19 @@ jest.mock('expo-router', () => {
   const ReactRuntime = jest.requireActual('react') as typeof import('react');
   const { Text } = jest.requireActual('react-native') as typeof import('react-native');
   const Tabs = Object.assign(
-    ({ children }: { children: React.ReactNode }) =>
-      ReactRuntime.createElement(ReactRuntime.Fragment, null, children),
+    ({
+      children,
+      initialRouteName,
+    }: {
+      children: React.ReactNode;
+      initialRouteName: string;
+    }) =>
+      ReactRuntime.createElement(
+        ReactRuntime.Fragment,
+        null,
+        ReactRuntime.createElement(Text, null, `Initial:${initialRouteName}`),
+        children,
+      ),
     {
       Screen: ({
         name,
@@ -66,7 +81,11 @@ jest.mock('expo-router', () => {
 describe('Lumora navigation tour', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockRole = 'caregiver';
+    mockShellState = {
+      role: 'caregiver',
+      status: 'ready',
+      activePatient: { patientId: 7 },
+    };
   });
 
   it('registers every main tab and starts the caregiver tour', async () => {
@@ -95,9 +114,25 @@ describe('Lumora navigation tour', () => {
   });
 
   it('does not start the caregiver tour for a patient', async () => {
-    mockRole = 'patient';
+    mockShellState = {
+      role: 'patient',
+      status: 'ready',
+      activePatient: { patientId: 7 },
+    };
     await render(<TabsLayout />);
 
     expect(mockStartTour).not.toHaveBeenCalled();
+  });
+
+  it('does not start the caregiver tour before selecting a patient', async () => {
+    mockShellState = {
+      role: 'caregiver',
+      status: 'needs-patient',
+      activePatient: null,
+    };
+    const screen = await render(<TabsLayout />);
+
+    expect(mockStartTour).not.toHaveBeenCalled();
+    expect(screen.getByText('Initial:profile')).toBeTruthy();
   });
 });

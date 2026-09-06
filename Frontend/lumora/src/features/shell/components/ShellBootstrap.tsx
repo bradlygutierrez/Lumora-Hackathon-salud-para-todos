@@ -4,6 +4,7 @@ import type {
 
 import {
   useEffect,
+  useState,
 } from 'react';
 
 import {
@@ -33,6 +34,9 @@ import {
 export function ShellBootstrap({
   children,
 }: PropsWithChildren) {
+  const [isShellReady, setIsShellReady] =
+    useState(false);
+
   const authStatus = useAuthStore(
     (state) => state.status,
   );
@@ -99,6 +103,10 @@ export function ShellBootstrap({
           .setError(
             'No fue posible preparar el contexto de la aplicación.',
           );
+      } finally {
+        if (!cancelled) {
+          setIsShellReady(true);
+        }
       }
     };
 
@@ -111,5 +119,5 @@ export function ShellBootstrap({
     authStatus,
   ]);
 
-  return children;
+  return isShellReady ? children : null;
 }
