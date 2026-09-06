@@ -1,6 +1,12 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useEffect } from 'react';
+import type { ColorValue } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  TourTarget,
+  useTourPersistence,
+} from '@wrack/react-native-tour-guide';
 
 import {
   PatientContextBanner,
@@ -9,6 +15,57 @@ import {
 import {
   usePatientContextStore,
 } from '@/features/shell/store/patient-context-store';
+
+const CAREGIVER_NAVIGATION_TOUR_STEPS = [
+  {
+    id: 'navigation-home',
+    targetId: 'tour-tab-home',
+    title: 'Inicio',
+    description: 'Volvé al resumen del paciente activo desde cualquier sección.',
+  },
+  {
+    id: 'navigation-health',
+    targetId: 'tour-tab-health',
+    title: 'Paciente',
+    description: 'Consultá la salud, indicadores y expediente del paciente seleccionado.',
+  },
+  {
+    id: 'navigation-medication',
+    targetId: 'tour-tab-medication',
+    title: 'Medicación',
+    description: 'Revisá medicamentos, dosis y recordatorios del paciente activo.',
+  },
+  {
+    id: 'navigation-appointments',
+    targetId: 'tour-tab-appointments',
+    title: 'Citas',
+    description: 'Consultá y gestioná las citas del paciente seleccionado.',
+  },
+  {
+    id: 'navigation-profile',
+    targetId: 'tour-tab-profile',
+    title: 'Perfil',
+    description: 'Cambiá de paciente y administrá tu cuenta, permisos y seguridad.',
+  },
+];
+
+function TourTabIcon({
+  id,
+  name,
+  color,
+  size,
+}: {
+  id: string;
+  name: keyof typeof Ionicons.glyphMap;
+  color: ColorValue;
+  size: number;
+}) {
+  return (
+    <TourTarget id={id}>
+      <Ionicons name={name} size={size} color={color} />
+    </TourTarget>
+  );
+}
 
 /**
  * Shell principal de Lumora.
@@ -24,9 +81,18 @@ import {
  */
 export default function TabsLayout() {
   const insets = useSafeAreaInsets();
+  const { startTour } = useTourPersistence();
   const role = usePatientContextStore(
     (state) => state.role,
   );
+
+  useEffect(() => {
+    if (role === 'caregiver') {
+      void startTour(CAREGIVER_NAVIGATION_TOUR_STEPS, {
+        tourId: 'caregiver-navigation-tour',
+      });
+    }
+  }, [role, startTour]);
 
   const healthLabel =
     role === 'caregiver'
@@ -71,7 +137,8 @@ export default function TabsLayout() {
             color,
             size,
           }) => (
-            <Ionicons
+            <TourTabIcon
+              id="tour-tab-home"
               name="home-outline"
               size={size}
               color={color}
@@ -88,12 +155,13 @@ export default function TabsLayout() {
             color,
             size,
           }) => (
-            <Ionicons
+            <TourTabIcon
               name={
                 role === 'caregiver'
                   ? 'person-circle-outline'
                   : 'heart-outline'
               }
+              id="tour-tab-health"
               size={size}
               color={color}
             />
@@ -109,7 +177,8 @@ export default function TabsLayout() {
             color,
             size,
           }) => (
-            <Ionicons
+            <TourTabIcon
+              id="tour-tab-medication"
               name="medical-outline"
               size={size}
               color={color}
@@ -126,7 +195,8 @@ export default function TabsLayout() {
             color,
             size,
           }) => (
-            <Ionicons
+            <TourTabIcon
+              id="tour-tab-appointments"
               name="calendar-outline"
               size={size}
               color={color}
@@ -143,7 +213,8 @@ export default function TabsLayout() {
             color,
             size,
           }) => (
-            <Ionicons
+            <TourTabIcon
+              id="tour-tab-profile"
               name="person-outline"
               size={size}
               color={color}

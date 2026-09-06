@@ -1,9 +1,18 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { TourTarget, useTourPersistence } from '@wrack/react-native-tour-guide';
 import { type Href, useRouter } from 'expo-router';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+} from 'react-native';
 
 import { useProfessionalAgenda } from '@/src/features/appointments/hooks/use-appointments';
 import { formatWorkspaceDateTime } from '@/src/features/appointments/utils/workspace-date-time';
@@ -38,17 +47,60 @@ const DASHBOARD_TOUR_STEPS = [
     title: 'Próximas citas',
     description: 'Tus próximas citas publicadas aparecen acá, con acceso directo al paciente.',
   },
+  {
+    id: 'navigation-patients',
+    targetId: 'tour-tab-patients',
+    title: 'Pacientes',
+    description: 'Buscá pacientes vinculados y abrí sus expedientes clínicos.',
+  },
+  {
+    id: 'navigation-agenda',
+    targetId: 'tour-tab-agenda',
+    title: 'Agenda',
+    description: 'Consultá tus citas y abrí el detalle de cada atención.',
+  },
+  {
+    id: 'navigation-directory',
+    targetId: 'tour-tab-directory',
+    title: 'Personal',
+    description: 'Consultá el directorio de profesionales autorizados.',
+  },
+  {
+    id: 'navigation-profile',
+    targetId: 'tour-tab-profile',
+    title: 'Ajustes',
+    description: 'Actualizá tu perfil y administrá la seguridad de tu cuenta.',
+  },
 ];
+
+const ADMINISTRATION_TOUR_STEP = {
+  id: 'navigation-administration',
+  targetId: 'tour-tab-administration',
+  title: 'Administración',
+  description: 'Gestioná roles y permisos cuando tu cuenta tenga autorización.',
+};
 
 export default function StaffDashboardScreen() {
   const router = useRouter();
-  const { session } = useAuthSession();
+  const { permissions, session } = useAuthSession();
   const agenda = useProfessionalAgenda();
   const myPatients = useMyPatients();
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
   const { startTour } = useTourPersistence();
   const scrollRef = useRef<ScrollView>(null);
+  const scrollOffsetRef = useRef(0);
+  const canManageRbac = permissions.has('rbac:manage');
+  const onScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      scrollOffsetRef.current = event.nativeEvent.contentOffset.y;
+    },
+    [],
+  );
+  const getCurrentScrollOffset = useCallback(
+    () => scrollOffsetRef.current,
+    [],
+  );
 
   useEffect(() => {
     // scrollRef es necesario para que el tour desplace la pantalla cuando
@@ -56,8 +108,23 @@ export default function StaffDashboardScreen() {
     // viewport inicial -- sin esto, el tooltip se posiciona igual pero la
     // pantalla nunca se desplaza para mostrar la sección real, quedando
     // desfasado.
-    startTour(DASHBOARD_TOUR_STEPS, { tourId: 'staff-dashboard-tour', scrollRef });
-  }, [startTour]);
+    const dashboardSteps = DASHBOARD_TOUR_STEPS.map((step) =>
+      step.targetId.startsWith('tour-tab-')
+        ? step
+        : {
+            ...step,
+            scrollToTarget: {
+              scrollRef,
+              getCurrentScrollOffset,
+            },
+          },
+    );
+    const steps = canManageRbac
+      ? [...dashboardSteps, ADMINISTRATION_TOUR_STEP]
+      : dashboardSteps;
+
+    void startTour(steps, { tourId: 'staff-dashboard-tour' });
+  }, [canManageRbac, getCurrentScrollOffset, startTour]);
   const onRefresh = async () => {
     setRefreshing(true);
     try {
@@ -89,7 +156,10 @@ export default function StaffDashboardScreen() {
       <ScrollView
         ref={scrollRef}
         contentContainerStyle={styles.content}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
+        testID="staff-dashboard-scroll"
         refreshControl={
           <RefreshControl
             onRefresh={() => void onRefresh()}
