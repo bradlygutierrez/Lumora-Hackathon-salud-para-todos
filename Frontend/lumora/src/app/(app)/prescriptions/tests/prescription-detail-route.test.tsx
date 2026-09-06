@@ -10,6 +10,18 @@ const mockShowFeedback = jest.fn();
 const mockMutate = jest.fn();
 const mockPush = jest.fn();
 
+// Este archivo solo importa la CLASE de error de prescription-pdf.ts, pero
+// ese módulo hace `import * as FileSystem from 'expo-file-system/legacy'`
+// al cargarse -- sin mockearlo (como módulo REAL, no { virtual: true }: el
+// paquete ya está instalado), carga el mock nativo global de jest-expo, que
+// da `documentDirectory: ''` (string vacío) y contaminaba de forma
+// intermitente los tests de prescription-pdf.test.ts cuando corrían
+// después en el mismo proceso (--runInBand).
+jest.mock('expo-file-system/legacy', () => ({
+  documentDirectory: 'file:///docs/',
+  downloadAsync: jest.fn(),
+}));
+
 jest.mock('expo-router', () => ({
   useLocalSearchParams: () => mockUseLocalSearchParams(),
   useRouter: () => mockUseRouter(),
