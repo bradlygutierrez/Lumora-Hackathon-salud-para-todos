@@ -24,8 +24,7 @@ export function useAppointmentTypes() {
     ) =>
       page.items,
 
-    staleTime:
-      5 * 60_000,
+    staleTime: 0,
   });
 }
 
@@ -38,7 +37,6 @@ export function useAppointmentLocations() {
     queryFn: () =>
       appointmentsApi.locations(),
 
-    staleTime:
-      5 * 60_000,
+    staleTime: 0,
   });
 }

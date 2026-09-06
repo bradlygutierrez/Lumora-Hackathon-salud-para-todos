@@ -4,7 +4,7 @@ from sqlalchemy import select, union
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from lumora_api.models import Cita, ConsultaMedica, HorarioProfesional, Paciente, Persona
+from lumora_api.models import Cita, ConsultaMedica, HorarioProfesional, Paciente, Persona, UbicacionAtencion
 
 
 class ProfessionalWorkspaceRepository:
@@ -72,6 +72,30 @@ class ProfessionalWorkspaceRepository:
         return item
 
     async def delete_schedule(self, item: HorarioProfesional) -> None:
+        await self.session.delete(item)
+        await self.session.commit()
+
+    async def get_location(self, professional_id: int) -> UbicacionAtencion | None:
+        return await self.session.scalar(
+            select(UbicacionAtencion).where(
+                UbicacionAtencion.profesional_id == professional_id
+            )
+        )
+
+    async def upsert_location(
+        self, professional_id: int, values: dict, item: UbicacionAtencion | None
+    ) -> UbicacionAtencion:
+        if item is None:
+            item = UbicacionAtencion(profesional_id=professional_id, **values)
+            self.session.add(item)
+        else:
+            for field, value in values.items():
+                setattr(item, field, value)
+        await self.session.commit()
+        await self.session.refresh(item)
+        return item
+
+    async def delete_location(self, item: UbicacionAtencion) -> None:
         await self.session.delete(item)
         await self.session.commit()
 

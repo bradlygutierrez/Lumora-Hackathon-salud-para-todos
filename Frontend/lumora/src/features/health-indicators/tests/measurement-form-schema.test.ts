@@ -29,6 +29,15 @@ describe('measurementFormSchema (validación numérica y límites del formulario
     expect(result.success).toBe(false);
   });
 
+  it('rejects values longer than 10 characters', () => {
+    const result = measurementFormSchema.safeParse({
+      valor: '12345678901',
+      origen: 'Manual',
+    });
+
+    expect(result.success).toBe(false);
+  });
+
   it('rejects zero and negative values (un indicador no puede medir 0 o menos)', () => {
     expect(
       measurementFormSchema.safeParse({ valor: '0', origen: 'Manual' }).success,

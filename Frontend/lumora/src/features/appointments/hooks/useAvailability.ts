@@ -47,7 +47,6 @@ export function useAvailability(
       );
     },
 
-    staleTime:
-      15_000,
+    staleTime: 0,
   });
 }

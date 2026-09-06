@@ -5,6 +5,15 @@ import { useEffect, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import {
+  useLocationMutations,
+  useMyLocation,
+} from '@/src/features/appointments/hooks/use-appointments';
+import {
+  locationSchema,
+  type LocationForm,
+  type LocationFormInput,
+} from '@/src/features/appointments/schemas/location.schema';
 import { toApiError } from '@/src/shared/api/api-error';
 import { Button } from '@/src/shared/components/Button';
 import { AppTopBar } from '@/src/shared/components/AppTopBar';
@@ -220,8 +229,135 @@ export function EditProfileScreen() {
         <Button disabled={busy} onPress={() => router.back()} variant="secondary">
           Cancelar
         </Button>
+
+        <ConsultationAddressSection />
       </ScrollView>
     </Screen>
+  );
+}
+
+function ConsultationAddressSection() {
+  const location = useMyLocation();
+  const mutations = useLocationMutations();
+  const loadedLocationId = useRef<number | null>(null);
+
+  const {
+    control,
+    formState: { errors },
+    handleSubmit,
+    reset,
+  } = useForm<LocationFormInput, unknown, LocationForm>({
+    resolver: zodResolver(locationSchema),
+    defaultValues: { nombre: '', direccion: '', consultorio: '' },
+  });
+
+  useEffect(() => {
+    if (!location.data) {
+      if (loadedLocationId.current !== null) {
+        loadedLocationId.current = null;
+        reset({ nombre: '', direccion: '', consultorio: '' });
+      }
+      return;
+    }
+    if (loadedLocationId.current === location.data.id) {
+      return;
+    }
+    loadedLocationId.current = location.data.id;
+    reset({
+      nombre: location.data.nombre,
+      direccion: location.data.direccion,
+      consultorio: location.data.consultorio ?? '',
+    });
+  }, [location.data, reset]);
+
+  const busy = mutations.save.isPending || mutations.remove.isPending;
+
+  const onSubmit = handleSubmit((values) => {
+    mutations.save.mutate({
+      nombre: values.nombre,
+      direccion: values.direccion,
+      consultorio: values.consultorio || null,
+    });
+  });
+
+  if (location.isLoading) {
+    return null;
+  }
+
+  return (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>Dirección de consulta</Text>
+      <Text style={styles.sectionSubtitle}>
+        Esta dirección aparece a tus pacientes al agendar una cita contigo.
+      </Text>
+
+      <Controller
+        control={control}
+        name="nombre"
+        render={({ field }) => (
+          <TextField
+            accessibilityLabel="Nombre del consultorio"
+            error={errors.nombre?.message}
+            label="Nombre del consultorio"
+            onBlur={field.onBlur}
+            onChangeText={field.onChange}
+            value={field.value}
+          />
+        )}
+      />
+      <Controller
+        control={control}
+        name="direccion"
+        render={({ field }) => (
+          <TextField
+            accessibilityLabel="Dirección"
+            error={errors.direccion?.message}
+            label="Dirección"
+            onBlur={field.onBlur}
+            onChangeText={field.onChange}
+            value={field.value}
+          />
+        )}
+      />
+      <Controller
+        control={control}
+        name="consultorio"
+        render={({ field }) => (
+          <TextField
+            accessibilityLabel="Consultorio o piso (opcional)"
+            label="Consultorio o piso (opcional)"
+            onBlur={field.onBlur}
+            onChangeText={field.onChange}
+            value={field.value}
+          />
+        )}
+      />
+
+      {mutations.save.error ? (
+        <View accessibilityRole="alert" style={styles.errorBox}>
+          <Text style={styles.errorText}>{errorMessage(mutations.save.error)}</Text>
+        </View>
+      ) : null}
+      {mutations.remove.error ? (
+        <View accessibilityRole="alert" style={styles.errorBox}>
+          <Text style={styles.errorText}>{errorMessage(mutations.remove.error)}</Text>
+        </View>
+      ) : null}
+
+      <Button disabled={busy} icon="save-outline" loading={mutations.save.isPending} onPress={onSubmit}>
+        Guardar dirección
+      </Button>
+      {location.data ? (
+        <Button
+          disabled={busy}
+          loading={mutations.remove.isPending}
+          onPress={() => mutations.remove.mutate()}
+          variant="secondary"
+        >
+          Quitar dirección
+        </Button>
+      ) : null}
+    </View>
   );
 }
 
@@ -259,5 +395,22 @@ const styles = StyleSheet.create({
     color: theme.color.dangerText,
     fontSize: 13,
     fontWeight: '700',
+  },
+  section: {
+    borderTopColor: theme.color.softBorder,
+    borderTopWidth: 1,
+    gap: theme.spacing.md,
+    marginTop: theme.spacing.md,
+    paddingTop: theme.spacing.lg,
+  },
+  sectionTitle: {
+    color: theme.color.text,
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  sectionSubtitle: {
+    color: theme.color.mutedText,
+    fontSize: theme.typography.caption,
+    marginTop: -theme.spacing.sm,
   },
 });

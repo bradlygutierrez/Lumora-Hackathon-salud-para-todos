@@ -575,7 +575,7 @@ describe(
      * aparecer dentro del Plan de Hoy.
      */
     it(
-      'excludes prescriptions that are not active',
+      'keeps non-active prescriptions visible outside today plan',
       async () => {
         (
           prescriptionsApi
@@ -670,6 +670,102 @@ describe(
           result.current
             .plan.totalCount,
         ).toBe(0);
+
+        expect(
+          result.current
+            .prescriptions[0],
+        ).toMatchObject({
+          id: 'receta-vencida',
+          titulo: 'Tratamiento viejo',
+        });
+      },
+    );
+
+    it(
+      'keeps an active prescription visible when it has no schedules yet',
+      async () => {
+        (
+          schedulesApi
+            .getHorarios as jest.Mock
+        ).mockResolvedValue([]);
+
+        const client =
+          createTestQueryClient();
+
+        const {
+          result,
+        } =
+          await renderHook(
+            () =>
+              useTodayMedicationPlan(),
+            {
+              wrapper:
+                createQueryWrapper(
+                  client,
+                ),
+            },
+          );
+
+        await waitFor(
+          () =>
+            expect(
+              result.current
+                .isLoading,
+            ).toBe(false),
+        );
+
+        expect(
+          result.current
+            .plan.totalCount,
+        ).toBe(0);
+
+        expect(
+          result.current
+            .prescriptions[0],
+        ).toMatchObject({
+          id: 'receta-1',
+          titulo: 'Tratamiento',
+        });
+      },
+    );
+
+    it(
+      'does not reuse schedules from a different prescription',
+      async () => {
+        const client =
+          createTestQueryClient();
+
+        const {
+          result,
+        } =
+          await renderHook(
+            () =>
+              useTodayMedicationPlan('receta-2'),
+            {
+              wrapper:
+                createQueryWrapper(
+                  client,
+                ),
+            },
+          );
+
+        await waitFor(
+          () =>
+            expect(
+              result.current
+                .isLoading,
+            ).toBe(false),
+        );
+
+        expect(
+          result.current
+            .plan.totalCount,
+        ).toBe(0);
+
+        expect(
+          schedulesApi
+            .getHorarios,
+        ).not.toHaveBeenCalled();
       },
     );
   },

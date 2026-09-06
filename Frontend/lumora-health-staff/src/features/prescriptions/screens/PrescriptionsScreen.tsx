@@ -1,12 +1,13 @@
 import { type Href, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useAuthSession } from '@/src/features/auth/hooks/use-auth-session';
 import { Button } from '@/src/shared/components/Button';
 import { EmptyState, ErrorState, LoadingState } from '@/src/shared/components/RemoteState';
 import { Screen } from '@/src/shared/components/Screen';
 import { theme } from '@/src/shared/constants/theme';
+import { usePullToRefresh } from '@/src/shared/hooks/use-pull-to-refresh';
 import {
   usePatientPrescriptions,
   usePrescriptionStatuses,
@@ -38,6 +39,7 @@ export function PrescriptionsScreen({
   const [tab, setTab] = useState<Tab>('active');
   const prescriptions = usePatientPrescriptions(patientId, allowed);
   const statuses = usePrescriptionStatuses(allowed);
+  const { refreshing, onRefresh } = usePullToRefresh();
 
   const activeStatus = useMemo(
     () =>
@@ -88,7 +90,12 @@ export function PrescriptionsScreen({
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} style={styles.scroll}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        style={styles.scroll}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      >
         <View style={styles.header}>
           <Button icon="arrow-back" onPress={() => router.back()} variant="ghost">
             Volver

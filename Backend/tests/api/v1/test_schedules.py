@@ -78,9 +78,11 @@ async def test_only_staff_can_create_horario(client, session_factory):
 
     response = await client.post(
         f"/api/v1/recetas/{detalle_id}/horarios",
-        # detalle_receta_id se sobrescribe con el de la URL; el router lo
-        # necesita en el body igual porque el schema lo declara requerido.
-        json={"hora": "08:00:00", "detalle_receta_id": detalle_id},
+        # detalle_receta_id NO va en el body -- lo toma del path, igual que
+        # manda el cliente real de HealthStaff (ver
+        # test_staff_can_create_and_list_horario para la regresión de este
+        # caso: mandarlo era obligatorio antes y provocaba un 422).
+        json={"hora": "08:00:00"},
         headers=headers,
     )
     assert response.status_code == 403
@@ -91,13 +93,28 @@ async def test_staff_can_create_and_list_horario(client, session_factory):
     detalle_id = await _receta_with_detalle(session_factory)
     headers = await _staff_headers(client, session_factory)
 
+    # HealthStaff nunca manda detalle_receta_id en el body (lo toma del
+    # path) -- HorarioMedicamentoCreate.detalle_receta_id debe ser
+    # opcional o esto responde 422 en vez de 201.
     created = await client.post(
         f"/api/v1/recetas/{detalle_id}/horarios",
-        json={"hora": "08:00:00", "detalle_receta_id": detalle_id},
+        json={"hora": "08:00:00"},
         headers=headers,
     )
     assert created.status_code == 201
+    assert created.json()["detalle_receta_id"] == detalle_id
 
     listed = await client.get(f"/api/v1/recetas/{detalle_id}/horarios", headers=headers)
     assert listed.status_code == 200
     assert len(listed.json()) == 1
+
+    # Si un caller SÍ lo manda en el body, se ignora y se usa el del path
+    # de todas formas (no hay forma de crear un horario "ajeno" a otra
+    # receta por esta vía).
+    with_body_id = await client.post(
+        f"/api/v1/recetas/{detalle_id}/horarios",
+        json={"hora": "09:00:00", "detalle_receta_id": "otra-receta-cualquiera"},
+        headers=headers,
+    )
+    assert with_body_id.status_code == 201
+    assert with_body_id.json()["detalle_receta_id"] == detalle_id

@@ -1,5 +1,4 @@
 import {
-  useEffect,
   useMemo,
   useState,
 } from 'react';
@@ -118,18 +117,27 @@ export function AppointmentCalendar({
         ),
     );
 
-  useEffect(
-    () => {
-      setMonth(
-        dateKeyToDate(
-          selectedDate,
-        ),
-      );
-    },
-    [
+  const [
+    previousSelectedDate,
+    setPreviousSelectedDate,
+  ] =
+    useState(
       selectedDate,
-    ],
-  );
+    );
+
+  if (
+    previousSelectedDate !==
+    selectedDate
+  ) {
+    setPreviousSelectedDate(
+      selectedDate,
+    );
+    setMonth(
+      dateKeyToDate(
+        selectedDate,
+      ),
+    );
+  }
 
   const cells =
     useMemo(
@@ -233,70 +241,91 @@ export function AppointmentCalendar({
         )}
       </View>
 
-      <View className="flex-row flex-wrap">
-        {cells.map(
-          (
-            cell,
-          ) => {
-            const selected =
-              cell.key ===
-              selectedDate;
-
-            const disabled =
-              !cell.inMonth ||
-              isPastDateKey(
-                cell.key,
-              );
-
-            return (
-              <View
-                key={
-                  cell.key
-                }
-                className="w-[14.2857%] items-center py-1"
-              >
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={`Seleccionar ${cell.key}`}
-                  accessibilityState={{
-                    selected,
-                    disabled,
-                  }}
-                  disabled={
-                    disabled
-                  }
-                  onPress={() =>
-                    onSelectDate(
-                      cell.key,
-                    )
-                  }
-                  className="h-10 w-10 items-center justify-center rounded-full"
-                  style={{
-                    backgroundColor:
-                      selected
-                        ? '#007B7F'
-                        : 'transparent',
-                    opacity:
-                      disabled
-                        ? 0.28
-                        : 1,
-                  }}
-                >
-                  <Text
-                    className="text-sm font-medium"
-                    style={{
-                      color:
-                        selected
-                          ? '#FFFFFF'
-                          : '#2E363B',
-                    }}
-                  >
-                    {cell.day}
-                  </Text>
-                </Pressable>
-              </View>
-            );
+      <View>
+        {Array.from(
+          {
+            length: 6,
           },
+          (
+            _,
+            weekIndex,
+          ) => (
+            <View
+              key={weekIndex}
+              testID="appointment-calendar-week"
+              className="flex-row"
+            >
+              {cells
+                .slice(
+                  weekIndex * 7,
+                  weekIndex * 7 + 7,
+                )
+                .map(
+                  (
+                    cell,
+                  ) => {
+                    const selected =
+                      cell.key ===
+                      selectedDate;
+
+                    const disabled =
+                      !cell.inMonth ||
+                      isPastDateKey(
+                        cell.key,
+                      );
+
+                    return (
+                      <View
+                        key={
+                          cell.key
+                        }
+                        className="flex-1 items-center py-1"
+                      >
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel={`Seleccionar ${cell.key}`}
+                          accessibilityState={{
+                            selected,
+                            disabled,
+                          }}
+                          disabled={
+                            disabled
+                          }
+                          onPress={() =>
+                            onSelectDate(
+                              cell.key,
+                            )
+                          }
+                          className="h-10 w-10 items-center justify-center rounded-full"
+                          style={{
+                            backgroundColor:
+                              selected
+                                ? '#007B7F'
+                                : 'transparent',
+                            opacity:
+                              disabled
+                                ? 0.28
+                                : 1,
+                          }}
+                        >
+                          <Text
+                            className="text-sm font-medium"
+                            style={{
+                              color:
+                                selected
+                                  ? '#FFFFFF'
+                                  : '#2E363B',
+                            }}
+                          >
+                            {cell.day}
+                          </Text>
+                        </Pressable>
+                      </View>
+                    );
+                  },
+                )}
+            </View>
+          ),
         )}
       </View>
     </View>

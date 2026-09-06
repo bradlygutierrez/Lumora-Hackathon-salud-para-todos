@@ -5,9 +5,20 @@ import { EditProfileScreen } from '../screens/EditProfileScreen';
 const mockUseAccountProfile = jest.fn();
 const mockUpdateMutate = jest.fn();
 const mockBack = jest.fn();
+const mockUseMyLocation = jest.fn();
+const mockSaveLocationMutate = jest.fn();
+const mockRemoveLocationMutate = jest.fn();
 
 jest.mock('../hooks/use-account', () => ({
   useAccountProfile: () => mockUseAccountProfile(),
+}));
+
+jest.mock('@/src/features/appointments/hooks/use-appointments', () => ({
+  useMyLocation: () => mockUseMyLocation(),
+  useLocationMutations: () => ({
+    save: { mutate: mockSaveLocationMutate, isPending: false, error: null },
+    remove: { mutate: mockRemoveLocationMutate, isPending: false, error: null },
+  }),
 }));
 
 jest.mock('expo-router', () => ({
@@ -63,6 +74,7 @@ describe('EditProfileScreen', () => {
       uploadImage: { mutate: jest.fn(), isPending: false },
       deleteImage: { mutate: jest.fn(), isPending: false },
     });
+    mockUseMyLocation.mockReturnValue({ data: null, isLoading: false });
   });
 
   it('pre-fills the form with the account data', async () => {

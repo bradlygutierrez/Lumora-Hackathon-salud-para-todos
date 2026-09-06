@@ -9,6 +9,7 @@ import { ChoiceField } from '@/src/features/patients/components/ChoiceField';
 import { useCurrentProfessional } from '@/src/features/profile/hooks/use-professionals';
 import { toApiError } from '@/src/shared/api/api-error';
 import { Button } from '@/src/shared/components/Button';
+import { DateField } from '@/src/shared/components/DateField';
 import { EmptyState, ErrorState, LoadingState } from '@/src/shared/components/RemoteState';
 import { Screen } from '@/src/shared/components/Screen';
 import { TextField } from '@/src/shared/components/TextField';
@@ -346,13 +347,10 @@ export function PrescriptionDetailScreen({
                 control={headerForm.control}
                 name="vigencia_hasta"
                 render={({ field }) => (
-                  <TextField
-                    accessibilityLabel="Vigencia de receta"
+                  <DateField
                     error={headerForm.formState.errors.vigencia_hasta?.message}
                     label="Vigencia hasta"
-                    onBlur={field.onBlur}
-                    onChangeText={field.onChange}
-                    placeholder="AAAA-MM-DD"
+                    onChange={field.onChange}
                     value={field.value}
                   />
                 )}
@@ -588,8 +586,6 @@ export function PrescriptionDetailScreen({
   );
 }
 
-const HORA_PATTERN = /^\d{2}:\d{2}$/;
-
 function MedicationSchedules({ canEdit, detailId }: { canEdit: boolean; detailId: string }) {
   const schedules = useMedicationSchedules(detailId);
   const createSchedule = useCreateMedicationSchedule(detailId);
@@ -598,14 +594,13 @@ function MedicationSchedules({ canEdit, detailId }: { canEdit: boolean; detailId
   const [error, setError] = useState<string | null>(null);
 
   const addSchedule = async () => {
-    const trimmed = hora.trim();
-    if (!HORA_PATTERN.test(trimmed)) {
-      setError('Usá el formato HH:MM, ej. 08:00');
+    if (!hora) {
+      setError('Seleccioná una hora');
       return;
     }
     setError(null);
     try {
-      await createSchedule.mutateAsync({ hora: `${trimmed}:00` });
+      await createSchedule.mutateAsync({ hora });
       setHora('');
     } catch (err) {
       setError(toApiError(err).message);
@@ -641,13 +636,12 @@ function MedicationSchedules({ canEdit, detailId }: { canEdit: boolean; detailId
       ))}
       {canEdit ? (
         <View style={styles.scheduleForm}>
-          <TextField
-            accessibilityLabel="Nueva hora de toma"
+          <DateField
             error={error ?? undefined}
-            label="Agregar hora (HH:MM)"
-            onChangeText={setHora}
-            placeholder="08:00"
-            value={hora}
+            label="Agregar hora de toma"
+            mode="time"
+            onChange={setHora}
+            value={hora || null}
           />
           <Button
             disabled={createSchedule.isPending}

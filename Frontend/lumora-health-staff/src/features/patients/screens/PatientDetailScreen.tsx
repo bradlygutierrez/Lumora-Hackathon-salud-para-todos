@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { type Href, useRouter } from 'expo-router';
 import { useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useNextPatientAppointment } from '@/src/features/appointments/hooks/use-appointments';
 import { formatWorkspaceDateTime } from '@/src/features/appointments/utils/workspace-date-time';
@@ -21,6 +21,7 @@ import {
 } from '@/src/shared/components/RemoteState';
 import { Screen } from '@/src/shared/components/Screen';
 import { theme } from '@/src/shared/constants/theme';
+import { usePullToRefresh } from '@/src/shared/hooks/use-pull-to-refresh';
 import { useMyPatients } from '../hooks/use-my-patients';
 import { usePatient, usePatientCatalogs } from '../hooks/use-patients';
 import {
@@ -49,6 +50,7 @@ export function PatientDetailScreen({ patientId }: Props) {
   const nextAppointment = useNextPatientAppointment(patientId);
   const measurements = usePatientMeasurements(patientId);
   const measurementCatalogs = useMeasurementCatalogs();
+  const { refreshing, onRefresh } = usePullToRefresh();
 
   const richSummary = clinicalSummary.data;
   const latestMeasurements = useMemo(
@@ -116,11 +118,12 @@ export function PatientDetailScreen({ patientId }: Props) {
   const allergies = richSummary?.alergias ?? [];
 
   return (
-    <Screen>
+    <Screen tint="patients">
       <AppTopBar />
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         <View style={styles.topRow}>
           <Button

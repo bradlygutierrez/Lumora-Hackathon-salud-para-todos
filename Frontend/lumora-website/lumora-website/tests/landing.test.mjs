@@ -72,3 +72,12 @@ test('W01 convierte la web en portal interno y mantiene el backend como fuente d
   assert.match(styles, /@media \(max-width: 640px\)/)
   assert.match(styles, /\.portal-dialog::backdrop/)
 })
+
+test('ofrece la descarga de ambas aplicaciones Android', async () => {
+  const contact = await read('../src/components/Contact.ts')
+
+  assert.match(contact, /releases\/latest\/download\/Lumora\.apk/)
+  assert.match(contact, /releases\/latest\/download\/LumoraHealthStaff\.apk/)
+  assert.match(contact, /Descargar Lumora Médicos/)
+  assert.doesNotMatch(contact, /Descargar próximamente/)
+})

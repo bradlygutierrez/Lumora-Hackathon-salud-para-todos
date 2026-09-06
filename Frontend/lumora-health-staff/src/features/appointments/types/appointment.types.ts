@@ -12,6 +12,14 @@ export type AppointmentLocation = {
   longitud: number | null;
 };
 
+export type AppointmentLocationPayload = {
+  nombre: string;
+  direccion: string;
+  consultorio?: string | null;
+  latitud?: number | null;
+  longitud?: number | null;
+};
+
 export type ProfessionalAgendaItem = {
   id: number;
   paciente_id: number;

@@ -18,7 +18,7 @@ class QueryClientManager {
     return {
       defaultOptions: {
         queries: {
-          staleTime: 30_000,
+          staleTime: 0,
           refetchOnMount: 'always',
           refetchOnReconnect: true,
           retry: this.shouldRetryQuery,

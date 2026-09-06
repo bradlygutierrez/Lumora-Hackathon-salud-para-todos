@@ -26,7 +26,6 @@ export function useProfessionals(
         filters,
       ),
 
-    staleTime:
-      60_000,
+    staleTime: 0,
   });
 }

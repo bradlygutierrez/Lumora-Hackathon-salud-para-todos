@@ -5,6 +5,7 @@ import { Pressable, Text, View } from 'react-native';
 
 import type { IndicatorWithRange } from '@/features/health-indicators/types/health-indicators.types';
 import {
+  MAX_MEASUREMENT_VALUE_LENGTH,
   measurementFormSchema,
   type MeasurementFormValues,
 } from '@/features/health-indicators/utils/measurement-form-schema';
@@ -101,6 +102,7 @@ export function MeasurementForm({
         label={`Valor (${unidadNombre})`}
         placeholder="0"
         keyboardType="decimal-pad"
+        maxLength={MAX_MEASUREMENT_VALUE_LENGTH}
       />
 
       <View className="gap-1">

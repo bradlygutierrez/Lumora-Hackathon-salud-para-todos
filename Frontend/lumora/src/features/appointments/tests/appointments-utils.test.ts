@@ -4,6 +4,7 @@ import type {
 
 import {
   canManageAppointment,
+  isFutureAppointmentStart,
   isPhysicalAppointmentType,
   requirePatientId,
   splitAppointments,
@@ -158,6 +159,30 @@ describe(
         ).toBe(
           false,
         );
+      },
+    );
+
+    it(
+      'rechaza horarios de cita que ya comenzaron',
+      () => {
+        const now =
+          new Date(
+            '2026-09-05T15:00:00Z',
+          );
+
+        expect(
+          isFutureAppointmentStart(
+            '2026-09-05T14:59:59Z',
+            now,
+          ),
+        ).toBe(false);
+
+        expect(
+          isFutureAppointmentStart(
+            '2026-09-05T15:00:01Z',
+            now,
+          ),
+        ).toBe(true);
       },
     );
 

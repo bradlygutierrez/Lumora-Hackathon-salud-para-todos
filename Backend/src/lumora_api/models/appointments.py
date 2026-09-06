@@ -49,6 +49,13 @@ class UbicacionAtencion(Base):
     latitud: Mapped[float | None] = mapped_column(nullable=True)
     longitud: Mapped[float | None] = mapped_column(nullable=True)
     activo: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+    # Ubicaciones sin dueño (NULL) son consultorios compartidos/administrados
+    # (p. ej. sedes de la clínica); una fila con profesional_id es la
+    # dirección de consulta propia de ESE profesional -- unique porque cada
+    # profesional gestiona una sola dirección desde su perfil.
+    profesional_id: Mapped[int | None] = mapped_column(
+        ForeignKey("profesionales_salud.id"), nullable=True, unique=True, index=True
+    )
 
 
 class EventoAuditoria(Base):

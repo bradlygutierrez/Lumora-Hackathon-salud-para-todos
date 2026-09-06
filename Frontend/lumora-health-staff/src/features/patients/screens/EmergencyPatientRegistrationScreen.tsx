@@ -99,7 +99,7 @@ export function EmergencyPatientRegistrationScreen() {
   const busy = isSubmitting || registration.isPending;
 
   return (
-    <Screen>
+    <Screen tint="patients">
       <View style={styles.header}>
         <Button accessibilityLabel="Volver" icon="arrow-back" onPress={() => router.back()} variant="ghost">
           Volver

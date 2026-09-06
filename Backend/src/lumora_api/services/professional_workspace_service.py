@@ -5,6 +5,7 @@ from lumora_api.models import ProfesionalSalud, Usuario
 from lumora_api.repositories.appointment_repository import AppointmentRepository
 from lumora_api.repositories.identity_repository import IdentityRepository
 from lumora_api.repositories.professional_workspace_repository import ProfessionalWorkspaceRepository
+from lumora_api.schemas.appointments import AppointmentLocationUpsert
 from lumora_api.schemas.professional_workspace import ProfessionalScheduleCreate, ProfessionalScheduleUpdate
 from lumora_api.services.appointment_service import AppointmentService
 
@@ -101,6 +102,26 @@ class ProfessionalWorkspaceService:
         if item is None:
             raise ResourceNotFoundError("Horario profesional no encontrado")
         await self.repository.delete_schedule(item)
+
+    async def get_location(self, current_user: Usuario):
+        professional = await self._professional(current_user)
+        return await self.repository.get_location(professional.id)
+
+    async def set_location(
+        self, current_user: Usuario, data: AppointmentLocationUpsert
+    ):
+        professional = await self._professional(current_user)
+        existing = await self.repository.get_location(professional.id)
+        return await self.repository.upsert_location(
+            professional.id, data.model_dump(), existing
+        )
+
+    async def delete_location(self, current_user: Usuario) -> None:
+        professional = await self._professional(current_user)
+        item = await self.repository.get_location(professional.id)
+        if item is None:
+            raise ResourceNotFoundError("El profesional no tiene una dirección de consulta registrada")
+        await self.repository.delete_location(item)
 
     @staticmethod
     def _is_cancelled(item) -> bool:

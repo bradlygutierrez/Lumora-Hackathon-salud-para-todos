@@ -37,6 +37,16 @@ class AppointmentService:
     def __init__(self, repository: AppointmentRepository) -> None:
         self.repository = repository
 
+    @staticmethod
+    def _ensure_future_start(inicio: datetime) -> None:
+        normalized_start = (
+            inicio
+            if inicio.tzinfo is not None
+            else inicio.replace(tzinfo=timezone.utc)
+        )
+        if normalized_start <= datetime.now(timezone.utc):
+            raise ResourceConflictError("No se puede agendar una cita en el pasado")
+
     async def list(self, paciente_id: int | None, profesional_id: int | None,
                    desde: datetime | None, hasta: datetime | None) -> list[Cita]:
         if desde is not None and hasta is not None and desde >= hasta:
@@ -99,6 +109,7 @@ class AppointmentService:
 
     async def create(self, data: AppointmentCreate, user_id: int, ip: str | None, user_agent: str | None) -> Cita:
         values = data.model_dump()
+        self._ensure_future_start(values["inicio"])
         if values["estado_cita_id"] is None:
             pending = await self.repository.status_by_name("Pendiente")
             if pending is None:
@@ -145,6 +156,8 @@ class AppointmentService:
         values = {**before, **data.model_dump(exclude_unset=True)}
         values["inicio"] = data.inicio if data.inicio is not None else item.inicio
         values["fin"] = data.fin if data.fin is not None else item.fin
+        if data.inicio is not None:
+            self._ensure_future_start(values["inicio"])
         await self._validate(values, item.id)
         for field, value in data.model_dump(exclude_unset=True).items():
             setattr(item, field, value)
@@ -172,6 +185,7 @@ class AppointmentService:
             "inicio": data.inicio,
             "fin": data.fin,
         }
+        self._ensure_future_start(values["inicio"])
         await self._validate(values, item.id)
         item.inicio = data.inicio
         item.fin = data.fin
@@ -211,6 +225,7 @@ class AppointmentService:
         if professional is None or professional.deleted_at is not None:
             raise ResourceNotFoundError("Profesional no existe")
         schedules = await self.repository.schedules(profesional_id, fecha.weekday())
+        now = datetime.now(timezone.utc)
         slots = []
         for schedule in schedules:
             start = datetime.combine(fecha, schedule.hora_inicio, tzinfo=timezone.utc)
@@ -218,8 +233,10 @@ class AppointmentService:
             cursor = start
             while cursor + timedelta(minutes=slot_minutes) <= end:
                 slot_end = cursor + timedelta(minutes=slot_minutes)
-                occupied = await self.repository.occupied(profesional_id, cursor, slot_end)
-                slots.append(AvailabilitySlotRead(inicio=cursor, fin=slot_end, disponible=not occupied))
+                available = cursor > now
+                if available:
+                    available = not await self.repository.occupied(profesional_id, cursor, slot_end)
+                slots.append(AvailabilitySlotRead(inicio=cursor, fin=slot_end, disponible=available))
                 cursor = slot_end
         return AvailabilityRead(profesional_id=profesional_id, fecha=fecha, slots=slots)
 

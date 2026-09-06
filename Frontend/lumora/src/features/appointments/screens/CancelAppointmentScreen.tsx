@@ -256,6 +256,7 @@ export function CancelAppointmentScreen({
       scrollable
       keyboardAvoiding
       contentClassName="px-0 py-0"
+      tint="appointments"
     >
       <AppHeader
         title="Cancelar cita"

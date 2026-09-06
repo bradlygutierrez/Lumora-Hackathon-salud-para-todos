@@ -2,13 +2,11 @@ import {
   useMutation,
 } from '@tanstack/react-query';
 
-import type {
-  Router,
-} from 'expo-router';
-
 import {
   useRouter,
 } from 'expo-router';
+
+type LoginRouter = ReturnType<typeof useRouter>;
 
 import {
   authApi,
@@ -31,7 +29,7 @@ import type {
  * una respuesta de login.
  */
 type LoginCoordinatorDependencies = {
-  router: Router;
+  router: LoginRouter;
 
   setSession: (
     session: StoredSession,

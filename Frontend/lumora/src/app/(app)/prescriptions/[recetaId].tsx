@@ -56,7 +56,7 @@ export default function PrescriptionDetailRoute() {
   }
 
   return (
-    <Screen scrollable contentClassName="gap-6">
+    <Screen scrollable contentClassName="gap-6" tint="medication">
       <View className="flex-row items-center gap-3">
         {/* El Stack de (app) corre con headerShown: false (ver
             (app)/_layout.tsx), así que cada pantalla no-tab arma su
@@ -109,7 +109,12 @@ export default function PrescriptionDetailRoute() {
       <View className="gap-3">
         <AppButton
           title="Ver horario de medicación"
-          onPress={() => router.push('/(app)/(tabs)/medication')}
+          onPress={() =>
+            router.push({
+              pathname: '/(app)/(tabs)/medication',
+              params: { recetaId },
+            })
+          }
         />
 
         <AppButton

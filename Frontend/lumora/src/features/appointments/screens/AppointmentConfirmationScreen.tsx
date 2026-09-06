@@ -124,6 +124,7 @@ export function AppointmentConfirmationScreen({
     <Screen
       scrollable
       contentClassName="gap-5"
+      tint="appointments"
     >
       <View className="items-center gap-4 rounded-3xl bg-[#007B7F] px-5 py-8">
         <View className="h-16 w-16 items-center justify-center rounded-full bg-white/15">

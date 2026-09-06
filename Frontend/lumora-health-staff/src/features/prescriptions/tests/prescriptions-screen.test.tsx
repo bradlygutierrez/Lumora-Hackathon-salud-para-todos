@@ -1,6 +1,17 @@
 import { fireEvent, render } from '@testing-library/react-native';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { ReactElement } from 'react';
 
 import { PrescriptionsScreen } from '../screens/PrescriptionsScreen';
+
+// El screen usa usePullToRefresh() para su pull-to-refresh, que llama
+// useQueryClient() -- necesita un QueryClientProvider real ancestro.
+function renderWithClient(ui: ReactElement) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+}
 
 const mockUseAuthSession = jest.fn();
 const mockUsePatientPrescriptions = jest.fn();
@@ -82,7 +93,7 @@ describe('PrescriptionsScreen J13', () => {
 
   it('blocks access without clinica:manage and disables patient prescription query', async () => {
     mockUseAuthSession.mockReturnValue({ permissions: new Set() });
-    const screen = await render(
+    const screen = await renderWithClient(
       <PrescriptionsScreen patientId={101} recordId={7001} />,
     );
 
@@ -92,7 +103,7 @@ describe('PrescriptionsScreen J13', () => {
   });
 
   it('resolves active versus history using catalog names, not hardcoded ids', async () => {
-    const screen = await render(
+    const screen = await renderWithClient(
       <PrescriptionsScreen patientId={101} recordId={7001} />,
     );
 
@@ -106,7 +117,7 @@ describe('PrescriptionsScreen J13', () => {
   });
 
   it('navigates to prescription creation and detail preserving record context', async () => {
-    const screen = await render(
+    const screen = await renderWithClient(
       <PrescriptionsScreen patientId={101} recordId={7001} />,
     );
 

@@ -1,7 +1,17 @@
 import {
+  useCallback,
+  useEffect,
+  useRef,
+  type RefObject,
+} from 'react';
+
+import {
   Pressable,
+  ScrollView,
   Text,
   View,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
 } from 'react-native';
 
 import {
@@ -11,6 +21,11 @@ import {
 import {
   router,
 } from 'expo-router';
+
+import {
+  TourTarget,
+  useTourPersistence,
+} from '@wrack/react-native-tour-guide';
 
 import {
   ClinicalAlertCard,
@@ -67,6 +82,57 @@ import {
   SurfaceCard,
 } from '@/shared/components/SurfaceCard';
 
+const HOME_TOUR_STEPS = [
+  {
+    id: 'next-dose',
+    targetId: 'tour-next-dose',
+    title: 'Tu próxima dosis',
+    description: 'Acá vas a ver tu próxima toma de medicamento y podés registrarla cuando la tomes.',
+  },
+  {
+    id: 'next-appointment',
+    targetId: 'tour-next-appointment',
+    title: 'Tu próxima cita',
+    description: 'Consultá la fecha y el profesional de tu próxima cita médica.',
+  },
+  {
+    id: 'health-summary',
+    targetId: 'tour-health-summary',
+    title: 'Mi salud',
+    description: 'Revisá tus últimas mediciones y accedé al detalle completo de tu salud.',
+  },
+  {
+    id: 'quick-actions',
+    targetId: 'tour-quick-actions',
+    title: 'Acciones rápidas',
+    description: 'Desde acá podés registrar una medición, ver tu medicación o tu próxima cita en un toque.',
+  },
+  {
+    id: 'navigation-health',
+    targetId: 'tour-tab-health',
+    title: 'Mi salud',
+    description: 'Entrá acá para consultar tus indicadores, alertas y expediente.',
+  },
+  {
+    id: 'navigation-medication',
+    targetId: 'tour-tab-medication',
+    title: 'Medicación',
+    description: 'Revisá tus medicamentos, próximas dosis y recordatorios.',
+  },
+  {
+    id: 'navigation-appointments',
+    targetId: 'tour-tab-appointments',
+    title: 'Citas',
+    description: 'Consultá tus citas y solicitá una nueva cuando la necesités.',
+  },
+  {
+    id: 'navigation-profile',
+    targetId: 'tour-tab-profile',
+    title: 'Perfil',
+    description: 'Actualizá tu información y administrá familiares, permisos y seguridad.',
+  },
+];
+
 /**
  * B10 — Inicio.
  *
@@ -81,6 +147,19 @@ export default function HomeRoute() {
 
   const dashboard = useHomeHealthDashboard(
     activePatient?.patientId ?? null,
+  );
+
+  const scrollRef = useRef<ScrollView>(null);
+  const scrollOffsetRef = useRef(0);
+  const onScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      scrollOffsetRef.current = event.nativeEvent.contentOffset.y;
+    },
+    [],
+  );
+  const getCurrentScrollOffset = useCallback(
+    () => scrollOffsetRef.current,
+    [],
   );
 
   const patientName = activePatient?.displayName ?? 'Paciente';
@@ -173,6 +252,8 @@ export default function HomeRoute() {
     <Screen
       scrollable
       contentClassName="px-0 py-0"
+      scrollRef={scrollRef}
+      scrollProps={{ onScroll, scrollEventThrottle: 16 }}
     >
       {role !== 'caregiver' ? (
         <AppHeader
@@ -197,6 +278,8 @@ export default function HomeRoute() {
           data={data}
           metrics={metrics}
           nextAppointment={nextAppointment}
+          scrollRef={scrollRef}
+          getCurrentScrollOffset={getCurrentScrollOffset}
         />
       )}
     </Screen>
@@ -208,12 +291,48 @@ function PatientHome({
   data,
   metrics,
   nextAppointment,
+  scrollRef,
+  getCurrentScrollOffset,
 }: {
   patientName: string;
   data: HomeHealthDashboardData;
   metrics: HealthMetric[];
   nextAppointment: AppointmentResponse | null;
+  scrollRef: RefObject<ScrollView | null>;
+  getCurrentScrollOffset: () => number;
 }) {
+  const { startTour, endTour } = useTourPersistence();
+
+  useEffect(() => {
+    // scrollRef es necesario para que el tour desplace la pantalla cuando
+    // el paso a resaltar (ej. "Acciones rápidas") está más abajo del
+    // viewport inicial -- sin esto, el tooltip se posiciona igual pero la
+    // pantalla nunca se desplaza para mostrar la sección real, quedando
+    // desfasado.
+    const steps = HOME_TOUR_STEPS.map((step) =>
+      step.targetId.startsWith('tour-tab-')
+        ? step
+        : {
+            ...step,
+            scrollToTarget: {
+              scrollRef,
+              getCurrentScrollOffset,
+            },
+          },
+    );
+
+    startTour(steps, { tourId: 'home-tour' });
+
+    // Sin esto, un tour activo cuando la pantalla se desmonta (logout,
+    // sesión expirada -> redirect a login) se queda "vivo" en el contexto
+    // global de TourGuideProvider -- el overlay vive en el root layout, por
+    // encima de TODO el Stack, así que sigue mostrando el tooltip encima de
+    // login o cualquier otra pantalla hasta que el usuario lo cierre.
+    return () => {
+      endTour();
+    };
+  }, [endTour, getCurrentScrollOffset, startTour, scrollRef]);
+
   return (
     <View className="gap-5 px-4 py-5">
       <View className="flex-row items-center gap-3">
@@ -233,36 +352,61 @@ function PatientHome({
         </View>
       </View>
 
-      {data.nextDose ? (
-        <NextDoseCard
-          dose={data.nextDose}
-          actionLabel="Registrar dosis"
-          onPress={() => router.push('/(app)/(tabs)/medication')}
-        />
-      ) : (
-        <SurfaceCard>
-          <Text className="text-sm font-semibold text-coal-900">Próxima dosis</Text>
-          <Text className="mt-2 text-sm text-coal-500">
-            No tienes una toma activa programada por ahora.
-          </Text>
-        </SurfaceCard>
-      )}
+      <SurfaceCard>
+        <View className="flex-row items-start gap-3">
+          <Ionicons
+            name="information-circle-outline"
+            size={22}
+            color="#4A86B6"
+          />
+          <View className="flex-1">
+            <Text className="text-sm font-semibold text-coal-900">
+              Información registrada por tu médico
+            </Text>
+            <Text className="mt-1 text-sm leading-5 text-coal-500">
+              Las condiciones médicas y los medicamentos deben ser agregados o
+              actualizados por un profesional de salud. Tú puedes registrar tus
+              mediciones y el seguimiento de tus dosis.
+            </Text>
+          </View>
+        </View>
+      </SurfaceCard>
 
-      {nextAppointment ? (
-        <NextAppointmentCard
-          appointment={nextAppointment}
-          appointmentTypes={data.appointmentTypes}
-          onPress={() => router.push('/(app)/(tabs)/appointments')}
-        />
-      ) : (
-        <SurfaceCard>
-          <Text className="text-sm font-semibold text-coal-900">Próxima cita</Text>
-          <Text className="mt-2 text-sm text-coal-500">
-            No tienes citas próximas registradas.
-          </Text>
-        </SurfaceCard>
-      )}
+      <TourTarget id="tour-next-dose" style={{ borderRadius: 16 }}>
+        {data.nextDose ? (
+          <NextDoseCard
+            dose={data.nextDose}
+            actionLabel="Registrar dosis"
+            onPress={() => router.push('/(app)/(tabs)/medication')}
+          />
+        ) : (
+          <SurfaceCard>
+            <Text className="text-sm font-semibold text-coal-900">Próxima dosis</Text>
+            <Text className="mt-2 text-sm text-coal-500">
+              No tienes una toma activa programada por ahora.
+            </Text>
+          </SurfaceCard>
+        )}
+      </TourTarget>
 
+      <TourTarget id="tour-next-appointment" style={{ borderRadius: 16 }}>
+        {nextAppointment ? (
+          <NextAppointmentCard
+            appointment={nextAppointment}
+            appointmentTypes={data.appointmentTypes}
+            onPress={() => router.push('/(app)/(tabs)/appointments')}
+          />
+        ) : (
+          <SurfaceCard>
+            <Text className="text-sm font-semibold text-coal-900">Próxima cita</Text>
+            <Text className="mt-2 text-sm text-coal-500">
+              No tienes citas próximas registradas.
+            </Text>
+          </SurfaceCard>
+        )}
+      </TourTarget>
+
+      <TourTarget id="tour-health-summary">
       <View className="gap-3">
         <View className="flex-row items-center justify-between">
           <Text className="text-base font-bold text-coal-900">Mi salud</Text>
@@ -299,7 +443,9 @@ function PatientHome({
           </SurfaceCard>
         )}
       </View>
+      </TourTarget>
 
+      <TourTarget id="tour-quick-actions">
       <View className="gap-3">
         <Text className="text-base font-bold text-coal-900">Acciones rápidas</Text>
         <QuickAction
@@ -318,6 +464,7 @@ function PatientHome({
           onPress={() => router.push('/(app)/(tabs)/appointments')}
         />
       </View>
+      </TourTarget>
     </View>
   );
 }

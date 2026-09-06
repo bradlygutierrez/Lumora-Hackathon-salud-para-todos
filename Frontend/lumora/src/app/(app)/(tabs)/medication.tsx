@@ -1,4 +1,4 @@
-import { Link, router } from 'expo-router';
+import { Link, router, useLocalSearchParams } from 'expo-router';
 import { Text, View } from 'react-native';
 
 import { canManagePatientData } from '@/features/caregiver-access/utils/caregiver-permissions';
@@ -19,7 +19,9 @@ import { Screen } from '@/shared/components/Screen';
 
 /** "Medicación" / Plan de Hoy — A07. */
 export default function MedicationRoute() {
-  const { plan, planDate, isLoading, isError, refetch } = useTodayMedicationPlan();
+  const { recetaId } = useLocalSearchParams<{ recetaId?: string }>();
+  const { prescriptions, plan, planDate, isLoading, isError, refetch } =
+    useTodayMedicationPlan(recetaId);
   const { activePatient, role } = useShellContext();
   const canManage =
     role !== 'caregiver' || canManagePatientData(activePatient?.accessLevel ?? null);
@@ -45,11 +47,6 @@ export default function MedicationRoute() {
     cancelDose.mutate({ dosisId: item.dosisHoyId, horarioId: item.horarioId });
   }
 
-  const recetaIdsHoy = new Set(
-    TIME_OF_DAY_ORDER.flatMap((bucket) => plan.sections[bucket].map((item) => item.recetaId)),
-  );
-  const soloRecetaActivaId = recetaIdsHoy.size === 1 ? [...recetaIdsHoy][0] : null;
-
   if (isLoading) {
     return (
       <FullScreenState
@@ -71,7 +68,7 @@ export default function MedicationRoute() {
   }
 
   return (
-    <Screen scrollable contentClassName="px-0 py-0">
+    <Screen scrollable contentClassName="px-0 py-0" tint="medication">
       <AppHeader
         title="Plan de Hoy"
         subtitle={formatPlanDate(planDate)}
@@ -92,7 +89,9 @@ export default function MedicationRoute() {
         {plan.totalCount === 0 ? (
           <View className="rounded-2xl border border-bone-500 bg-bone-500 p-6">
             <Text className="text-center text-base text-coal-500">
-              No tienes medicación activa programada por ahora.
+              {recetaId
+                ? 'Esta receta no está activa o todavía no tiene horarios configurados por el médico.'
+                : 'No tienes medicación activa programada por ahora.'}
             </Text>
           </View>
         ) : (
@@ -110,19 +109,25 @@ export default function MedicationRoute() {
           ))
         )}
 
-        {/* Con una sola receta activa el enlace es directo; con varias,
-            cada tarjeta ya lleva a SU receta (ver MedicationCard), así que
-            este botón se omite para no ser ambiguo. */}
-        {soloRecetaActivaId ? (
-          <Link
-            href={{
-              pathname: '/(app)/prescriptions/[recetaId]',
-              params: { recetaId: soloRecetaActivaId },
-            }}
-            asChild
-          >
-            <AppButton title="Ver receta completa" variant="ghost" />
-          </Link>
+        {prescriptions.length > 0 ? (
+          <View className="gap-3">
+            <Text className="text-lg font-semibold text-coal-900">Recetas médicas</Text>
+            {prescriptions.map((receta) => (
+              <Link
+                key={receta.id}
+                href={{
+                  pathname: '/(app)/prescriptions/[recetaId]',
+                  params: { recetaId: receta.id },
+                }}
+                asChild
+              >
+                <AppButton
+                  title={receta.titulo ?? 'Ver receta médica'}
+                  variant="ghost"
+                />
+              </Link>
+            ))}
+          </View>
         ) : null}
 
         {/* El acceso a Alertas de Salud (A09) ya vive en el tab "Mi

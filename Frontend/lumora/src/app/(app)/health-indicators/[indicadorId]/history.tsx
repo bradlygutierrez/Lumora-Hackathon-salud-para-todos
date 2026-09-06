@@ -69,7 +69,7 @@ export default function IndicatorHistoryRoute() {
       : null;
 
   return (
-    <Screen scrollable contentClassName="px-0 py-0">
+    <Screen scrollable contentClassName="px-0 py-0" tint="health">
       <AppHeader title={`Historial de ${indicador.nombre}`} />
 
       <View className="gap-6 px-4 py-4">

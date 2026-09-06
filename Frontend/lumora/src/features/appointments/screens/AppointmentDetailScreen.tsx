@@ -200,6 +200,7 @@ export function AppointmentDetailScreen({
     <Screen
       scrollable
       contentClassName="px-0 py-0"
+      tint="appointments"
     >
       <AppHeader
         title="Cita"

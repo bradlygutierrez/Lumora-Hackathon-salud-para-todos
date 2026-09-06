@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Link, router } from 'expo-router';
+import { Link } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useNotifications } from '@/src/features/notifications/hooks/use-notifications';
@@ -17,35 +17,45 @@ export function AppTopBar({ showBack = false }: AppTopBarProps) {
     <View style={styles.container}>
       <View style={styles.side}>
         {showBack ? (
-          <Pressable accessibilityLabel="Volver" accessibilityRole="button" onPress={() => router?.back()}>
-            <View style={styles.avatar}>
-              <Ionicons color={theme.color.primaryPressed} name="arrow-back" size={21} />
-            </View>
-          </Pressable>
+          <Link asChild href="/(staff)">
+            <Pressable accessibilityLabel="Volver" accessibilityRole="button">
+              <View style={styles.avatar}>
+                <Ionicons color={theme.color.primaryPressed} name="arrow-back" size={21} />
+              </View>
+            </Pressable>
+          </Link>
         ) : (
-          <View style={styles.avatar}>
-            <Ionicons color={theme.color.primaryPressed} name="person-outline" size={19} />
-          </View>
+          <Link asChild href="/(staff)/profile">
+            <Pressable accessibilityLabel="Abrir mi perfil" accessibilityRole="button">
+              <View style={styles.avatar}>
+                <Ionicons color={theme.color.primaryPressed} name="person-outline" size={19} />
+              </View>
+            </Pressable>
+          </Link>
         )}
       </View>
 
-      <LumoraBrand compact />
+      <View style={styles.brandSlot}>
+        <LumoraBrand compact />
+      </View>
 
       <View style={[styles.side, styles.sideRight]}>
         <Link asChild href="/(staff)/notifications">
-          <Pressable accessibilityLabel="Abrir notificaciones" accessibilityRole="button">
-            <View>
-              <Ionicons
-                color={theme.color.primaryPressed}
-                name="notifications-outline"
-                size={23}
-              />
-              {unreadCount > 0 ? (
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
-                </View>
-              ) : null}
-            </View>
+          <Pressable
+            accessibilityLabel="Abrir notificaciones"
+            accessibilityRole="button"
+            style={styles.notificationButton}
+          >
+            <Ionicons
+              color={theme.color.primaryPressed}
+              name="notifications-outline"
+              size={23}
+            />
+            {unreadCount > 0 ? (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+              </View>
+            ) : null}
           </Pressable>
         </Link>
       </View>
@@ -72,10 +82,17 @@ const styles = StyleSheet.create({
   },
   side: {
     alignItems: 'flex-start',
-    flex: 1,
+    flexShrink: 0,
+    width: 36,
   },
   sideRight: {
     alignItems: 'flex-end',
+  },
+  brandSlot: {
+    alignItems: 'center',
+    flex: 1,
+    minWidth: 0,
+    overflow: 'hidden',
   },
   avatar: {
     alignItems: 'center',
@@ -100,5 +117,12 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 10,
     fontWeight: '900',
+  },
+  notificationButton: {
+    alignItems: 'center',
+    height: 36,
+    justifyContent: 'center',
+    position: 'relative',
+    width: 36,
   },
 });

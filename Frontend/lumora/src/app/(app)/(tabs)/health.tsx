@@ -87,6 +87,7 @@ export default function HealthRoute() {
     <Screen
       scrollable
       contentClassName="px-0 py-0"
+      tint="health"
     >
       {role !== 'caregiver' ? (
         <AppHeader

@@ -255,6 +255,9 @@ class AuthService:
         )
         self.repository.session.add(session)
         await self.repository.session.flush()
+        # Solo una sesión activa por cuenta: cada login nuevo cierra las
+        # demás sesiones de este usuario en cualquier otro dispositivo.
+        await self.repository.revoke_others(user_id, session.id)
         await self.repository.session.commit()
         return {"access_token": create_access_token(user_id, session.id), "refresh_token": raw}
 

@@ -1,5 +1,5 @@
 import { useLocalSearchParams } from 'expo-router';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { PermissionGate } from '@/src/features/auth/components/PermissionGate';
 import { useProfessional } from '@/src/features/profile/hooks/use-professionals';
@@ -8,14 +8,16 @@ import { ErrorState, LoadingState } from '@/src/shared/components/RemoteState';
 import { Screen } from '@/src/shared/components/Screen';
 import { StaffAvatar } from '@/src/shared/components/StaffAvatar';
 import { theme } from '@/src/shared/constants/theme';
+import { usePullToRefresh } from '@/src/shared/hooks/use-pull-to-refresh';
 
 export default function StaffDetailScreen() {
   const params = useLocalSearchParams<{ id: string }>();
   const professionalId = Number(params.id);
   const professional = useProfessional(professionalId);
+  const { refreshing, onRefresh } = usePullToRefresh();
 
   return (
-    <Screen>
+    <Screen tint="directory">
       <PermissionGate
         anyOf={['clinica:manage']}
         fallback={
@@ -28,7 +30,11 @@ export default function StaffDetailScreen() {
         {professional.isLoading ? <LoadingState title="Cargando perfil" /> : null}
         {professional.isError ? <ErrorState title="No se pudo cargar el perfil" /> : null}
         {professional.data ? (
-          <ScrollView contentContainerStyle={styles.container} style={styles.scroll}>
+          <ScrollView
+            contentContainerStyle={styles.container}
+            style={styles.scroll}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+          >
             <AppTopBar showBack />
             <View style={styles.header}>
               <Text style={styles.title}>Perfil del Staff</Text>

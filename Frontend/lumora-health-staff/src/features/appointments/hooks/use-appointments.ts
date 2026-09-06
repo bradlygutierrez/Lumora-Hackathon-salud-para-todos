@@ -3,15 +3,21 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuthSession } from '@/src/features/auth/hooks/use-auth-session';
 import {
   createMySchedule,
+  deleteMyLocation,
   deleteMySchedule,
   getAppointment,
   getMyAvailability,
+  getMyLocation,
   listMyAgenda,
   listMySchedules,
   listPatientAppointments,
+  setMyLocation,
   updateMySchedule,
 } from '../api/appointments.api';
-import type { ProfessionalSchedulePayload } from '../types/appointment.types';
+import type {
+  AppointmentLocationPayload,
+  ProfessionalSchedulePayload,
+} from '../types/appointment.types';
 import { pickNextAppointment } from '../utils/next-appointment';
 
 const workspaceKey = ['clinical', 'professional-workspace'] as const;
@@ -65,6 +71,40 @@ export function useNextPatientAppointment(patientId: number) {
       session?.isPreview ? Promise.resolve([]) : listPatientAppointments(patientId),
     select: (items) => pickNextAppointment(items),
   });
+}
+
+export function useMyLocation() {
+  const { session } = useAuthSession();
+  return useQuery({
+    queryKey: [...workspaceKey, 'location'],
+    queryFn: () => (session?.isPreview ? Promise.resolve(null) : getMyLocation()),
+  });
+}
+
+export function useLocationMutations() {
+  const { session } = useAuthSession();
+  const queryClient = useQueryClient();
+
+  const refresh = async () => {
+    await queryClient.invalidateQueries({ queryKey: workspaceKey });
+  };
+
+  const save = useMutation({
+    mutationFn: (payload: AppointmentLocationPayload) =>
+      session?.isPreview
+        ? Promise.reject(new Error('La vista previa no modifica la ubicación'))
+        : setMyLocation(payload),
+    onSuccess: refresh,
+  });
+  const remove = useMutation({
+    mutationFn: () =>
+      session?.isPreview
+        ? Promise.reject(new Error('La vista previa no modifica la ubicación'))
+        : deleteMyLocation(),
+    onSuccess: refresh,
+  });
+
+  return { save, remove };
 }
 
 export function useScheduleMutations() {

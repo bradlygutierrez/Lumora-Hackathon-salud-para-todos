@@ -6,6 +6,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["--prefix", "Frontend/lumora-health-staff", "run", "web", "--", "--port", "4173"],
       "port": 4173
+    },
+    {
+      "name": "lumora-web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "Frontend/lumora", "run", "web", "--", "--port", "4174"],
+      "port": 4174
     }
   ]
 }

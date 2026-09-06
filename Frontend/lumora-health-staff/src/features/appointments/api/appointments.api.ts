@@ -1,6 +1,8 @@
 import { apiClient } from '@/src/shared/api/client';
 import type {
   AppointmentDetail,
+  AppointmentLocation,
+  AppointmentLocationPayload,
   ProfessionalAgendaItem,
   ProfessionalAvailability,
   ProfessionalSchedule,
@@ -59,6 +61,22 @@ export async function listPatientAppointments(
     params: { paciente_id: patientId },
   });
   return response.data;
+}
+
+export async function getMyLocation(): Promise<AppointmentLocation | null> {
+  const response = await apiClient.get<AppointmentLocation | null>('/profesional/me/ubicacion');
+  return response.data;
+}
+
+export async function setMyLocation(
+  payload: AppointmentLocationPayload,
+): Promise<AppointmentLocation> {
+  const response = await apiClient.put<AppointmentLocation>('/profesional/me/ubicacion', payload);
+  return response.data;
+}
+
+export async function deleteMyLocation(): Promise<void> {
+  await apiClient.delete('/profesional/me/ubicacion');
 }
 
 export async function getMyAvailability(

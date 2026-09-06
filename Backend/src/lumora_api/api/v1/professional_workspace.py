@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, Query, Response, status
 from lumora_api.api.dependencies import CurrentUser, SessionDep, require_permission, require_clinical_access
 from lumora_api.api.v1.catalog_router import ERRORS
 from lumora_api.repositories.professional_workspace_repository import ProfessionalWorkspaceRepository
+from lumora_api.schemas.appointments import AppointmentLocationRead, AppointmentLocationUpsert
 from lumora_api.schemas.professional_workspace import (
     MyPatientRead,
     ProfessionalAgendaItemRead,
@@ -100,3 +101,35 @@ async def delete_my_schedule(
 @router.get("/pacientes", response_model=list[MyPatientRead])
 async def my_patients(current_user: CurrentUser, session: SessionDep):
     return await service(session).my_patients(current_user)
+
+
+@router.get(
+    "/ubicacion",
+    response_model=AppointmentLocationRead | None,
+    response_model_exclude_none=True,
+)
+async def my_location(current_user: CurrentUser, session: SessionDep):
+    return await service(session).get_location(current_user)
+
+
+@router.put(
+    "/ubicacion",
+    response_model=AppointmentLocationRead,
+    responses=ERRORS,
+)
+async def set_my_location(
+    data: AppointmentLocationUpsert,
+    current_user: CurrentUser,
+    session: SessionDep,
+):
+    return await service(session).set_location(current_user, data)
+
+
+@router.delete(
+    "/ubicacion",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={404: ERRORS[404]},
+)
+async def delete_my_location(current_user: CurrentUser, session: SessionDep) -> Response:
+    await service(session).delete_location(current_user)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

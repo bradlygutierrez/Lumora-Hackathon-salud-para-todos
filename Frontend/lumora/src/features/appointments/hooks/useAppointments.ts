@@ -41,7 +41,6 @@ export function useAppointments(
       );
     },
 
-    staleTime:
-      30_000,
+    staleTime: 0,
   });
 }

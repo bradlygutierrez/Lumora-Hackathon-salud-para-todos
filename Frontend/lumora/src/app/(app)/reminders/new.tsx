@@ -147,7 +147,7 @@ export default function NewReminderRoute() {
     : undefined;
 
   return (
-    <Screen scrollable keyboardAvoiding contentClassName="px-0 py-0">
+    <Screen scrollable keyboardAvoiding contentClassName="px-0 py-0" tint="medication">
       <AppHeader title={isEditMode ? 'Editar Recordatorio' : 'Nuevo Recordatorio'} />
 
       <View className="gap-6 px-4 py-4">

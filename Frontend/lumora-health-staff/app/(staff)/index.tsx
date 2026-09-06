@@ -1,6 +1,18 @@
+import { useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
+import { TourTarget, useTourPersistence } from '@wrack/react-native-tour-guide';
 import { type Href, useRouter } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+} from 'react-native';
 
 import { useProfessionalAgenda } from '@/src/features/appointments/hooks/use-appointments';
 import { formatWorkspaceDateTime } from '@/src/features/appointments/utils/workspace-date-time';
@@ -16,11 +28,120 @@ type QuickAccessProps = {
   onPress: () => void;
 };
 
+const DASHBOARD_TOUR_STEPS = [
+  {
+    id: 'stats',
+    targetId: 'tour-stats',
+    title: 'Tu resumen',
+    description: 'Acá ves cuántos pacientes tenés vinculados y cuántas citas hay en tu agenda.',
+  },
+  {
+    id: 'quick-access',
+    targetId: 'tour-quick-access',
+    title: 'Acceso rápido',
+    description: 'Entrá directo a pacientes, tu agenda, el personal o tus ajustes desde acá.',
+  },
+  {
+    id: 'agenda',
+    targetId: 'tour-agenda',
+    title: 'Próximas citas',
+    description: 'Tus próximas citas publicadas aparecen acá, con acceso directo al paciente.',
+  },
+  {
+    id: 'navigation-patients',
+    targetId: 'tour-tab-patients',
+    title: 'Pacientes',
+    description: 'Buscá pacientes vinculados y abrí sus expedientes clínicos.',
+  },
+  {
+    id: 'navigation-agenda',
+    targetId: 'tour-tab-agenda',
+    title: 'Agenda',
+    description: 'Consultá tus citas y abrí el detalle de cada atención.',
+  },
+  {
+    id: 'navigation-directory',
+    targetId: 'tour-tab-directory',
+    title: 'Personal',
+    description: 'Consultá el directorio de profesionales autorizados.',
+  },
+  {
+    id: 'navigation-profile',
+    targetId: 'tour-tab-profile',
+    title: 'Ajustes',
+    description: 'Actualizá tu perfil y administrá la seguridad de tu cuenta.',
+  },
+];
+
+const ADMINISTRATION_TOUR_STEP = {
+  id: 'navigation-administration',
+  targetId: 'tour-tab-administration',
+  title: 'Administración',
+  description: 'Gestioná roles y permisos cuando tu cuenta tenga autorización.',
+};
+
 export default function StaffDashboardScreen() {
   const router = useRouter();
-  const { session } = useAuthSession();
+  const { permissions, session } = useAuthSession();
   const agenda = useProfessionalAgenda();
   const myPatients = useMyPatients();
+  const queryClient = useQueryClient();
+  const [refreshing, setRefreshing] = useState(false);
+  const { startTour, endTour } = useTourPersistence();
+  const scrollRef = useRef<ScrollView>(null);
+  const scrollOffsetRef = useRef(0);
+  const canManageRbac = permissions.has('rbac:manage');
+  const onScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      scrollOffsetRef.current = event.nativeEvent.contentOffset.y;
+    },
+    [],
+  );
+  const getCurrentScrollOffset = useCallback(
+    () => scrollOffsetRef.current,
+    [],
+  );
+
+  useEffect(() => {
+    // scrollRef es necesario para que el tour desplace la pantalla cuando
+    // el paso a resaltar (ej. "Próximas citas") está más abajo del
+    // viewport inicial -- sin esto, el tooltip se posiciona igual pero la
+    // pantalla nunca se desplaza para mostrar la sección real, quedando
+    // desfasado.
+    const dashboardSteps = DASHBOARD_TOUR_STEPS.map((step) =>
+      step.targetId.startsWith('tour-tab-')
+        ? step
+        : {
+            ...step,
+            scrollToTarget: {
+              scrollRef,
+              getCurrentScrollOffset,
+            },
+          },
+    );
+    const steps = canManageRbac
+      ? [...dashboardSteps, ADMINISTRATION_TOUR_STEP]
+      : dashboardSteps;
+
+    void startTour(steps, { tourId: 'staff-dashboard-tour' });
+
+    // Sin esto, un tour activo cuando la pantalla se desmonta (logout,
+    // sesión expirada -> redirect a login) se queda "vivo" en el contexto
+    // global de TourGuideProvider -- el overlay vive en el root layout, por
+    // encima de TODO el Stack, así que sigue mostrando el tooltip encima de
+    // login o cualquier otra pantalla hasta que el usuario lo cierre.
+    return () => {
+      endTour();
+    };
+  }, [canManageRbac, endTour, getCurrentScrollOffset, startTour]);
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await queryClient.refetchQueries({ type: 'active' });
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const firstName =
     session?.user?.persona.nombres?.trim().split(/\s+/)[0] ??
@@ -42,8 +163,19 @@ export default function StaffDashboardScreen() {
     <Screen>
       <AppTopBar />
       <ScrollView
+        ref={scrollRef}
         contentContainerStyle={styles.content}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
+        testID="staff-dashboard-scroll"
+        refreshControl={
+          <RefreshControl
+            onRefresh={() => void onRefresh()}
+            refreshing={refreshing}
+            testID="dashboard-refresh-control"
+          />
+        }
       >
         <View style={styles.hero}>
           <Text style={styles.title}>Hola, {firstName}</Text>
@@ -53,7 +185,7 @@ export default function StaffDashboardScreen() {
           </Text>
         </View>
 
-        <View style={styles.statsRow}>
+        <TourTarget id="tour-stats" style={styles.statsRow}>
           <View style={styles.statCard}>
             <View style={styles.statIcon}>
               <Ionicons
@@ -80,9 +212,9 @@ export default function StaffDashboardScreen() {
             </Text>
             <Text style={styles.statLabel}>Citas en agenda</Text>
           </View>
-        </View>
+        </TourTarget>
 
-        <View style={styles.sectionCard}>
+        <TourTarget id="tour-quick-access" style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
             <View>
               <Text style={styles.sectionEyebrow}>ACCESO RÁPIDO</Text>
@@ -111,9 +243,9 @@ export default function StaffDashboardScreen() {
               onPress={() => router.push('/(staff)/profile' as Href)}
             />
           </View>
-        </View>
+        </TourTarget>
 
-        <View style={styles.sectionCard}>
+        <TourTarget id="tour-agenda" style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
             <View>
               <Text style={styles.sectionEyebrow}>AGENDA</Text>
@@ -145,12 +277,12 @@ export default function StaffDashboardScreen() {
             <View style={styles.agendaList}>
               {upcoming.map((item, index) => (
                 <Pressable
-                  accessibilityLabel={`Abrir paciente ${item.paciente_nombre}`}
+                  accessibilityLabel={`Abrir cita de ${item.paciente_nombre}`}
                   accessibilityRole="button"
                   key={item.id}
                   onPress={() =>
                     router.push(
-                      `/(staff)/patients/${item.paciente_id}` as Href,
+                      `/(staff)/appointments/${item.id}` as Href,
                     )
                   }
                   style={[
@@ -183,7 +315,7 @@ export default function StaffDashboardScreen() {
               ))}
             </View>
           )}
-        </View>
+        </TourTarget>
       </ScrollView>
     </Screen>
   );

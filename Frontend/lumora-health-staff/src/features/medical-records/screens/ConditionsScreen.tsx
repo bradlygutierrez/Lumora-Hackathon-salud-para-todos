@@ -1,6 +1,6 @@
 import { type Href, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
 
 import { useAuthSession } from '@/src/features/auth/hooks/use-auth-session';
 import { ErrorState } from '@/src/shared/components/RemoteState';
@@ -52,15 +52,22 @@ export function ConditionsScreen({ patientId, recordId }: { patientId: number; r
 
   const confirmDelete = (conditionId: number) => {
     const condition = conditions.data?.items.find((item) => item.id === conditionId);
+    const message = `Se eliminará ${condition?.nombre ?? 'esta condición'} de las vistas clínicas activas. La condición no se borra de forma permanente, solo se oculta.`;
+    const remove = () => void deletion.mutateAsync(conditionId).catch(() => undefined);
+
+    if (Platform.OS === 'web') {
+      if (globalThis.confirm(message)) remove();
+      return;
+    }
     Alert.alert(
       'Confirmar borrado lógico',
-      `Se eliminará ${condition?.nombre ?? 'esta condición'} de las vistas clínicas activas. La condición no se borra de forma permanente, solo se oculta.`,
+      message,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
           text: 'Eliminar',
           style: 'destructive',
-          onPress: () => void deletion.mutateAsync(conditionId).catch(() => undefined),
+          onPress: remove,
         },
       ],
     );

@@ -1,19 +1,36 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Redirect, Tabs, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { TourTarget } from '@wrack/react-native-tour-guide';
 
 import { useAuthSession } from '@/src/features/auth/hooks/use-auth-session';
 import { LoadingState } from '@/src/shared/components/RemoteState';
 import { theme } from '@/src/shared/constants/theme';
 
-const TAB_BAR_CONTENT_HEIGHT = 72;
+const TAB_BAR_CONTENT_HEIGHT = 64;
+
+function TourTabIcon({
+  id,
+  name,
+  color,
+  size,
+}: {
+  id: string;
+  name: keyof typeof Ionicons.glyphMap;
+  color: string;
+  size: number;
+}) {
+  return (
+    <TourTarget id={id}>
+      <Ionicons color={color} name={name} size={size} />
+    </TourTarget>
+  );
+}
 
 export default function StaffLayout() {
   const { permissions, status } = useAuthSession();
   const insets = useSafeAreaInsets();
-  // Un poco más de aire además del inset real, para que los íconos no
-  // queden pegados a la barra de navegación nativa del celular.
-  const tabBarBottomPadding = insets.bottom + theme.spacing.sm;
+  const tabBarBottomPadding = insets.bottom + 8;
 
   if (status === 'restoring') {
     return <LoadingState title="Restaurando sesión clínica" />;
@@ -33,27 +50,34 @@ export default function StaffLayout() {
 
   return (
     <Tabs
+      // "administration" está registrada primero (línea de abajo) solo para
+      // que su `href` condicional (según rbac:manage) no reordene el resto
+      // de la tab bar visualmente. Eso importa porque el default de
+      // `backBehavior` en @react-navigation/bottom-tabs es 'firstRoute'
+      // -- NO usa initialRouteName -- así que "volver" (botón/gesto físico
+      // de Android, o cualquier GO_BACK sin historial previo) caía siempre
+      // en la PRIMERA screen registrada ("administration"), sin importar
+      // qué dijera initialRouteName. Para cualquier staff sin rbac:manage
+      // eso mostraba "Acceso restringido" -- se veía al salir de Editar
+      // Perfil o de Notificaciones (tabs ocultas sin pila propia) y,
+      // sobre todo, al usar el botón físico/gesto de retroceso de Android.
+      initialRouteName="index"
+      backBehavior="initialRoute"
       screenOptions={{
         headerShown: false,
-        tabBarActiveBackgroundColor: theme.color.primarySoft,
         tabBarActiveTintColor: theme.color.primaryPressed,
         tabBarHideOnKeyboard: true,
         tabBarInactiveTintColor: theme.color.mutedText,
-        tabBarItemStyle: {
-          borderRadius: 16,
-          marginHorizontal: 2,
-          marginVertical: 7,
-        },
         tabBarLabelStyle: {
           fontSize: 11,
-          fontWeight: '800',
+          fontWeight: '500',
         },
         tabBarStyle: {
           backgroundColor: theme.color.surfaceMuted,
           borderTopColor: theme.color.softBorder,
           height: TAB_BAR_CONTENT_HEIGHT + tabBarBottomPadding,
           paddingBottom: tabBarBottomPadding,
-          paddingHorizontal: 8,
+          paddingTop: 6,
         },
       }}
     >
@@ -62,7 +86,14 @@ export default function StaffLayout() {
         options={{
           title: 'Administración',
           href: permissions.has('rbac:manage') ? undefined : null,
-          tabBarIcon: ({ color, size }) => <Ionicons color={color} name='shield-outline' size={size} />,
+          tabBarIcon: ({ color, size }) => (
+            <TourTabIcon
+              color={color}
+              id="tour-tab-administration"
+              name="shield-outline"
+              size={size}
+            />
+          ),
         }}
       />
       <Tabs.Screen
@@ -79,7 +110,12 @@ export default function StaffLayout() {
         options={{
           title: 'Pacientes',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons color={color} name="people-outline" size={size} />
+            <TourTabIcon
+              color={color}
+              id="tour-tab-patients"
+              name="people-outline"
+              size={size}
+            />
           ),
         }}
       />
@@ -88,7 +124,12 @@ export default function StaffLayout() {
         options={{
           title: 'Agenda',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons color={color} name="calendar-outline" size={size} />
+            <TourTabIcon
+              color={color}
+              id="tour-tab-agenda"
+              name="calendar-outline"
+              size={size}
+            />
           ),
         }}
       />
@@ -97,7 +138,12 @@ export default function StaffLayout() {
         options={{
           title: 'Personal',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons color={color} name="medical-outline" size={size} />
+            <TourTabIcon
+              color={color}
+              id="tour-tab-directory"
+              name="medical-outline"
+              size={size}
+            />
           ),
         }}
       />
@@ -120,7 +166,12 @@ export default function StaffLayout() {
         options={{
           title: 'Ajustes',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons color={color} name="settings-outline" size={size} />
+            <TourTabIcon
+              color={color}
+              id="tour-tab-profile"
+              name="settings-outline"
+              size={size}
+            />
           ),
         }}
       />

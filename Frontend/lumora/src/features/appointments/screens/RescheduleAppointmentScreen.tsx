@@ -312,6 +312,7 @@ export function RescheduleAppointmentScreen({
     <Screen
       scrollable
       contentClassName="px-0 py-0"
+      tint="appointments"
     >
       <AppHeader
         title="Reprogramar Cita"
