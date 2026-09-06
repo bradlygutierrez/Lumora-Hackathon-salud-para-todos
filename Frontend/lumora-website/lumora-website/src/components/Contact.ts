@@ -1,16 +1,22 @@
 import { Icon } from './Icon'
 import Toastify from 'toastify-js'
 
+const LUMORA_APK_URL = 'https://github.com/bradlygutierrez/Lumora-Hackathon-salud-para-todos/releases/latest/download/Lumora.apk'
+const HEALTH_STAFF_APK_URL = 'https://github.com/bradlygutierrez/Lumora-Hackathon-salud-para-todos/releases/latest/download/LumoraHealthStaff.apk'
+
 export function Contact(): string {
   return `
     <section class="section contact" id="contacto">
       <div class="container contact__grid">
         <div class="download-card">
-          <span class="eyebrow">Estamos para escucharte</span>
-          <h2>Conversemos sobre Lumora</h2>
-          <p>¿Quieres conocer más sobre Lumora o Lumora para Médicos? Escríbenos y conoce las dos experiencias de nuestro ecosistema de salud.</p>
+          <span class="eyebrow">Descarga para Android</span>
+          <h2>Elige tu experiencia Lumora</h2>
+          <p>Instala la aplicación para pacientes y cuidadores o la aplicación para personal clínico. Ambas se descargan como archivos APK.</p>
           <p class="brand-slogan brand-slogan--left">Lumora, iluminando el camino hacia una mejor salud.</p>
-          <button class="button button--download" type="button" disabled title="El enlace de descarga estará disponible próximamente">Descargar próximamente</button>
+          <div class="button-row" aria-label="Descargas de aplicaciones Lumora">
+            <a class="button" href="${LUMORA_APK_URL}" download>Descargar Lumora</a>
+            <a class="button button--outline" href="${HEALTH_STAFF_APK_URL}" download>Descargar Lumora Médicos</a>
+          </div>
         </div>
         <div class="contact-card">
           <h2>Escríbenos</h2>
