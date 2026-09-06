@@ -85,14 +85,24 @@ export default function TabsLayout() {
   const role = usePatientContextStore(
     (state) => state.role,
   );
+  const shellStatus = usePatientContextStore(
+    (state) => state.status,
+  );
+  const activePatientId = usePatientContextStore(
+    (state) => state.activePatient?.patientId ?? null,
+  );
 
   useEffect(() => {
-    if (role === 'caregiver') {
+    if (
+      role === 'caregiver' &&
+      shellStatus === 'ready' &&
+      activePatientId !== null
+    ) {
       void startTour(CAREGIVER_NAVIGATION_TOUR_STEPS, {
         tourId: 'caregiver-navigation-tour',
       });
     }
-  }, [role, startTour]);
+  }, [activePatientId, role, shellStatus, startTour]);
 
   const healthLabel =
     role === 'caregiver'
@@ -101,6 +111,11 @@ export default function TabsLayout() {
 
   return (
     <Tabs
+      initialRouteName={
+        role === 'caregiver' && shellStatus === 'needs-patient'
+          ? 'profile'
+          : 'index'
+      }
       screenOptions={{
         headerShown: true,
 

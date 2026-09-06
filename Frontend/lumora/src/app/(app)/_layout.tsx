@@ -20,13 +20,7 @@ import {
   usePatientContextStore,
 } from '@/features/shell/store/patient-context-store';
 
-export default function ProtectedAppLayout() {
-  const authStatus =
-    useAuthStore(
-      (state) =>
-        state.status,
-    );
-
+function ProtectedRoutes() {
   const shellStatus =
     usePatientContextStore(
       (state) =>
@@ -35,17 +29,6 @@ export default function ProtectedAppLayout() {
 
   const pathname =
     usePathname();
-
-  if (
-    authStatus ===
-    'unauthenticated'
-  ) {
-    return (
-      <Redirect
-        href="/(auth)/login"
-      />
-    );
-  }
 
   /**
    * B14: una cuenta Paciente + Cuidador debe escoger explícitamente
@@ -89,12 +72,35 @@ export default function ProtectedAppLayout() {
   }
 
   return (
-    <ShellBootstrap>
-      <Stack
-        screenOptions={{
-          headerShown: false,
-        }}
+    <Stack
+      screenOptions={{
+        headerShown: false,
+      }}
+    />
+  );
+}
+
+export default function ProtectedAppLayout() {
+  const authStatus =
+    useAuthStore(
+      (state) =>
+        state.status,
+    );
+
+  if (
+    authStatus ===
+    'unauthenticated'
+  ) {
+    return (
+      <Redirect
+        href="/(auth)/login"
       />
+    );
+  }
+
+  return (
+    <ShellBootstrap>
+      <ProtectedRoutes />
     </ShellBootstrap>
   );
 }
