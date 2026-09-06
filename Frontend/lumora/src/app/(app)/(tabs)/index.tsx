@@ -301,7 +301,7 @@ function PatientHome({
   scrollRef: RefObject<ScrollView | null>;
   getCurrentScrollOffset: () => number;
 }) {
-  const { startTour } = useTourPersistence();
+  const { startTour, endTour } = useTourPersistence();
 
   useEffect(() => {
     // scrollRef es necesario para que el tour desplace la pantalla cuando
@@ -322,7 +322,16 @@ function PatientHome({
     );
 
     startTour(steps, { tourId: 'home-tour' });
-  }, [getCurrentScrollOffset, startTour, scrollRef]);
+
+    // Sin esto, un tour activo cuando la pantalla se desmonta (logout,
+    // sesión expirada -> redirect a login) se queda "vivo" en el contexto
+    // global de TourGuideProvider -- el overlay vive en el root layout, por
+    // encima de TODO el Stack, así que sigue mostrando el tooltip encima de
+    // login o cualquier otra pantalla hasta que el usuario lo cierre.
+    return () => {
+      endTour();
+    };
+  }, [endTour, getCurrentScrollOffset, startTour, scrollRef]);
 
   return (
     <View className="gap-5 px-4 py-5">

@@ -27,7 +27,7 @@ jest.mock('@wrack/react-native-tour-guide', () => {
   return {
     TourTarget: ({ children }: { id: string; children: React.ReactNode }) =>
       React.createElement(React.Fragment, null, children),
-    useTourPersistence: () => ({ startTour: mockStartTour }),
+    useTourPersistence: () => ({ startTour: mockStartTour, endTour: jest.fn() }),
   };
 });
 jest.mock('@/src/shared/components/AppTopBar', () => ({ AppTopBar: () => null }));
