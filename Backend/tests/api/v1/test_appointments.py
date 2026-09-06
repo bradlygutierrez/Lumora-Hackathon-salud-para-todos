@@ -231,6 +231,21 @@ async def test_patient_create_is_own_only_and_status_is_server_controlled(client
 
 
 @pytest.mark.asyncio
+async def test_patient_cannot_create_an_appointment_in_the_past(client, session_factory):
+    ctx = await seed(session_factory)
+    start = datetime.now(timezone.utc) - timedelta(hours=2)
+
+    response = await client.post(
+        "/api/v1/citas",
+        json=payload(ctx, start),
+        headers=headers(ctx["patient_a_user"]),
+    )
+
+    assert response.status_code == 409
+    assert "pasado" in response.json()["error"]["message"].lower()
+
+
+@pytest.mark.asyncio
 async def test_caregiver_operates_only_on_active_authorized_patient(client, session_factory):
     ctx = await seed(session_factory)
     start = datetime.now(timezone.utc) + timedelta(days=1)

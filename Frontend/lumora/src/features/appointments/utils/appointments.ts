@@ -245,6 +245,16 @@ export function isPastDateKey(
   );
 }
 
+export function isFutureAppointmentStart(
+  value: string,
+  now = new Date(),
+): boolean {
+  return (
+    new Date(value).getTime() >
+    now.getTime()
+  );
+}
+
 export function isPhysicalAppointmentType(
   item:
     | AppointmentCatalogItem
