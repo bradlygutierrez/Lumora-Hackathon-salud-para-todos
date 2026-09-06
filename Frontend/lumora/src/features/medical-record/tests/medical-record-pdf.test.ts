@@ -1,25 +1,18 @@
-// expo-file-system y expo-sharing todavia no estan instalados en este
-// proyecto (ver package.json) -- se mockean como modulos "virtuales" para
-// poder probar la logica propia sin depender de tenerlos ya instalados.
-// Una vez instalados (`npx expo install expo-file-system expo-sharing`)
-// estos mocks siguen funcionando igual.
-jest.mock(
-  'expo-file-system/legacy',
-  () => ({
-    documentDirectory: 'file:///docs/',
-    downloadAsync: jest.fn(),
-  }),
-  { virtual: true },
-);
+// expo-file-system y expo-sharing ya estan instalados (ver package.json),
+// asi que se mockean como modulos reales -- no { virtual: true }. Marcarlos
+// virtuales para un paquete que SI existe en disco es lo que causaba una
+// falla intermitente aca: segun el orden (no determinístico) en que jest
+// ejecutaba los archivos de test, a veces ganaba el mock nativo global de
+// jest-expo (documentDirectory: '') en vez de este mock explicito.
+jest.mock('expo-file-system/legacy', () => ({
+  documentDirectory: 'file:///docs/',
+  downloadAsync: jest.fn(),
+}));
 
-jest.mock(
-  'expo-sharing',
-  () => ({
-    isAvailableAsync: jest.fn(),
-    shareAsync: jest.fn(),
-  }),
-  { virtual: true },
-);
+jest.mock('expo-sharing', () => ({
+  isAvailableAsync: jest.fn(),
+  shareAsync: jest.fn(),
+}));
 
 jest.mock('@/shared/api/secure-session', () => ({
   secureSession: {
