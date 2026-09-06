@@ -1,6 +1,7 @@
 import { render } from '@testing-library/react-native';
 
 const mockStartTour = jest.fn();
+const mockScreenProps = jest.fn();
 
 jest.mock('@expo/vector-icons', () => ({ Ionicons: () => null }));
 jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
@@ -14,7 +15,10 @@ jest.mock('@wrack/react-native-tour-guide', () => {
 });
 jest.mock('@/shared/components/AppHeader', () => ({ AppHeader: () => null }));
 jest.mock('@/shared/components/Screen', () => ({
-  Screen: ({ children }: { children: React.ReactNode }) => children,
+  Screen: ({ children, ...props }: { children: React.ReactNode }) => {
+    mockScreenProps(props);
+    return children;
+  },
 }));
 jest.mock('@/shared/components/SurfaceCard', () => ({
   SurfaceCard: ({ children }: { children: React.ReactNode }) => {
@@ -76,12 +80,29 @@ describe('Home dashboard tour', () => {
     // Regresión: sin scrollRef, el tour no desplaza la pantalla hasta un
     // paso que está más abajo del viewport inicial (ej. "Acciones
     // rápidas"), dejando el tooltip desfasado de la sección real.
-    expect(config.scrollRef).toBeDefined();
+    const quickActionsStep = steps.find(
+      (step: { id: string }) => step.id === 'quick-actions',
+    );
+    const healthTabStep = steps.find(
+      (step: { id: string }) => step.id === 'navigation-health',
+    );
+    expect(quickActionsStep.scrollToTarget.scrollRef).toBeDefined();
+    expect(healthTabStep.scrollToTarget).toBeUndefined();
+
+    const screenProps = mockScreenProps.mock.calls[0][0];
+    screenProps.scrollProps.onScroll({
+      nativeEvent: { contentOffset: { y: 240 } },
+    });
+    expect(quickActionsStep.scrollToTarget.getCurrentScrollOffset()).toBe(240);
     expect(steps.map((step: { targetId: string }) => step.targetId)).toEqual([
       'tour-next-dose',
       'tour-next-appointment',
       'tour-health-summary',
       'tour-quick-actions',
+      'tour-tab-health',
+      'tour-tab-medication',
+      'tour-tab-appointments',
+      'tour-tab-profile',
     ]);
   });
 

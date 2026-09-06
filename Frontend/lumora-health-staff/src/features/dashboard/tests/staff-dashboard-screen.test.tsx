@@ -58,6 +58,7 @@ describe('StaffDashboardScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseAuthSession.mockReturnValue({
+      permissions: new Set(['clinica:manage']),
       session: { user: { username: 'doctor', persona: { nombres: 'Ana Mora' } } },
     });
     mockUseProfessionalAgenda.mockReturnValue({ data: [], isLoading: false, isError: false });
@@ -126,7 +127,7 @@ describe('StaffDashboardScreen', () => {
   });
 
   it('starts the dashboard tour with the expected steps', async () => {
-    await renderScreen();
+    const screen = await renderScreen();
 
     expect(mockStartTour).toHaveBeenCalledTimes(1);
     const [steps, config] = mockStartTour.mock.calls[0];
@@ -134,11 +135,40 @@ describe('StaffDashboardScreen', () => {
     // Regresión: sin scrollRef, el tour no desplaza la pantalla hasta un
     // paso que está más abajo del viewport inicial (ej. "Próximas
     // citas"), dejando el tooltip desfasado de la sección real.
-    expect(config.scrollRef).toBeDefined();
+    const agendaStep = steps.find(
+      (step: { id: string }) => step.id === 'agenda',
+    );
+    const patientsTabStep = steps.find(
+      (step: { id: string }) => step.id === 'navigation-patients',
+    );
+    expect(agendaStep.scrollToTarget.scrollRef).toBeDefined();
+    expect(patientsTabStep.scrollToTarget).toBeUndefined();
+    fireEvent.scroll(screen.getByTestId('staff-dashboard-scroll'), {
+      nativeEvent: { contentOffset: { y: 240 } },
+    });
+    expect(agendaStep.scrollToTarget.getCurrentScrollOffset()).toBe(240);
     expect(steps.map((step: { targetId: string }) => step.targetId)).toEqual([
       'tour-stats',
       'tour-quick-access',
       'tour-agenda',
+      'tour-tab-patients',
+      'tour-tab-agenda',
+      'tour-tab-directory',
+      'tour-tab-profile',
     ]);
+  });
+
+  it('only includes administration in the tour for authorized staff', async () => {
+    mockUseAuthSession.mockReturnValue({
+      permissions: new Set(['clinica:manage', 'rbac:manage']),
+      session: { user: { username: 'admin', persona: { nombres: 'Ana Mora' } } },
+    });
+
+    await renderScreen();
+
+    const [steps] = mockStartTour.mock.calls[0];
+    expect(steps.map((step: { targetId: string }) => step.targetId)).toContain(
+      'tour-tab-administration',
+    );
   });
 });

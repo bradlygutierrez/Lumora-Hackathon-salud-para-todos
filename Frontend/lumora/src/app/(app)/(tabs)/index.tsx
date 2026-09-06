@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useRef,
   type RefObject,
@@ -9,6 +10,8 @@ import {
   ScrollView,
   Text,
   View,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
 } from 'react-native';
 
 import {
@@ -104,6 +107,30 @@ const HOME_TOUR_STEPS = [
     title: 'Acciones rápidas',
     description: 'Desde acá podés registrar una medición, ver tu medicación o tu próxima cita en un toque.',
   },
+  {
+    id: 'navigation-health',
+    targetId: 'tour-tab-health',
+    title: 'Mi salud',
+    description: 'Entrá acá para consultar tus indicadores, alertas y expediente.',
+  },
+  {
+    id: 'navigation-medication',
+    targetId: 'tour-tab-medication',
+    title: 'Medicación',
+    description: 'Revisá tus medicamentos, próximas dosis y recordatorios.',
+  },
+  {
+    id: 'navigation-appointments',
+    targetId: 'tour-tab-appointments',
+    title: 'Citas',
+    description: 'Consultá tus citas y solicitá una nueva cuando la necesités.',
+  },
+  {
+    id: 'navigation-profile',
+    targetId: 'tour-tab-profile',
+    title: 'Perfil',
+    description: 'Actualizá tu información y administrá familiares, permisos y seguridad.',
+  },
 ];
 
 /**
@@ -123,6 +150,17 @@ export default function HomeRoute() {
   );
 
   const scrollRef = useRef<ScrollView>(null);
+  const scrollOffsetRef = useRef(0);
+  const onScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      scrollOffsetRef.current = event.nativeEvent.contentOffset.y;
+    },
+    [],
+  );
+  const getCurrentScrollOffset = useCallback(
+    () => scrollOffsetRef.current,
+    [],
+  );
 
   const patientName = activePatient?.displayName ?? 'Paciente';
 
@@ -215,6 +253,7 @@ export default function HomeRoute() {
       scrollable
       contentClassName="px-0 py-0"
       scrollRef={scrollRef}
+      scrollProps={{ onScroll, scrollEventThrottle: 16 }}
     >
       {role !== 'caregiver' ? (
         <AppHeader
@@ -240,6 +279,7 @@ export default function HomeRoute() {
           metrics={metrics}
           nextAppointment={nextAppointment}
           scrollRef={scrollRef}
+          getCurrentScrollOffset={getCurrentScrollOffset}
         />
       )}
     </Screen>
@@ -252,12 +292,14 @@ function PatientHome({
   metrics,
   nextAppointment,
   scrollRef,
+  getCurrentScrollOffset,
 }: {
   patientName: string;
   data: HomeHealthDashboardData;
   metrics: HealthMetric[];
   nextAppointment: AppointmentResponse | null;
   scrollRef: RefObject<ScrollView | null>;
+  getCurrentScrollOffset: () => number;
 }) {
   const { startTour } = useTourPersistence();
 
@@ -267,8 +309,20 @@ function PatientHome({
     // viewport inicial -- sin esto, el tooltip se posiciona igual pero la
     // pantalla nunca se desplaza para mostrar la sección real, quedando
     // desfasado.
-    startTour(HOME_TOUR_STEPS, { tourId: 'home-tour', scrollRef });
-  }, [startTour, scrollRef]);
+    const steps = HOME_TOUR_STEPS.map((step) =>
+      step.targetId.startsWith('tour-tab-')
+        ? step
+        : {
+            ...step,
+            scrollToTarget: {
+              scrollRef,
+              getCurrentScrollOffset,
+            },
+          },
+    );
+
+    startTour(steps, { tourId: 'home-tour' });
+  }, [getCurrentScrollOffset, startTour, scrollRef]);
 
   return (
     <View className="gap-5 px-4 py-5">

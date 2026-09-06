@@ -7,6 +7,7 @@ import {
   ScrollView,
   StyleSheet,
   View,
+  type ScrollViewProps,
 } from 'react-native';
 
 import {
@@ -68,6 +69,12 @@ type ScreenProps = PropsWithChildren<{
    * viewport inicial.
    */
   scrollRef?: RefObject<ScrollView | null>;
+
+  /** Eventos necesarios para integrar el ScrollView con consumidores externos. */
+  scrollProps?: Pick<
+    ScrollViewProps,
+    'onMomentumScrollEnd' | 'onScroll' | 'scrollEventThrottle'
+  >;
 }>;
 
 /**
@@ -97,6 +104,7 @@ export function Screen({
   refreshable = scrollable,
   tint = 'neutral',
   scrollRef,
+  scrollProps,
 }: ScreenProps) {
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
@@ -114,6 +122,7 @@ export function Screen({
    */
   const content = scrollable ? (
     <ScrollView
+      {...scrollProps}
       ref={scrollRef}
       className="flex-1"
       contentContainerStyle={{
