@@ -9,6 +9,7 @@ import type {
 } from '@/features/appointments/types/appointments.types';
 import {
   formatAppointmentTime,
+  isFutureAppointmentStart,
 } from '@/features/appointments/utils/appointments';
 
 export function TimeSlotGrid({
@@ -47,6 +48,11 @@ export function TimeSlotGrid({
           const selected =
             slot.inicio ===
             selectedStart;
+          const available =
+            slot.disponible &&
+            isFutureAppointmentStart(
+              slot.inicio,
+            );
 
           return (
             <Pressable
@@ -55,10 +61,10 @@ export function TimeSlotGrid({
               accessibilityState={{
                 selected,
                 disabled:
-                  !slot.disponible,
+                  !available,
               }}
               disabled={
-                !slot.disponible
+                !available
               }
               onPress={() =>
                 onSelect(
@@ -74,11 +80,11 @@ export function TimeSlotGrid({
                 backgroundColor:
                   selected
                     ? '#E7F4F4'
-                    : slot.disponible
+                    : available
                       ? '#FFFFFF'
                       : '#EDF0F2',
                 opacity:
-                  slot.disponible
+                  available
                     ? 1
                     : 0.5,
               }}
